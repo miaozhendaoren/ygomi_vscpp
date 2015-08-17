@@ -1,0 +1,3 @@
+./resource/MKS360_20130722_003_Uncompressed.avi ./resource/gps_003.txt
+./resource/MKS360_20130722_004_Uncompressed.avi ./resource/gps_004.txt
+./resource/MKS360_20130722_005_Uncompressed.avi ./resource/gps_005.txt

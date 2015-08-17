@@ -1,0 +1,39 @@
+/*****************************************************************************/
+* roadDB demo Software Release Notes
+/*****************************************************************************/
+
+Release 2015-04-16
+ 
+** New Features&Improvements
+    In vehicle
+    * Add a database synchronization step when vehicle starts up
+    * Add angle check when comparing two furnitures
+    
+    Server
+    * Add location and detection statistics in furniture class in server side
+    * Average furniture location in server side before sending to vehicle
+    * Add a database synchronization step when vehicle starts up
+
+** Fixed Defects:
+    * [ND-14] Some furniture could not be got by getLookAheadFurnitures function
+    * [ND-16] Fix bugs in furniture diff detect thread in vehicle
+    * [ND-12] Vehicle send furniture update message after a certain distance after detection
+    * [ND-6] Update reliability in server side, vehicle just apply the update message
+
+** Supported Features:      
+    * In vehicle
+        - Traffic sign detection and recognition
+        - Detect the difference between detected traffic sign and database in vehicle
+        - Generate message containing the difference and upload to server
+        - Receive and parse update message from server
+        - Update database in vehicle accordingly
+        - database visualization
+        - look ahead visualization
+        
+    * Server
+        - Receive and parse difference message from vehicle
+        - Update database in server according to new and historical information
+        - Generate update message and send to vehicle
+        - database visualization
+
+** Known Issues:

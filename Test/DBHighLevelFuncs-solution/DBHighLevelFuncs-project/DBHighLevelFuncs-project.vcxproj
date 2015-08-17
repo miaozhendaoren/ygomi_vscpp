@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{D38EE4F7-FA6A-4C54-9D9D-1E996B89445C}</ProjectGuid>
+    <RootNamespace>DBHighLevelFuncsproject</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\common\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\common\src\Difference.cpp" />
+    <ClCompile Include="..\..\common\src\DifferenceLane.cpp" />
+    <ClCompile Include="..\..\common\src\DifferencePaint.cpp" />
+    <ClCompile Include="..\..\common\src\DifferenceSign.cpp" />
+    <ClCompile Include="..\..\common\src\Lane.cpp" />
+    <ClCompile Include="..\..\common\src\Line.cpp" />
+    <ClCompile Include="..\..\common\src\Paint.cpp" />
+    <ClCompile Include="..\..\common\src\Point3D.cpp" />
+    <ClCompile Include="..\..\common\src\Sign.cpp" />
+    <ClCompile Include="..\..\common\src\Surface.cpp" />
+    <ClCompile Include="..\..\common\src\SurfaceBoundary.cpp" />
+    <ClCompile Include="DataBaseManager.cpp" />
+    <ClCompile Include="DataBaseMathBase.cpp" />
+    <ClCompile Include="DataBaseMathToolkit.cpp" />
+    <ClCompile Include="dbtools.cpp" />
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\common\include\Difference.h" />
+    <ClInclude Include="..\..\common\include\DifferenceLane.h" />
+    <ClInclude Include="..\..\common\include\DifferencePaint.h" />
+    <ClInclude Include="..\..\common\include\DifferenceSign.h" />
+    <ClInclude Include="..\..\common\include\Lane.h" />
+    <ClInclude Include="..\..\common\include\Line.h" />
+    <ClInclude Include="..\..\common\include\Paint.h" />
+    <ClInclude Include="..\..\common\include\Point3D.h" />
+    <ClInclude Include="..\..\common\include\Sign.h" />
+    <ClInclude Include="..\..\common\include\Surface.h" />
+    <ClInclude Include="..\..\common\include\SurfaceBoundary.h" />
+    <ClInclude Include="..\..\common\include\typeDefine.h" />
+    <ClInclude Include="DataBaseManager.h" />
+    <ClInclude Include="DataBaseMathBase.h" />
+    <ClInclude Include="DataBaseMathToolkit.h" />
+    <ClInclude Include="dbtools.h" />
+    <ClInclude Include="log.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

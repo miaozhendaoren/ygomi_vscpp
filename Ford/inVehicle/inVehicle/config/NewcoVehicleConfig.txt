@@ -1,0 +1,7 @@
+serverIP:127.0.0.1
+serverPort:6000
+clientPort:6001
+vehicleId:21
+emulatorIP:10.69.2.11
+emulatorPort:6666
+gpsPort:7777

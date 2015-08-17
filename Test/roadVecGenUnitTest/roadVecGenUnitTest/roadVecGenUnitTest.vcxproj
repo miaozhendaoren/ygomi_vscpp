@@ -1,0 +1,106 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{1C3208DA-89F2-40BD-A649-7161CAB53C01}</ProjectGuid>
+    <RootNamespace>roadVecGenUnitTest</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(ProjectDir)\..\..\..\Ford\server\server\include;$(ProjectDir)\..\..\..\Ford\server\server\sources\database\include;$(ProjectDir)\..\..\..\Ford\server\server\sources\interface\include;$(ProjectDir)\..\..\..\Ford\server\server\sources\log\include;$(ProjectDir)\..\..\..\Ford\server\server\sources\roadVecGen\include;$(ProjectDir)\..\..\..\Tools\libicp\src;$(ProjectDir)\..\..\..\Tools;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>libicp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PreLinkEvent>
+      <Command>if not exist "$(ProjectDir)\lib" md "$(ProjectDir)\lib"
+copy "$(ProjectDir)\..\..\..\Tools\libicp\Debug\libicp.lib" "$(ProjectDir)\lib\libicp.lib"</Command>
+    </PreLinkEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <PreLinkEvent>
+      <Command>if not exist "$(ProjectDir)\lib" md "$(ProjectDir)\lib"
+copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib\libicp.lib"</Command>
+    </PreLinkEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Ford\server\server\sources\database\include\database.h" />
+    <ClInclude Include="..\..\..\Ford\server\server\sources\database\include\databaseDef.h" />
+    <ClInclude Include="..\..\..\Ford\server\server\sources\database\include\databaseServer.h" />
+    <ClInclude Include="..\..\..\Ford\server\server\sources\interface\include\laneQueueClass.h" />
+    <ClInclude Include="..\..\..\Ford\server\server\sources\interface\include\messageProcessClass.h" />
+    <ClInclude Include="..\..\..\Ford\server\server\sources\interface\include\messageQueueClass.h" />
+    <ClInclude Include="..\..\..\Ford\server\server\sources\log\include\LogInfo.h" />
+    <ClInclude Include="..\..\..\Ford\server\server\sources\roadVecGen\include\roadSideVectorGen.h" />
+    <ClInclude Include="..\..\..\Ford\server\server\sources\roadVecGen\include\roadVectorGen.h" />
+    <ClInclude Include="..\..\..\Ford\server\server\sources\roadVecGen\include\roadVectorGenDashAlign.h" />
+    <ClInclude Include="..\..\..\Ford\server\server\sources\roadVecGen\include\roadVectorGenPushAllVec.h" />
+    <ClInclude Include="..\..\..\Ford\server\server\sources\roadVecGen\include\roadVectorGenSimpleAlign.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\Ford\server\server\sources\database\src\database.cpp" />
+    <ClCompile Include="..\..\..\Ford\server\server\sources\database\src\databaseMath.cpp" />
+    <ClCompile Include="..\..\..\Ford\server\server\sources\database\src\databaseServer.cpp" />
+    <ClCompile Include="..\..\..\Ford\server\server\sources\interface\src\laneQueueClass.cpp" />
+    <ClCompile Include="..\..\..\Ford\server\server\sources\interface\src\messageProcessClass.cpp" />
+    <ClCompile Include="..\..\..\Ford\server\server\sources\interface\src\messageQueueClass.cpp" />
+    <ClCompile Include="..\..\..\Ford\server\server\sources\log\src\LogInfo.cpp" />
+    <ClCompile Include="..\..\..\Ford\server\server\sources\roadVecGen\src\roadSideVectorGen.cpp" />
+    <ClCompile Include="..\..\..\Ford\server\server\sources\roadVecGen\src\roadVectorGen.cpp" />
+    <ClCompile Include="..\..\..\Ford\server\server\sources\roadVecGen\src\roadVectorGenDashAlign.cpp" />
+    <ClCompile Include="..\..\..\Ford\server\server\sources\roadVecGen\src\roadVectorGenPushAllVec.cpp" />
+    <ClCompile Include="..\..\..\Ford\server\server\sources\roadVecGen\src\roadVectorGenSimpleAlign.cpp" />
+    <ClCompile Include="roadVectorGenUnitTest.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

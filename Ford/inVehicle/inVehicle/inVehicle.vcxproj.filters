@@ -1,0 +1,219 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\database">
+      <UniqueIdentifier>{dbcc0f62-f7ab-4b62-8cb9-f8938e075756}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\detectImage">
+      <UniqueIdentifier>{7436b98f-20a2-445f-af9c-a8ceaf9efa7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\frameWork">
+      <UniqueIdentifier>{94223aba-40fc-4d47-bf52-4e02b118bd72}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\interface">
+      <UniqueIdentifier>{34ac3fa3-e165-4030-b970-eb232248833c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\log">
+      <UniqueIdentifier>{e694e4b8-a699-4580-a0d8-526910ab69b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\visualization">
+      <UniqueIdentifier>{16a54710-339c-45b2-aaa0-06dbbb0c50e1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\database">
+      <UniqueIdentifier>{c60bda83-e1d5-4125-8c9b-9b2b2bf3b312}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\detectImage">
+      <UniqueIdentifier>{71fe9636-be0d-4879-871c-70a540eaffda}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\frameWork">
+      <UniqueIdentifier>{7bd7567e-5aa1-451a-9971-838fcc9e5e22}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\interface">
+      <UniqueIdentifier>{faa5a7b0-6f1a-4e96-be6f-44cecdd7455c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\log">
+      <UniqueIdentifier>{abea587c-e8f2-4404-95cb-b764e4320bd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\visualization">
+      <UniqueIdentifier>{905a82a9-70de-4790-9752-157a632f9808}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\include">
+      <UniqueIdentifier>{824bb412-23d6-4ae7-8a27-733bdc978fbe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\imageBuffer">
+      <UniqueIdentifier>{b73d2b90-b678-48e6-b7e6-3209a0466759}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\imageBuffer">
+      <UniqueIdentifier>{2a36ea0b-f23a-43f1-891f-986ef8646386}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="sources\database\src\database.cpp">
+      <Filter>Source Files\database</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\database\src\databaseMath.cpp">
+      <Filter>Source Files\database</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\detectImage\src\detection.cpp">
+      <Filter>Source Files\detectImage</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\detectImage\src\svm.cpp">
+      <Filter>Source Files\detectImage</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\frameWork\src\AppInitCommon.cpp">
+      <Filter>Source Files\frameWork</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\frameWork\src\main.cpp">
+      <Filter>Source Files\frameWork</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\frameWork\src\Thread_DBUpdate.cpp">
+      <Filter>Source Files\frameWork</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\frameWork\src\Thread_DiffDetRpt.cpp">
+      <Filter>Source Files\frameWork</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\frameWork\src\Thread_VisualizePreProc.cpp">
+      <Filter>Source Files\frameWork</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\interface\src\messageProcessClass.cpp">
+      <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\log\src\LogInfo.cpp">
+      <Filter>Source Files\log</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\visualization\src\Loader3DS.cpp">
+      <Filter>Source Files\visualization</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\visualization\src\Visualization.cpp">
+      <Filter>Source Files\visualization</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\visualization\src\VisualizeControl.cpp">
+      <Filter>Source Files\visualization</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\database\src\databaseInVehicle.cpp">
+      <Filter>Source Files\database</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\interface\src\NEMA_GPGGA_Proc.cpp">
+      <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\interface\src\saveLinePointInSafe.cpp">
+      <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\detectImage\src\lineDetection.cpp">
+      <Filter>Source Files\detectImage</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\imageBuffer\src\ImageBuffer.cpp">
+      <Filter>Source Files\imageBuffer</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\frameWork\src\Thread_ImageSensorCollector.cpp">
+      <Filter>Source Files\frameWork</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\detectImage\src\roadScan.cpp">
+      <Filter>Source Files\detectImage</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\detectImage\src\utils.cpp">
+      <Filter>Source Files\detectImage</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\detectImage\src\detection_blackWhite.cpp">
+      <Filter>Source Files\detectImage</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\detectImage\src\detection_colored.cpp">
+      <Filter>Source Files\detectImage</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\imageBuffer\src\CacheBuffer.cpp">
+      <Filter>Source Files\imageBuffer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="sources\visualization\include\3dsId.h">
+      <Filter>Header Files\visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\visualization\include\Loader3DS.h">
+      <Filter>Header Files\visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\visualization\include\Model3DS.h">
+      <Filter>Header Files\visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\visualization\include\MyModel.h">
+      <Filter>Header Files\visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\visualization\include\Visualization.h">
+      <Filter>Header Files\visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\visualization\include\VisualizeControl.h">
+      <Filter>Header Files\visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\log\include\LogInfo.h">
+      <Filter>Header Files\log</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\interface\include\NEMA_GPGGA_Proc.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\frameWork\include\AppInitCommon.h">
+      <Filter>Header Files\frameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\frameWork\include\Signal_Thread_Sync.h">
+      <Filter>Header Files\frameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\frameWork\include\Thread_DBUpdate.h">
+      <Filter>Header Files\frameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\frameWork\include\Thread_DiffDetRpt.h">
+      <Filter>Header Files\frameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\frameWork\include\Thread_RecvSensors.h">
+      <Filter>Header Files\frameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\frameWork\include\Thread_VisualizePreProc.h">
+      <Filter>Header Files\frameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\detectImage\include\Detection.h">
+      <Filter>Header Files\detectImage</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\detectImage\include\svm.h">
+      <Filter>Header Files\detectImage</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\database\include\database.h">
+      <Filter>Header Files\database</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\database\include\databaseDef.h">
+      <Filter>Header Files\database</Filter>
+    </ClInclude>
+    <ClInclude Include="include\statisticsFurInfo.h">
+      <Filter>Header Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\typeDefine.h">
+      <Filter>Header Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\interface\include\messageProcessClass.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\interface\include\saveLinePointInSafe.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\imageBuffer\include\ImageBuffer.h">
+      <Filter>Header Files\imageBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\frameWork\include\Thread_ImageSensorCollector.h">
+      <Filter>Header Files\frameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\imageBuffer\include\CacheBuffer.h">
+      <Filter>Header Files\imageBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="include\configure.h">
+      <Filter>Header Files\include</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

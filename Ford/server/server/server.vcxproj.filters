@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\database">
+      <UniqueIdentifier>{d69cd9cc-001e-4931-b93e-79c6d4ccf466}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\framework">
+      <UniqueIdentifier>{05bc5417-0256-4f99-92ad-2ac633659d90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\interface">
+      <UniqueIdentifier>{79973a29-bb50-42ad-914a-34bc831f9004}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\log">
+      <UniqueIdentifier>{b107c54b-09a0-43ee-bf35-fe2ad55a09fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\visualization">
+      <UniqueIdentifier>{975ce6f1-b6dd-4a51-93bb-9b52afb47b9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\include">
+      <UniqueIdentifier>{eb46a6fa-ca96-422c-a560-789a3ac1e6d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\database">
+      <UniqueIdentifier>{50a75634-b177-43f8-8578-b84e1e2717fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\framework">
+      <UniqueIdentifier>{21a8c1c7-53b6-49a4-8608-a4fb8c93ac77}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\interface">
+      <UniqueIdentifier>{b6ec571c-2db5-4a6b-8f07-0140118316b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\log">
+      <UniqueIdentifier>{3c6ebe92-4d0b-41df-9ec1-8688b2708907}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\visualization">
+      <UniqueIdentifier>{9624661b-cf25-4023-8487-6b41773fbe45}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\roadVecGen">
+      <UniqueIdentifier>{47b6dad8-84c0-4e3e-8ea3-818bb743cb38}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="sources\database\src\database.cpp">
+      <Filter>Source Files\database</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\database\src\databaseMath.cpp">
+      <Filter>Source Files\database</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\framework\src\AppInitCommon.cpp">
+      <Filter>Source Files\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\framework\src\main.cpp">
+      <Filter>Source Files\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\framework\src\Thread_Master_DBAccess.cpp">
+      <Filter>Source Files\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\framework\src\Thread_Receive_Message.cpp">
+      <Filter>Source Files\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\framework\src\Thread_Update_Message.cpp">
+      <Filter>Source Files\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\framework\src\Thread_VisualizePreProc.cpp">
+      <Filter>Source Files\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\interface\src\messageProcessClass.cpp">
+      <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\interface\src\messageQueueClass.cpp">
+      <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\log\src\LogInfo.cpp">
+      <Filter>Source Files\log</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\visualization\src\Loader3DS.cpp">
+      <Filter>Source Files\visualization</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\visualization\src\Visualization.cpp">
+      <Filter>Source Files\visualization</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\visualization\src\VisualizeControl.cpp">
+      <Filter>Source Files\visualization</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\database\src\databaseServer.cpp">
+      <Filter>Source Files\database</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\interface\src\laneQueueClass.cpp">
+      <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\roadVecGen\src\roadVectorGen.cpp">
+      <Filter>Source Files\roadVecGen</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\roadVecGen\src\roadVectorGenPushAllVec.cpp">
+      <Filter>Source Files\roadVecGen</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\roadVecGen\src\roadSideVectorGen.cpp">
+      <Filter>Source Files\roadVecGen</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\roadVecGen\src\roadVectorGenSimpleAlign.cpp">
+      <Filter>Source Files\roadVecGen</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\roadVecGen\src\roadVectorGenDashAlign.cpp">
+      <Filter>Source Files\roadVecGen</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

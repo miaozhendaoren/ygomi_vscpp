@@ -1,0 +1,5 @@
+serverIP:127.0.0.1
+serverPort:6000
+clientPort:6001
+gpsPort:7777
+vehicleId:21

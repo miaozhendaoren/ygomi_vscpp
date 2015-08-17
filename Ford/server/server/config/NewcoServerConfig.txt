@@ -1,0 +1,2 @@
+serverIPAndPort:127.0.0.1 6000
+clientIPAndPort:127.0.0.1 6001
