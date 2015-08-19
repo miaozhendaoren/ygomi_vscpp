@@ -44,8 +44,6 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -72,6 +70,7 @@
     <ClCompile Include="..\..\..\..\Ford\server\server\sources\log\src\LogInfo.cpp" />
     <ClCompile Include="dbSectionProc_main.cpp" />
     <ClCompile Include="source\polynomialFit.cpp" />
+    <ClCompile Include="source\RoadVecGen.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\database\include\database.h" />
@@ -80,6 +79,7 @@
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\log\include\LogInfo.h" />
     <ClInclude Include="include\apiDataStruct.h" />
     <ClInclude Include="include\polynomialFit.h" />
+    <ClInclude Include="include\RoadVecGen.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

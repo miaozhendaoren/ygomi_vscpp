@@ -36,6 +36,7 @@ using namespace cv;
 
 
 #define MAX_DEGREE            19
+#define DEFAULT_DEGREE         6
 #define FIT_VARIANCE 0.000000001
 
 

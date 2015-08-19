@@ -19,7 +19,33 @@
 #ifndef __API_DATA_STRUCT__
 #define __API_DATA_STRUCT__
 
-#include <database.h>
+#include <stdio.h>
+#include <windows.h>
+#include <math.h>
+#include <opencv2\opencv.hpp>
+#include "database.h"
+#include "databaseDef.h"
+#include "databaseServer.h"
+
+using std::list;
+using std::vector;
+
+using namespace ns_database;
+using namespace cv;
+
+struct Scale
+{
+    float minXVal;
+    float maxXVal;
+    float minYVal;
+    float maxYVal;
+};
+
+struct Offset
+{
+    float X;
+    float Y;
+};
 
 typedef struct _reportSectionData
 {

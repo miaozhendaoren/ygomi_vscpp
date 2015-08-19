@@ -33,6 +33,9 @@
     <ClCompile Include="source\polynomialFit.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="source\RoadVecGen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\database\include\databaseDef.h">
@@ -51,6 +54,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\polynomialFit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RoadVecGen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
