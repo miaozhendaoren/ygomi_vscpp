@@ -69,8 +69,10 @@
     <ClCompile Include="..\..\..\..\Ford\server\server\sources\database\src\databaseServer.cpp" />
     <ClCompile Include="..\..\..\..\Ford\server\server\sources\log\src\LogInfo.cpp" />
     <ClCompile Include="dbSectionProc_main.cpp" />
+    <ClCompile Include="source\ExtractSection.cpp" />
     <ClCompile Include="source\polynomialFit.cpp" />
     <ClCompile Include="source\RoadVecGen.cpp" />
+    <ClCompile Include="source\VisualizationApis.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\database\include\database.h" />
@@ -78,8 +80,10 @@
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\database\include\databaseServer.h" />
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\log\include\LogInfo.h" />
     <ClInclude Include="include\apiDataStruct.h" />
+    <ClInclude Include="include\ExtractSection.h" />
     <ClInclude Include="include\polynomialFit.h" />
     <ClInclude Include="include\RoadVecGen.h" />
+    <ClInclude Include="include\VisualizationApis.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -113,6 +113,7 @@ namespace ns_database
         uint8  numFurniture;
         uint8  numDynamicData_used;
         uint8  numDynamicData;
+        uint8  uiLaneNum;
     };
 	 
     class furAttributes_t

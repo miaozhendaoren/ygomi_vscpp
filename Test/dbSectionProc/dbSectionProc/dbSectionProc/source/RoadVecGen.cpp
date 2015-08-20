@@ -22,6 +22,12 @@
 #include "polynomialFit.h"
 #include "RoadVecGen.h"
 
+#ifdef VISUALIZATION_ON
+#include "VisualizationApis.h"
+
+static uint32 MERGED_TIMES = 1;
+#endif
+
 using namespace std;
 
 namespace ns_database
@@ -29,6 +35,24 @@ namespace ns_database
 #define DASH_CONT_POINTS_TH 10
 #define MINDIST             10
 #define LINE_TYPE_TH        50
+#define SAMPLE_SPACE        0.05
+
+const uint32 RESAMPLE_SEC_ID[] = {1, 8, 9, 10, 11, 12, 20, 21};
+
+bool isResampleSec(uint32 segId)
+{
+    int size = sizeof(RESAMPLE_SEC_ID) / sizeof(RESAMPLE_SEC_ID[0]);
+    for (int i = 0; i < size; i++)
+    {
+        if (segId == RESAMPLE_SEC_ID[i])
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 
     CRoadVecGen::CRoadVecGen()
     {
@@ -85,7 +109,7 @@ namespace ns_database
     }
 
 
-    void CRoadVecGen::roadSectionsGen(IN  list<vector<point3D_t>>        rptData,
+    void CRoadVecGen::roadSectionsGen(IN  list<list<vector<point3D_t>>>  rptData,
                                       OUT list<list<vector<point3D_t>>> &fgData)
     {
         if (rptData.empty())
@@ -109,16 +133,16 @@ namespace ns_database
             }
         }
 
-        // section partition, input is rptData
+    // suppose output is list<reportSectionData> rptData;
+    list<reportSectionData> secData;
 
-        // suppose output is list<reportSectionData> rptData;
-        list<reportSectionData> secData;
+    // section partition, input is rptData
+    _extractSecObj.extractSections(_segConfigList, _stSecConfig, rptData, secData);
 
         list<reportSectionData>::size_type numOfRptSecs = secData.size();
 
         segAttributes_t       configSecData;
-        backgroundSectionData bgSecData;
-        foregroundSectionData fgSecData;
+        backgroundSectionData *bgSecData = nullptr;
 
         // iterate each section
         list<reportSectionData>::iterator secItor = secData.begin();
@@ -128,10 +152,12 @@ namespace ns_database
             uint32 segId = secItor->sectionId;
 
             // get section configuration and database data
-            getSegAndDbData(segId, configSecData, bgSecData);
+            getSegAndDbData(segId, configSecData, &bgSecData);
 
             // merge new data with database
             mergeSectionLane(configSecData, *secItor, bgSecData);
+
+            secItor++;
         }
 
         if (!_fgDatabaseList.empty())
@@ -210,9 +236,14 @@ namespace ns_database
         }
 
         fscanf_s(fp, "%d\n", &sectionNum);
+		
+		fscanf_s(fp, "width=%lf,overlap=%lf,minLength=%lf,maxLength=%lf,stepSize=%d,paintV=%lf\n",
+        &(_stSecConfig.dbWidth), &(_stSecConfig.dbOverlap),
+        &(_stSecConfig.dbMinLength), &(_stSecConfig.dbMaxLength),
+        &(_stSecConfig.uiStepSize), &(_stSecConfig.dbPaintV));
         while (!feof(fp))/*for(int index = 0; index < sectionNum; index++)*/
         {
-            fscanf_s(fp, "%d\n", &sectionID);
+            fscanf_s(fp, "%d,%d\n", &sectionID, &segmentElement.uiLaneNum);
             segmentElement.segId_used = 1;
             segmentElement.segId      = sectionID;
             fscanf_s(fp, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,\n",
@@ -330,7 +361,7 @@ namespace ns_database
                                         OUT vector<double>  &xLimitation)
     {
         double X0[MAX_NUM_PORT];
-        memset((uint32 *)X0, 0, MAX_NUM_PORT);
+        memset((uint32 *)X0, 0, sizeof(double) * MAX_NUM_PORT);
 
         double x0 = (sectionConfig.ports[0].lon + sectionConfig.ports[1].lon) / 2;
         double x1 = (sectionConfig.ports[2].lon + sectionConfig.ports[3].lon) / 2;
@@ -390,7 +421,7 @@ namespace ns_database
             pointZ.lon       = realZ;
             pointZ.lat       = imagZ;
             pointZ.alt       = 0;
-            pointZ.paintFlag = 0;
+            pointZ.paintFlag = sourceLine[i].paintFlag;
             pointZ.count     = 1;
 
             rotatedLine.push_back(pointZ);
@@ -439,22 +470,50 @@ namespace ns_database
 
     bool CRoadVecGen::mergeSectionLane(IN    segAttributes_t        sectionConfig,
                                        IN    reportSectionData      reportData,
-                                       INOUT backgroundSectionData &bgDatabaseData)
+                                       INOUT backgroundSectionData *bgDatabaseData)
     {
         // check section ID
-        if (sectionConfig.segId != reportData.sectionId ||
-            sectionConfig.segId != bgDatabaseData.sectionId)
+        if (nullptr == bgDatabaseData ||
+            sectionConfig.segId != reportData.sectionId ||
+            sectionConfig.segId != bgDatabaseData->sectionId)
         {
             return false;
         }
 
-        // calculate section rotation angle
+        // calculate current section rotation angle
         double theta = 0;
         vector<double> xlimits;
         calcRotationAngle(sectionConfig, theta, xlimits);
 
+        // re-sample spacing in x direction
+        vector<point3D_t> leftSample;
+        vector<point3D_t> rightSample;
+        point3D_t pointSpl = { 0 };
+        int pOrder = 1;
+        int numOfSplPnts = (int)((xlimits[3] - xlimits[2]) / SAMPLE_SPACE);
+        if (xlimits[2] >= xlimits[3])
+        {
+            pOrder = -1;
+            numOfSplPnts = (int)((xlimits[2] - xlimits[3]) / SAMPLE_SPACE);
+        }
+
+        for (int i = 0; i < numOfSplPnts; i++)
+        {
+            pointSpl.lon = xlimits[2] + i * pOrder * SAMPLE_SPACE;
+
+            leftSample.push_back(pointSpl);
+            rightSample.push_back(pointSpl);
+        }
+
+        // number of lanes in current section
+        // for test only, should get it from section configuration
+        uint32 numOfLanes = 3;
+
         // matched lane number
         uint32 matchedLane = 0;
+
+        vector<point3D_t> leftRotated;
+        vector<point3D_t> rightRotated;
 
         // number of data group in report data
         int numOfGroups = reportData.rptSecData.size();
@@ -469,20 +528,141 @@ namespace ns_database
                 matchLaneType(*laneItor, matchedLane);
 
                 // step 2 - Process new data before merging
-                // line
-                vector<point3D_t> rotatedLine;
+                // line - there should be two lines. rotate first
                 list<vector<point3D_t>>::iterator lineItor = laneItor->begin();
-                while (lineItor != laneItor->end())
+
+                lineRotation(*lineItor, -theta, leftRotated);  // left line
+                lineItor++;
+                lineRotation(*lineItor, -theta, rightRotated); // right line
+
+#ifdef VISUALIZATION_ON
+                list<vector<point3D_t>> rotated;
+                rotated.push_back(leftRotated);
+                rotated.push_back(rightRotated);
+                showImage(rotated,  Scalar(0, 255, 0), "rotated.png");
+#endif
+
+                // re-sample or polynomial fitting
+                if (isResampleSec(sectionConfig.segId))
                 {
-                    lineRotation(*lineItor, theta, rotatedLine);
+                    interpolationSample(leftRotated,  leftSample);
+                    interpolationSample(rightRotated, rightSample);
+#ifdef VISUALIZATION_ON
+                    list<vector<point3D_t>> intersampled;
+                    intersampled.push_back(leftSample);
+                    intersampled.push_back(rightSample);
+                    showImage(intersampled,  Scalar(0, 0, 255), "interpolateSampled.png");
+#endif
                 }
-            }
-        }
+                else
+                {
+                    polynomialFitting(leftRotated,  leftSample);
+                    polynomialFitting(rightRotated, rightSample);
+#ifdef VISUALIZATION_ON
+                    list<vector<point3D_t>> polysampled;
+                    polysampled.push_back(leftSample);
+                    polysampled.push_back(rightSample);
+                    showImage(polysampled,  Scalar(0, 0, 255), "polyvalSampled.png");
+#endif
+                }
 
+                // step 3 - merge with database data
+                // if database is empty, add it directly. otherwise merge with it
+                if (bgDatabaseData->bgSectionData.empty())
+                {
+                    for (uint32 i = 0; i < numOfLanes; i++)
+                    {
+                        if (i == matchedLane - 1)
+                        {
+                            list<vector<point3D_t>> lines;
+                            lines.push_back(leftSample);
+                            lines.push_back(rightSample);
+                            bgDatabaseData->bgSectionData.push_back(lines);
+                        }
+                        else
+                        {
+                            list<vector<point3D_t>> lines;
+                            bgDatabaseData->bgSectionData.push_back(lines);
+                        }
+                    } // end of lane match iteration
+                }
+                else
+                {
+                    // if the matched lane number is empty, add it directly
 
-        // calculate current section rotation angle
+                    list<list<vector<point3D_t>>>::iterator bgLaneItor = bgDatabaseData->bgSectionData.begin();
+                    for (uint32 i = 0; i < numOfLanes; i++)
+                    {
+                        if (i == matchedLane - 1)
+                        {
+                            if (bgLaneItor->empty())
+                            {
+                                list<vector<point3D_t>> lines;
+                                lines.push_back(leftSample);
+                                lines.push_back(rightSample);
+                                *bgLaneItor = lines;
+                                break;
+                            }
+                            else
+                            {
+                                list<vector<point3D_t>>::iterator bgLineItor = bgLaneItor->begin();
 
+                                // iterate each sample points to merge data
+                                // left line
+                                for (int i = 0; i < numOfSplPnts; i++)
+                                {
+                                    bgLineItor->at(i).lat = (bgLineItor->at(i).lat + leftSample[i].lat) / 2;
+                                }
 
+                                // right line
+                                bgLineItor++;
+                                for (int i = 0; i < numOfSplPnts; i++)
+                                {
+                                    bgLineItor->at(i).lat = (bgLineItor->at(i).lat + rightSample[i].lat) / 2;
+                                }
+                            }
+                        } // end of matched lane
+
+                        bgLaneItor++;
+
+                    } // end of lane iteration
+                } // end of db not empty
+
+#ifdef VISUALIZATION_ON
+                list<backgroundSectionData>::iterator bgDBItor = _bgDatabaseList.begin();
+                while (bgDBItor != _bgDatabaseList.end())
+                {
+                    if (bgDBItor->sectionId == sectionConfig.segId)
+                    {
+                        int laneNum = 1;
+                        char winname[MAX_PATH];
+
+                        list<list<vector<point3D_t>>>::iterator bgDBLaneItor = bgDBItor->bgSectionData.begin();
+                        while (bgDBLaneItor != bgDBItor->bgSectionData.end())
+                        {
+                            if (!bgDBLaneItor->empty())
+                            {
+                                sprintf_s(winname, MAX_PATH - 1, "section_%d_lane_%d_merged_%d.png", sectionConfig.segId, laneNum, MERGED_TIMES++);
+                                showImage(*bgDBLaneItor, Scalar(0, 0, 0), winname);
+                            }
+
+                            laneNum++;
+
+                            bgDBLaneItor++;
+                        }
+
+                        break;
+                    }
+
+                    bgDBItor++;
+                }
+#endif
+
+                laneItor++;
+            } // end of new data lane iterator
+
+            grpItor++;
+        } // end of new data group iterator
 
         return true;
     }
@@ -499,20 +679,20 @@ namespace ns_database
 
     void CRoadVecGen::getSegAndDbData(IN  uint32                         sectionId,
                                       OUT segAttributes_t               &configSegData,
-                                      OUT backgroundSectionData         &bgSegData)
+                                      OUT backgroundSectionData        **bgSegData)
     {
-        if (_segConfigList.empty() || _bgDatabaseList.empty())
+        if (_segConfigList.empty() || _bgDatabaseList.empty() || nullptr == bgSegData)
         {
             return;
         }
 
         // zero previous memory
-        memset(&configSegData, sizeof(segAttributes_t), 0);
+        memset(&configSegData, 0, sizeof(segAttributes_t));
 
-        if (!bgSegData.bgSectionData.empty())
+        if ((*bgSegData) && !(*bgSegData)->bgSectionData.empty())
         {
-            list<list<vector<point3D_t>>>::iterator laneItor = bgSegData.bgSectionData.begin();
-            while (laneItor != bgSegData.bgSectionData.end())
+            list<list<vector<point3D_t>>>::iterator laneItor = (*bgSegData)->bgSectionData.begin();
+            while (laneItor != (*bgSegData)->bgSectionData.end())
             {
                 list<vector<point3D_t>>::iterator lineItor = laneItor->begin();
                 while(lineItor != laneItor->end())
@@ -534,6 +714,8 @@ namespace ns_database
                 configSegData = *configItor;
                 break;
             }
+
+            configItor++;
         }
 
         // get background database data
@@ -542,7 +724,7 @@ namespace ns_database
         {
             if (sectionId == dbItor->sectionId)
             {
-                bgSegData = *dbItor;
+                *bgSegData = &(*dbItor);
                 break;
             }
             dbItor++;
@@ -581,15 +763,15 @@ namespace ns_database
                     if (DASH_CONT_POINTS_TH < (dotBlkIndexEd[blkIndex - 1] -
                                                dotBlkIndexSt[blkIndex - 1]))
                     {
-                        blkIndex +=1;
+                        blkIndex += 1;
                     }
                     bChange = false;
                 }
         }
 
-        if ((true == bChange) && (0 == dotBlkIndexEd[blkIndex - 1]))
+        if ((true == bChange) && (dotBlkIndexSt.size() != dotBlkIndexEd.size()))
         {
-            dotBlkIndexEd[blkIndex-1] = numOfPoints;
+            dotBlkIndexEd.push_back(numOfPoints);
         }
     }
 
@@ -662,4 +844,52 @@ namespace ns_database
 
         return (meanVal + stdVal);
     }
+
+
+    void CRoadVecGen::polynomialFitting(IN    vector<point3D_t>  sourceLine,
+                                        INOUT vector<point3D_t> &fittedLine)
+    {
+        // check number of input points
+        int numOfSrcPnts = sourceLine.size();
+        int numOfFitPnts = fittedLine.size();
+        if (0 == numOfSrcPnts || 0 == numOfFitPnts)
+        {
+            return;
+        }
+
+        double coefficient[MAX_DEGREE + 2];
+        memset(coefficient, 0, sizeof(double) * (MAX_DEGREE + 2));
+
+        double *pDX = new double[numOfSrcPnts];
+        double *pDY = new double[numOfSrcPnts];
+        if (pDX && pDY)
+        {
+            // get X and Y value from point
+            for (int i = 0; i < numOfSrcPnts; i++)
+            {
+                pDX[i] = sourceLine[i].lon;
+                pDY[i] = sourceLine[i].lat;
+            }
+
+            // data normalization
+            Point2d normalization;
+            parametersNormalized(pDX, numOfSrcPnts, normalization);
+
+            double mse = EMatrix(pDX, pDY, numOfSrcPnts, DEFAULT_DEGREE, normalization, coefficient);
+
+            // calculate Y values
+            for (int i = 0; i < numOfFitPnts; i++)
+            {
+                fittedLine[i].lat = calValue(fittedLine[i].lon, coefficient, normalization);
+
+                // paint information
+            }
+
+            delete [] pDX;
+            delete [] pDY;
+        }
+    }
+
+
+
 }

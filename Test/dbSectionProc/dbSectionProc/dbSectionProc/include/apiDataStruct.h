@@ -22,16 +22,25 @@
 #include <stdio.h>
 #include <windows.h>
 #include <math.h>
+#include <fstream>
 #include <opencv2\opencv.hpp>
 #include "database.h"
 #include "databaseDef.h"
 #include "databaseServer.h"
-
+#include <iostream>
+#include <fstream>
 using std::list;
 using std::vector;
 
 using namespace ns_database;
 using namespace cv;
+using namespace std;
+
+// use this macro to control image show or saving
+#define VISUALIZATION_ON     1
+
+const double MaxLength = 1000.0;
+const double MinLength = 0.0;
 
 struct Scale
 {
@@ -68,6 +77,16 @@ typedef struct _foregroundSectionData
     list<vector<point3D_t>>             fgSectionData;// foreground database
                                                       // multiple lines
 } foregroundSectionData;
+
+typedef struct _sectionConfigure
+{
+    double dbWidth;                                     //section Width
+    double dbOverlap;                                   //section Overlap
+    double dbMinLength;                                 //section Minimum Length
+    double dbMaxLength;                                 //section Maximum Length
+    double dbPaintV;                                    //Value for weigh paint  
+    uint32 uiStepSize;                                //windows size to calculate lane length
+}sectionCon;
 
 
 #endif

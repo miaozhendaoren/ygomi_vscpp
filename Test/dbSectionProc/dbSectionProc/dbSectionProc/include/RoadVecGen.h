@@ -17,9 +17,12 @@
 */
 
 #include "apiDataStruct.h"
+#include "ExtractSection.h"
 
 namespace ns_database
 {
+    class CExtractSection;
+
     class CRoadVecGen
     {
     public:
@@ -42,7 +45,7 @@ namespace ns_database
         *               There may by empty items in the output.
         *
         */
-        void roadSectionsGen(IN  list<vector<point3D_t>>        rptData,
+        void roadSectionsGen(IN  list<list<vector<point3D_t>>>  rptData,
                              OUT list<list<vector<point3D_t>>> &fgData);
 
         /*
@@ -80,7 +83,8 @@ namespace ns_database
 
 
     protected:
-
+        CExtractSection               _extractSecObj;
+        sectionCon                    _stSecConfig;
         char                          _configPath[MAX_PATH];
         list<segAttributes_t>         _segConfigList; // section configurations
         list<backgroundSectionData>   _bgDatabaseList; // background database
@@ -183,7 +187,7 @@ namespace ns_database
         */
         bool mergeSectionLane(IN    segAttributes_t        sectionConfig,
                               IN    reportSectionData      reportData,
-                              INOUT backgroundSectionData &bgDatabaseData);
+                              INOUT backgroundSectionData *bgDatabaseData);
 
         /*
         * @func
@@ -217,7 +221,7 @@ namespace ns_database
         */
         void getSegAndDbData(IN  uint32                         sectionId,
                              OUT segAttributes_t               &configSegData,
-                             OUT backgroundSectionData         &bgSegData);
+                             OUT backgroundSectionData        **bgSegData);
 
         /*
         * @FUNC
@@ -255,6 +259,18 @@ namespace ns_database
         *
         */
         double getLineEstValue(IN vector<point3D_t> lineData);
+
+        /*
+        * @FUNC
+        *     Polynomial curve line fitting for input line.
+        *
+        * @PARAMS
+        *     soureLine  - input source line, X, Y is used to do polynomial fitting.
+        *     fittedLine - output fitted line, X is used to calculate Y values.
+        *
+        */
+        void polynomialFitting(IN    vector<point3D_t>  sourceLine,
+                               INOUT vector<point3D_t> &fittedLine);
     };
 
 }
