@@ -1,0 +1,14 @@
+.\data\dataStruct_0.txt
+.\data\dataStruct_1.txt
+.\data\dataStruct_2.txt
+.\data\dataStruct_3.txt
+.\data\dataStruct_4.txt
+.\data\dataStruct_5.txt
+.\data\dataStruct_6.txt
+.\data\dataStruct_7.txt
+.\data\dataStruct_8.txt
+.\data\dataStruct_9.txt
+.\data\dataStruct_10.txt
+.\data\dataStruct_11.txt
+.\data\dataStruct_12.txt
+.\data\dataStruct_13.txt

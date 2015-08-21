@@ -43,51 +43,79 @@ void readReportData(char *filenamelist, list<list<vector<point3D_t>>> &newData)
         newData.clear();
     }
 
-    FILE *fp = nullptr;
-    errno_t err = fopen_s(&fp, filenamelist, "rt");
+    FILE *fpList = nullptr, *fpFile = nullptr;
+    errno_t err = fopen_s(&fpList, filenamelist, "rt");
     if (0 != err)
     {
-        printf("failed to open file %s\n", filename);
+        printf("failed to open file %s\n", filenamelist);
         return;
     }
-
+    char filename[MAX_PATH] = { '\0' };
     double tempData[19];
     point3D_t currentPoint = { 0 };
     vector<point3D_t> leftLine;
     vector<point3D_t> rightLine;
+    list<vector<point3D_t>> grpData;
 
-    // initialize tempData
-    memset(tempData, 0, 19);
-
-    while (!feof(fp))
+    while (!feof(fpList))
     {
-        // scan row data
-        fscanf_s(fp, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf \
-                     %lf %lf %lf %lf %lf %lf %lf %lf %lf",
-                     &tempData[ 0], &tempData[ 1], &tempData[ 2], &tempData[ 3],
-                     &tempData[ 4], &tempData[ 5], &tempData[ 6], &tempData[ 7],
-                     &tempData[ 8], &tempData[ 9], &tempData[10], &tempData[11],
-                     &tempData[12], &tempData[13], &tempData[14], &tempData[15],
-                     &tempData[16], &tempData[17], &tempData[18]);
+        fscanf_s(fpList, "%s", filename, _countof(filename));
 
-        // left line point
-        currentPoint.lat       = tempData[0];
-        currentPoint.lon       = tempData[1];
-        currentPoint.paintFlag = (float)tempData[2];
+        if ('\0' == filename[0])
+        {
+            continue;
+        }
 
-        leftLine.push_back(currentPoint);
+        err = fopen_s(&fpFile, filename, "rt");
+        if (0 != err)
+        {
+            printf("failed to open file %s\n", filename);
+            continue;
+        }
 
-        // right line point
-        currentPoint.lat       = tempData[11];
-        currentPoint.lon       = tempData[12];
-        currentPoint.paintFlag = (float)tempData[13];
+        // initialize tempData
+        memset(tempData, 0, 19);
 
-        rightLine.push_back(currentPoint);
+        leftLine.clear();
+        rightLine.clear();
+        grpData.clear();
+
+        while (!feof(fpFile))
+        {
+            // scan row data
+            fscanf_s(fpFile, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf \
+                         %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+                         &tempData[ 0], &tempData[ 1], &tempData[ 2], &tempData[ 3],
+                         &tempData[ 4], &tempData[ 5], &tempData[ 6], &tempData[ 7],
+                         &tempData[ 8], &tempData[ 9], &tempData[10], &tempData[11],
+                         &tempData[12], &tempData[13], &tempData[14], &tempData[15],
+                         &tempData[16], &tempData[17], &tempData[18]);
+
+            // left line point
+            currentPoint.lat       = tempData[0];
+            currentPoint.lon       = tempData[1];
+            currentPoint.paintFlag = (float)tempData[2];
+
+            leftLine.push_back(currentPoint);
+
+            // right line point
+            currentPoint.lat       = tempData[11];
+            currentPoint.lon       = tempData[12];
+            currentPoint.paintFlag = (float)tempData[13];
+
+            rightLine.push_back(currentPoint);
+        }
+
+        // add lane data
+        grpData.push_back(leftLine);
+        grpData.push_back(rightLine);
+
+        newData.push_back(grpData);
+
+        fclose(fpFile);
     }
 
-    // add lane data
-    newData.push_back(leftLine);
-    newData.push_back(rightLine);
+    fclose(fpList);
 }
 
 
@@ -101,9 +129,9 @@ void showImage(list<vector<point3D_t>> dataInput, Scalar scalar, string winname)
 
     // get the minimum and maximum values of X and Y
     double minX = DBL_MAX;
-    double maxX = DBL_MIN;
+    double maxX = -1 * DBL_MAX;
     double minY = DBL_MAX;
-    double maxY = DBL_MIN;
+    double maxY = -1 * DBL_MAX;
 
     // iterate each line to get min/max range
     int numOfPoints = 0;
@@ -114,7 +142,8 @@ void showImage(list<vector<point3D_t>> dataInput, Scalar scalar, string winname)
         for (int i = 0;i < numOfPoints; i++)
         {
             // only check painted points
-            if (-1.0 != lineItor->at(i).paintFlag)
+            if (-1.0 != lineItor->at(i).paintFlag &&
+                   2 != lineItor->at(i).paintFlag)
             {
                 if (lineItor->at(i).lon <= minX)
                 {
@@ -138,8 +167,8 @@ void showImage(list<vector<point3D_t>> dataInput, Scalar scalar, string winname)
     }
 
     // image width and height
-    int width  = (int)(maxX - minX);
-    int height = (int)(maxY - minY);
+    int width  = (int)(maxX - minX) + 100;
+    int height = (int)(maxY - minY) + 100;
     Mat outputImage(height, width, CV_8UC3, Scalar(255, 255, 255));
 
     // iterate each line again to paint line points
@@ -151,8 +180,8 @@ void showImage(list<vector<point3D_t>> dataInput, Scalar scalar, string winname)
         for (int i = 0; i < numOfPoints; i++)
         {
             // flip Y axis as OpenCV starts from top left to right bottom
-            curr.x = (int)(lineItor->at(i).lon - minX);
-            curr.y = (int)(height - (lineItor->at(i).lat - minY));
+            curr.x = (int)(lineItor->at(i).lon - minX) + 50;
+            curr.y = (int)(height - (lineItor->at(i).lat - minY)) - 50;
             circle(outputImage, curr, 0, scalar, 1);
         }
 

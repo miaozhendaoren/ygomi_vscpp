@@ -22,13 +22,11 @@
 #include <stdio.h>
 #include <windows.h>
 #include <math.h>
-#include <fstream>
 #include <opencv2\opencv.hpp>
 #include "database.h"
 #include "databaseDef.h"
 #include "databaseServer.h"
-#include <iostream>
-#include <fstream>
+
 using std::list;
 using std::vector;
 

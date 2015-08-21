@@ -25,7 +25,10 @@
 #ifdef VISUALIZATION_ON
 #include "VisualizationApis.h"
 
-static uint32 MERGED_TIMES = 1;
+static uint32 MERGED_TIMES = 0;
+static uint32 FG_MERGED_NUM = 0;
+
+char IMAGE_NAME_STR[MAX_PATH] = { '\0' };
 #endif
 
 using namespace std;
@@ -35,7 +38,13 @@ namespace ns_database
 #define DASH_CONT_POINTS_TH 10
 #define MINDIST             10
 #define LINE_TYPE_TH        50
-#define SAMPLE_SPACE        0.05
+#define SAMPLE_SPACE        0.1
+#define MAX_SUPPORTED_LANES 3
+#define INVALID_LANE_FLAG   -1
+#define VALID_LANE_FLAG     1
+#define LEFT_LANE           1
+#define MIDDLE_LANE         2
+#define RIGHT_LANE          3
 
 const uint32 RESAMPLE_SEC_ID[] = {1, 8, 9, 10, 11, 12, 20, 21};
 
@@ -133,11 +142,11 @@ bool isResampleSec(uint32 segId)
             }
         }
 
-    // suppose output is list<reportSectionData> rptData;
-    list<reportSectionData> secData;
+        // suppose output is list<reportSectionData> rptData;
+        list<reportSectionData> secData;
 
-    // section partition, input is rptData
-    _extractSecObj.extractSections(_segConfigList, _stSecConfig, rptData, secData);
+        // section partition, input is rptData
+        _extractSecObj.extractSections(_segConfigList, _stSecConfig, rptData, secData);
 
         list<reportSectionData>::size_type numOfRptSecs = secData.size();
 
@@ -160,6 +169,9 @@ bool isResampleSec(uint32 segId)
             secItor++;
         }
 
+        // stitch background database to generate foreground data
+        stitchSectionLanes();
+
         if (!_fgDatabaseList.empty())
         {
             list<foregroundSectionData>::size_type numOfFgSecs = _fgDatabaseList.size();
@@ -170,6 +182,24 @@ bool isResampleSec(uint32 segId)
                 secItor++;
             }
         }
+
+#ifdef VISUALIZATION_ON
+        list<vector<point3D_t>> fglines;
+        list<list<vector<point3D_t>>>::iterator fgItor = fgData.begin();
+        while (fgItor != fgData.end())
+        {
+            if (!fgItor->empty())
+            {
+                fglines.push_back(fgItor->front());
+                fglines.push_back(fgItor->back());
+            }
+
+            fgItor++;
+        }
+        sprintf_s(IMAGE_NAME_STR, "fgdatabase_%d.png", FG_MERGED_NUM++);
+        showImage(fglines, Scalar(0, 0, 255), IMAGE_NAME_STR);
+
+#endif
 
         return;
     }
@@ -235,13 +265,16 @@ bool isResampleSec(uint32 segId)
             return;
         }
 
+        // number of sections
         fscanf_s(fp, "%d\n", &sectionNum);
-		
-		fscanf_s(fp, "width=%lf,overlap=%lf,minLength=%lf,maxLength=%lf,stepSize=%d,paintV=%lf\n",
-        &(_stSecConfig.dbWidth), &(_stSecConfig.dbOverlap),
-        &(_stSecConfig.dbMinLength), &(_stSecConfig.dbMaxLength),
-        &(_stSecConfig.uiStepSize), &(_stSecConfig.dbPaintV));
-        while (!feof(fp))/*for(int index = 0; index < sectionNum; index++)*/
+
+        // width, length, overlap, paint and step size information
+        fscanf_s(fp, "width=%lf,overlap=%lf,minLength=%lf,maxLength=%lf,\
+                      stepSize=%d,paintV=%lf\n",
+                      &(_stSecConfig.dbWidth), &(_stSecConfig.dbOverlap),
+                      &(_stSecConfig.dbMinLength), &(_stSecConfig.dbMaxLength),
+                      &(_stSecConfig.uiStepSize), &(_stSecConfig.dbPaintV));
+        while (!feof(fp))
         {
             fscanf_s(fp, "%d,%d\n", &sectionID, &segmentElement.uiLaneNum);
             segmentElement.segId_used = 1;
@@ -258,6 +291,8 @@ bool isResampleSec(uint32 segId)
 
             _segConfigList.push_back(segmentElement);
         }
+
+        fclose(fp);
     }
 
 
@@ -452,18 +487,19 @@ bool isResampleSec(uint32 segId)
         // right line of input lane
         double rightVal = getLineEstValue(lineRight);
 
-        // judge matched lane number
+        // judge matched lane number, default is left lane
+        laneNumber = LEFT_LANE;
         if (leftVal > LINE_TYPE_TH && rightVal < LINE_TYPE_TH)
         {
-            laneNumber = 1;
+            laneNumber = LEFT_LANE;
         }
         if (leftVal < LINE_TYPE_TH && rightVal < LINE_TYPE_TH)
         {
-            laneNumber = 2;
+            laneNumber = MIDDLE_LANE;
         }
         if (leftVal < LINE_TYPE_TH && rightVal > LINE_TYPE_TH)
         {
-            laneNumber = 3;
+            laneNumber = RIGHT_LANE;
         }
     }
 
@@ -506,8 +542,7 @@ bool isResampleSec(uint32 segId)
         }
 
         // number of lanes in current section
-        // for test only, should get it from section configuration
-        uint32 numOfLanes = 3;
+        uint32 numOfLanes = sectionConfig.uiLaneNum;
 
         // matched lane number
         uint32 matchedLane = 0;
@@ -539,7 +574,9 @@ bool isResampleSec(uint32 segId)
                 list<vector<point3D_t>> rotated;
                 rotated.push_back(leftRotated);
                 rotated.push_back(rightRotated);
-                showImage(rotated,  Scalar(0, 255, 0), "rotated.png");
+                sprintf_s(IMAGE_NAME_STR, "section_%d_lane_%d_merging_%d_rotated.png",
+                          sectionConfig.segId, matchedLane, MERGED_TIMES);
+                showImage(rotated,  Scalar(0, 255, 0), IMAGE_NAME_STR);
 #endif
 
                 // re-sample or polynomial fitting
@@ -551,7 +588,9 @@ bool isResampleSec(uint32 segId)
                     list<vector<point3D_t>> intersampled;
                     intersampled.push_back(leftSample);
                     intersampled.push_back(rightSample);
-                    showImage(intersampled,  Scalar(0, 0, 255), "interpolateSampled.png");
+                    sprintf_s(IMAGE_NAME_STR, "section_%d_lane_%d_merging_%d_interpolate_sample.png",
+                              sectionConfig.segId, matchedLane, MERGED_TIMES);
+                    showImage(intersampled,  Scalar(0, 0, 255), IMAGE_NAME_STR);
 #endif
                 }
                 else
@@ -562,7 +601,9 @@ bool isResampleSec(uint32 segId)
                     list<vector<point3D_t>> polysampled;
                     polysampled.push_back(leftSample);
                     polysampled.push_back(rightSample);
-                    showImage(polysampled,  Scalar(0, 0, 255), "polyvalSampled.png");
+                    sprintf_s(IMAGE_NAME_STR, "section_%d_lane_%d_merging_%d_polyval_sample.png",
+                              sectionConfig.segId, matchedLane, MERGED_TIMES);
+                    showImage(polysampled,  Scalar(0, 0, 255), IMAGE_NAME_STR);
 #endif
                 }
 
@@ -635,15 +676,14 @@ bool isResampleSec(uint32 segId)
                     if (bgDBItor->sectionId == sectionConfig.segId)
                     {
                         int laneNum = 1;
-                        char winname[MAX_PATH];
 
                         list<list<vector<point3D_t>>>::iterator bgDBLaneItor = bgDBItor->bgSectionData.begin();
                         while (bgDBLaneItor != bgDBItor->bgSectionData.end())
                         {
                             if (!bgDBLaneItor->empty())
                             {
-                                sprintf_s(winname, MAX_PATH - 1, "section_%d_lane_%d_merged_%d.png", sectionConfig.segId, laneNum, MERGED_TIMES++);
-                                showImage(*bgDBLaneItor, Scalar(0, 0, 0), winname);
+                                sprintf_s(IMAGE_NAME_STR, MAX_PATH - 1, "section_%d_lane_%d_merged_%d.png", sectionConfig.segId, laneNum, MERGED_TIMES);
+                                showImage(*bgDBLaneItor, Scalar(0, 0, 0), IMAGE_NAME_STR);
                             }
 
                             laneNum++;
@@ -661,6 +701,10 @@ bool isResampleSec(uint32 segId)
                 laneItor++;
             } // end of new data lane iterator
 
+#ifdef VISUALIZATION_ON
+            MERGED_TIMES++;
+#endif
+
             grpItor++;
         } // end of new data group iterator
 
@@ -668,10 +712,298 @@ bool isResampleSec(uint32 segId)
     }
 
 
-    bool CRoadVecGen::stitchSectionLanes(IN  segAttributes_t          sectionConfig,
-                                         IN  backgroundSectionData    bgDatabaseData,
-                                         OUT foregroundSectionData   &fgSectionData)
+    bool CRoadVecGen::stitchSectionLanes()
     {
+        // check database data
+        if (_segConfigList.empty() || _bgDatabaseList.empty())
+        {
+            return false;
+        }
+
+        // number of sections
+        int numOfSeg = _segConfigList.size();
+        int numOfBgSeg = _bgDatabaseList.size();
+
+        if (numOfBgSeg != numOfSeg)
+        {
+            return false;
+        }
+
+        // iterate each section in background database
+        int numOfLanes = 0;
+        list<segAttributes_t>::iterator configSecItor = _segConfigList.begin();
+        list<backgroundSectionData>::iterator bgSecItor = _bgDatabaseList.begin();
+        list<foregroundSectionData>::iterator fgSecItor = _fgDatabaseList.begin();
+        while (bgSecItor != _bgDatabaseList.end())
+        {
+            numOfLanes = 0;
+
+            // none empty sections
+            if (!bgSecItor->bgSectionData.empty())
+            {
+                // calculate rotation angle and x limitation
+                double theta = 0;
+                vector<double> xlimits;
+                calcRotationAngle(*configSecItor, theta, xlimits);
+
+                // re-sample spacing in x direction
+                vector<point3D_t> leftSample, rightSample;
+                point3D_t pointSpl = { 0 };
+                int pOrder = 1;
+                int numOfSplPnts = (int)((xlimits[1] - xlimits[0]) / SAMPLE_SPACE);
+                if (xlimits[0] >= xlimits[1])
+                {
+                    pOrder = -1;
+                    numOfSplPnts = (int)((xlimits[0] - xlimits[1]) / SAMPLE_SPACE);
+                }
+
+                for (int i = 0; i < numOfSplPnts; i++)
+                {
+                    pointSpl.lon = xlimits[0] + i * pOrder * SAMPLE_SPACE;
+
+                    leftSample.push_back(pointSpl);
+                    rightSample.push_back(pointSpl);
+                }
+
+                // number of lanes in current section
+                numOfLanes = bgSecItor->bgSectionData.size();
+
+                if (0 < numOfLanes && numOfLanes <= MAX_SUPPORTED_LANES)
+                {
+                    // calculate the valid lanes number, and record the number
+                    // of start lane
+                    vector<int> validLaneInd;
+                    int numOfValidLanes = numOfLanes;
+
+                    list<list<vector<point3D_t>>>::iterator laneItor = bgSecItor->bgSectionData.begin();
+                    while (laneItor != bgSecItor->bgSectionData.end())
+                    {
+                        if (!laneItor->empty())
+                        {
+                            validLaneInd.push_back(VALID_LANE_FLAG);
+                        }
+                        else
+                        {
+                            numOfValidLanes--;
+                            validLaneInd.push_back(INVALID_LANE_FLAG);
+                        }
+
+                        laneItor++;
+                    }
+
+                    if (0 != numOfValidLanes)
+                    {
+                        // current section has max supported lanes(3)
+                        // if lane 1 and 3 are valid, keep lane 1 and discard lane 3
+                        if ((MAX_SUPPORTED_LANES == validLaneInd.size()) &&
+                            (MAX_SUPPORTED_LANES - 1 == numOfValidLanes) &&
+                            (INVALID_LANE_FLAG == validLaneInd[MAX_SUPPORTED_LANES - 1]))
+                        {
+                            numOfValidLanes = 1;
+                            validLaneInd[MAX_SUPPORTED_LANES - 1] = INVALID_LANE_FLAG;
+                        }
+
+                        // iterate valid lane to merge common lines
+                        list<vector<point3D_t>> dblines;
+                        vector<int>::iterator laneIndItor = validLaneInd.begin();
+                        laneItor = bgSecItor->bgSectionData.begin();
+
+                        while (laneItor != bgSecItor->bgSectionData.end())
+                        {
+                            if (VALID_LANE_FLAG == *laneIndItor)
+                            {
+                                // suppose there should be 2 lines in each lane
+                                polynomialFitting(laneItor->front(),  leftSample);
+                                polynomialFitting(laneItor->back(), rightSample);
+
+                                dblines.push_back(leftSample);
+                                dblines.push_back(rightSample);
+                            }
+
+                            laneIndItor++;
+                            laneItor++;
+                        }
+
+#ifdef VISUALIZATION_ON
+                        sprintf_s(IMAGE_NAME_STR, "fg_section_%d_polyval_sampled.png",
+                                  configSecItor->segId);
+                        showImage(dblines,  Scalar(0, 0, 255), IMAGE_NAME_STR);
+#endif
+
+                        // number of dblines should be double of valid lanes
+                        if (2 * numOfValidLanes != dblines.size())
+                        {
+                            printf("number of lines not match with number of lanes\n");
+                            continue;
+                        }
+
+                        // merge middle common lines
+                        point3D_t curPnt = { 0 };
+                        vector<double> dOne, dTwo;
+                        list<vector<double>> distlines;
+                        vector<point3D_t> lineOne, lineTwo, lineMerged;
+                        list<vector<point3D_t>> midlines;
+                        list<vector<point3D_t>>::iterator dblineItor = dblines.begin();
+
+                        // get next items
+                        if (2 < dblines.size())
+                        {
+                            dblineItor++;
+                            while (dblineItor != dblines.end())
+                            {
+                                lineOne = *dblineItor;
+                                dblineItor++;
+
+                                lineTwo = *dblineItor;
+                                dblineItor++; dblineItor++; // next lane common line
+
+                                if (lineOne.size() != lineTwo.size())
+                                {
+                                    printf("points of different lines on one section is not matched\n");
+                                    continue;
+                                }
+
+                                for (uint32 i = 0; i < lineOne.size(); i++)
+                                {
+                                    curPnt.lon = lineOne[i].lon;
+                                    curPnt.lat = (lineOne[i].lat + lineTwo[i].lat) / 2;
+
+                                    lineMerged.push_back(curPnt);
+                                    dOne.push_back(curPnt.lat - lineOne[i].lat);
+                                    dTwo.push_back(curPnt.lat - lineTwo[i].lat);
+                                }
+
+                                midlines.push_back(lineMerged);
+                                distlines.push_back(dOne);
+                                distlines.push_back(dTwo);
+
+                                lineMerged.clear();
+                                dOne.clear();
+                                dTwo.clear();
+                            }
+#ifdef VISUALIZATION_ON
+                            sprintf_s(IMAGE_NAME_STR, "fg_section_%d_mergedmiddle_lines.png",
+                                      configSecItor->segId);
+                            showImage(midlines,  Scalar(0, 0, 255), IMAGE_NAME_STR);
+#endif
+                        }
+
+                        // add lines to foreground database
+                        if (1 == numOfValidLanes)
+                        {
+                            // two lines
+                            vector<point3D_t> rotline;
+                            lineRotation(dblines.front(), theta, rotline);
+                            fgSecItor->fgSectionData.push_back(rotline);
+                            rotline.clear();
+
+                            lineRotation(dblines.back(), theta, rotline);
+                            fgSecItor->fgSectionData.push_back(rotline);
+                            rotline.clear();
+                        }
+                        else if (2 == numOfValidLanes)
+                        {
+                            // three lines
+                            vector<point3D_t> rotline;
+
+                            // 1st line
+                            vector<point3D_t> linest;
+
+                            list<vector<double>>::iterator distItor = distlines.begin();
+
+                            dblineItor = dblines.begin();
+                            for (uint32 i = 0; i < dblineItor->size(); i++)
+                            {
+                                curPnt.lon = dblineItor->at(i).lon;
+                                curPnt.lat = dblineItor->at(i).lat + distItor->at(i);
+
+                                linest.push_back(curPnt);
+                            }
+                            lineRotation(linest, theta, rotline);
+                            fgSecItor->fgSectionData.push_back(rotline);
+                            rotline.clear();
+
+                            // 2nd line
+                            lineRotation(midlines.front(), theta, rotline);
+                            fgSecItor->fgSectionData.push_back(rotline);
+                            rotline.clear();
+
+                            // 3rd line
+                            dblineItor++; dblineItor++; dblineItor++; distItor++;
+                            for (uint32 i = 0; i < dblineItor->size(); i++)
+                            {
+                                curPnt.lon = dblineItor->at(i).lon;
+                                curPnt.lat = dblineItor->at(i).lat + distItor->at(i);
+
+                                linest.push_back(curPnt);
+                            }
+                            lineRotation(linest, theta, rotline);
+                            fgSecItor->fgSectionData.push_back(rotline);
+                            rotline.clear();
+                        }
+                        else
+                        {
+                            // four lines
+
+                            list<vector<double>>::iterator distItor = distlines.begin();
+                            vector<double> d0 = *distItor ++;
+                            vector<double> d1 = *distItor ++;
+                            vector<double> d2 = *distItor ++;
+                            vector<double> d3 = *distItor ++;
+                            vector<point3D_t> rotline;
+
+                            // 1st line
+                            vector<point3D_t> linest;
+                            vector<point3D_t> dbfirst = dblines.front();
+                            for (uint32 i = 0; i < dbfirst.size(); i++)
+                            {
+                                curPnt.lon = dbfirst[i].lon;
+                                curPnt.lat = dbfirst[i].lat + d0[i] + d2[i];
+
+                                linest.push_back(curPnt);
+                            }
+                            lineRotation(linest, theta, rotline);
+                            fgSecItor->fgSectionData.push_back(rotline);
+                            rotline.clear();
+
+                            // 2nd line
+                            lineRotation(midlines.front(), theta, rotline);
+                            fgSecItor->fgSectionData.push_back(rotline);
+                            rotline.clear();
+
+                            // 3rd line
+                            lineRotation(midlines.back(), theta, rotline);
+                            fgSecItor->fgSectionData.push_back(rotline);
+                            rotline.clear();
+
+                            // 4th line
+                            vector<point3D_t> linend;
+                            vector<point3D_t> dblast = dblines.back();
+                            for (uint32 i = 0; i < dblast.size(); i++)
+                            {
+                                curPnt.lon = dblineItor->at(i).lon;
+                                curPnt.lat = dblineItor->at(i).lat + distItor->at(i);
+
+                                linend.push_back(curPnt);
+                            }
+                            lineRotation(linend, theta, rotline);
+                            fgSecItor->fgSectionData.push_back(rotline);
+                            rotline.clear();
+                        } // 3 lanes
+
+                    } // end of none valid lanes
+                }
+                else
+                {
+                    printf("number of lanes in section %d is not valid, %d\n",
+                           bgSecItor->sectionId, numOfLanes);
+                } // end of number of lanes
+            } // end of merging valid section
+
+            fgSecItor++;
+            bgSecItor++;
+            configSecItor++;
+        } // end of section iteration
 
         return true;
     }
@@ -688,22 +1020,6 @@ bool isResampleSec(uint32 segId)
 
         // zero previous memory
         memset(&configSegData, 0, sizeof(segAttributes_t));
-
-        if ((*bgSegData) && !(*bgSegData)->bgSectionData.empty())
-        {
-            list<list<vector<point3D_t>>>::iterator laneItor = (*bgSegData)->bgSectionData.begin();
-            while (laneItor != (*bgSegData)->bgSectionData.end())
-            {
-                list<vector<point3D_t>>::iterator lineItor = laneItor->begin();
-                while(lineItor != laneItor->end())
-                {
-                    lineItor->clear();
-                    lineItor++;
-                }
-                laneItor->clear();
-                laneItor++;
-            }
-        }
 
         // get section configuration
         list<segAttributes_t>::iterator configItor = _segConfigList.begin();
@@ -840,7 +1156,7 @@ bool isResampleSec(uint32 segId)
         {
             stdVal += (lengthList[i] - meanVal) * (lengthList[i] - meanVal);
         }
-        stdVal = stdVal / lengthList.size();
+        stdVal = sqrt(stdVal / lengthList.size());
 
         return (meanVal + stdVal);
     }

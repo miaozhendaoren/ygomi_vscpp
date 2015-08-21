@@ -191,19 +191,14 @@ namespace ns_database
 
         /*
         * @func
-        *     Foreground database update. Merge common line of two adjacent lanes.
+        *     Foreground database update. Merge common line of two adjacent lanes
+        *     for all section data in background database.
         *
         * @params
-        *     sectionConfig  - section configuration data, including section ID
-        *                      and section full parameters.
-        *     bgDatabaseData - background database data of current section,
-        *                      stored lane by lane.
-        *     fgSectionData  - foreground lines of road in current section.
+        *     there is no input parameters as all are class members.
         *
         */
-        bool stitchSectionLanes(IN  segAttributes_t          sectionConfig,
-                                IN  backgroundSectionData    bgDatabaseData,
-                                OUT foregroundSectionData   &fgSectionData);
+        bool stitchSectionLanes();
 
         /*
         * @FUNC

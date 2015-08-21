@@ -1,0 +1,16 @@
+The development environment SW step:
+1. install vs2010 (\\cncddc02\Install\MicoroSoft\SW_DVD9_VS_Ultimate_2010_English_Core_MLF_X16-76630)
+2. install vs2010sp1 (\\cncdfl01\q\proj\chengdu\bgao\software\)
+3. install opencv 2.4.10 (/share_folder/Newco/software/opencv-2.4.10.exe on internal FTP)
+   1)	unzip opencv to C:\opencv
+   2)	set environment variable.
+        for user variable, make PATH=C:\opencv\build\x86\vc10\bin and OpenCV=C:\opencv\build.
+        for system variable, make PATH+=;.C:\opencv\build\x86\vc10\bin.
+4. install glut (/share_folder/Newco/software/glutdlls37beta.zip on internal FTP)
+   1)	Copy *.dll to C:\Windows\SysWOW64 for 64 bit PC or C:\Windows\System32 for 32 bit PC
+   2)	Copy *.h   to C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\gl
+   3)	Copy *.lib to C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\lib
+5. Reboot the computer
+
+The demo environment SW step:
+Step 3/4.1/5 above

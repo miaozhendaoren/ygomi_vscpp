@@ -20,6 +20,16 @@
 
 namespace ns_database
 {
+#define  CONJOINTSECID 22
+#define  STARTSECID    1
+
+    enum ISTATUS
+    {
+        I_SUCCESS = 0,
+        I_WARING  = 1,
+        I_FAIL    = -1
+    };
+
     class CExtractSection
     {
     public:
@@ -41,10 +51,10 @@ namespace ns_database
         *
         */
 
-        int extractSections(IN list<segAttributes_t> &ltSectionDataScale,
-                            IN  sectionCon stSectionConfig,
-                            IN list<list<vector<point3D_t>>> &ltRptData,
-                            OUT list<reportSectionData> &ltRptSectionData);
+        ISTATUS extractSections(IN list<segAttributes_t> &ltSectionDataScale,
+                                IN  sectionCon stSectionConfig,
+                                IN list<list<vector<point3D_t>>> &ltRptData,
+                                OUT list<reportSectionData> &ltRptSectionData);
 
         /*
         *@FUNC
@@ -72,13 +82,13 @@ namespace ns_database
         *    fLength                 - report lane length
         *
         */
-        int getReportHeadandTailOverlapLocation(IN list<vector<point3D_t>>  &ltLaneData,
-                                                IN sectionCon stSectionCon,
-                                                OUT list<vector<point3D_t>> &ltEffectiveLaneData,
-                                                OUT list<vector<point3D_t>> &ltMainEffectiveLaneData,
-                                                OUT uint32 uiStartLoc,
-                                                OUT uint32 uiEndLoc,
-                                                OUT double dbLength);
+        ISTATUS getReportHeadandTailOverlapLocation(IN list<vector<point3D_t>>  &ltLaneData,
+                                                    IN sectionCon stSectionCon,
+                                                    OUT list<vector<point3D_t>> &ltEffectiveLaneData,
+                                                    OUT list<vector<point3D_t>> &ltMainEffectiveLaneData,
+                                                    OUT uint32 &uiStartLoc,
+                                                    OUT uint32 &uiEndLoc,
+                                                    OUT double &dbLength);
 
 
         /*
@@ -93,8 +103,8 @@ namespace ns_database
         *
         */
 
-        int splitChangeLaneData(IN list<vector<point3D_t>> &newReportData,
-                                OUT list<list<vector<point3D_t>>> &ltSubReportData);
+        ISTATUS splitChangeLaneData(IN list<vector<point3D_t>> &newReportData,
+                                    OUT list<list<vector<point3D_t>>> &ltSubReportData);
 
         /*
         *@FUNC
@@ -108,10 +118,10 @@ namespace ns_database
         *
         */
 
-        int getHeadandTailOverlapLocation(IN  list<vector<point3D_t>> &LaneData,
-                                          IN sectionCon stSectionCon,
-                                          OUT uint32 &uiStartLoc, 
-                                          OUT uint32 &uiEndLoc);
+        ISTATUS getHeadandTailOverlapLocation(IN  list<vector<point3D_t>> &LaneData,
+                                              IN sectionCon stSectionCon,
+                                              OUT uint32 &uiStartLoc, 
+                                              OUT uint32 &uiEndLoc);
 
         /*
         *@FUNC
@@ -123,8 +133,8 @@ namespace ns_database
         *
         */
 
-        int getReportData(IN vector<string> vfileName,
-                          OUT list<list<vector<point3D_t>>> &ltReportData);
+        ISTATUS getReportData(IN vector<string> vfileName,
+                              OUT list<list<vector<point3D_t>>> &ltReportData);
 
         /*
         *@FUNC
@@ -138,10 +148,10 @@ namespace ns_database
         *
         */
 
-        int locateCandidateSectionBoundary(IN point3D_t point3D,
-                                           IN vector<segAttributes_t> &vSectionCentrePoint,
-                                           OUT segAttributes_t segClosestLoc,
-                                           OUT segAttributes_t segSecondClosetLoc);
+        ISTATUS locateCandidateSectionBoundary(IN point3D_t point3D,
+                                               IN vector<segAttributes_t> &vSectionCentrePoint,
+                                               OUT segAttributes_t &segClosestLoc,
+                                               OUT segAttributes_t &segSecondClosetLoc);
 
         /*
         *@FUNC
@@ -156,11 +166,11 @@ namespace ns_database
         *
         */
 
-        int filterCandidateSectionBoundary(IN point3D_t point3DRefOne,
-                                           IN point3D_t point3DRefTwo,
-                                           IN segAttributes_t segCandidateOne,
-                                           IN segAttributes_t segCandidateTwo,
-                                           OUT segAttributes_t segClosestSection);
+        ISTATUS filterCandidateSectionBoundary(IN point3D_t point3DRefOne,
+                                               IN point3D_t point3DRefTwo,
+                                               IN segAttributes_t segCandidateOne,
+                                               IN segAttributes_t segCandidateTwo,
+                                               OUT segAttributes_t &segClosestSection);
 
         /*
         *@FUNC
@@ -177,20 +187,21 @@ namespace ns_database
         *
         */
 
-        int getMatchSections(IN list<segAttributes_t> &ltSectionDataScale,
-                             IN list<vector<point3D_t>> &ltRawData,
-                             IN list<vector<point3D_t>> &ltEffectiveLaneData,
-                             IN uint32 uiStartLoc,
-                             IN uint32 uiEndLoc,
-                             OUT list<reportSectionData> &ltMatchSections);
+        ISTATUS getMatchSections(IN list<segAttributes_t> &ltSectionDataScale,
+                                 IN sectionCon stSectionConfig,
+                                 IN list<vector<point3D_t>> &ltRawData,
+                                 IN list<vector<point3D_t>> &ltEffectiveLaneData,
+                                 IN uint32 &uiStartLoc,
+                                 IN uint32 &uiEndLoc,
+                                 OUT list<reportSectionData> &ltMatchSections);
 
-        //int getReportHeadandTailOverlapLocation(IN list<vector<point3D_t>>  &ltLaneData,
-        //    IN sectionCon stSectionCon,
-        //    OUT list<vector<point3D_t>> &ltEffectiveLaneData,
-        //    OUT list<vector<point3D_t>> &ltMainEffectiveLaneData,
-        //    OUT uint32 uiStartLoc,
-        //    OUT uint32 uiEndLoc,
-        //    OUT double dbLength);
+        ISTATUS matchSections(IN list<segAttributes_t> &ltSectionDataScale,
+                              IN uint32 uiStartSecionID,
+                              IN uint32 uiEndSecionID,
+                              IN vector<segAttributes_t> ltSectionCentrePoint,
+                              IN vector<point3D_t> vRawLeftLineData,
+                              IN vector<point3D_t> vRawRightLineData,
+                              OUT list<reportSectionData> &ltMatchSections);
     };
 
-}
+};

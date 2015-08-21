@@ -10,10 +10,10 @@ CRoadVecGen g_RoadVecGen;
 void main()
 {
     // set configuration path
-    g_RoadVecGen.setSectionConfigPath("C:\\Projects\\manualSeg.txt");
+    g_RoadVecGen.setSectionConfigPath(".\\config\\manualSeg.txt");
 
     // road new reported data from file
-    readReportData("C:\\Projects\\dataStruct_0.txt", newDataVec);
+    readReportData(".\\config\\pathlist.txt", newDataVec);
 
 #ifdef VISUALIZATION_ON
     char winname[MAX_PATH];
