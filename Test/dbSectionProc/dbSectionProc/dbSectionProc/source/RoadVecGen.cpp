@@ -25,6 +25,7 @@
 #ifdef VISUALIZATION_ON
 #include "VisualizationApis.h"
 
+static uint32 PREVIOUS_SEGID = 0;
 static uint32 MERGED_TIMES = 0;
 static uint32 FG_MERGED_NUM = 0;
 
@@ -186,12 +187,18 @@ bool isResampleSec(uint32 segId)
 #ifdef VISUALIZATION_ON
         list<vector<point3D_t>> fglines;
         list<list<vector<point3D_t>>>::iterator fgItor = fgData.begin();
+        list<vector<point3D_t>>::iterator fglineItor;
         while (fgItor != fgData.end())
         {
             if (!fgItor->empty())
             {
-                fglines.push_back(fgItor->front());
-                fglines.push_back(fgItor->back());
+                fglineItor = fgItor->begin();
+                while (fglineItor != fgItor->end())
+                {
+                    fglines.push_back(*fglineItor);
+
+                    fglineItor++;
+                }
             }
 
             fgItor++;
@@ -314,6 +321,7 @@ bool isResampleSec(uint32 segId)
             for(uint32 index = 0; index < splPointCnt; index++)
             {
                 sampledLine[index].lat = sourceLine[0].lat;
+                sampledLine[index].paintFlag = sourceLine[0].paintFlag;
             }
         }
         else
@@ -380,11 +388,13 @@ bool isResampleSec(uint32 segId)
                 if(x0 == x1)
                 {
                     sampledLine[index].lat = sourceLine[x0].lat;
+                    sampledLine[index].paintFlag = sourceLine[x0].paintFlag;
                 }
                 else
                 {
                     sampledLine[index].lat = (sourceLine[x0].lon - sampledLine[index].lon) * sourceLine[x1].lat / (sourceLine[x0].lon - sourceLine[x1].lon) +
                         (sampledLine[index].lon - sourceLine[x1].lon) * sourceLine[x0].lat / (sourceLine[x0].lon - sourceLine[x1].lon);
+                    sampledLine[index].paintFlag = (sourceLine[x0].paintFlag + sourceLine[x1].paintFlag) / 2;
                 }
             }//end for sampledLine
         }// end if
@@ -547,8 +557,8 @@ bool isResampleSec(uint32 segId)
         // matched lane number
         uint32 matchedLane = 0;
 
-        vector<point3D_t> leftRotated;
-        vector<point3D_t> rightRotated;
+        vector<point3D_t> leftRotated, leftRotatedValid;
+        vector<point3D_t> rightRotated, rightRotatedValid;
 
         // number of data group in report data
         int numOfGroups = reportData.rptSecData.size();
@@ -559,16 +569,19 @@ bool isResampleSec(uint32 segId)
             list<list<vector<point3D_t>>>::iterator laneItor = grpItor->begin();
             while (laneItor != grpItor->end())
             {
+                leftRotated.clear();
+                rightRotated.clear();
+                leftRotatedValid.clear();
+                rightRotatedValid.clear();
+
                 // step 1 - Lane number identification
                 matchLaneType(*laneItor, matchedLane);
 
                 // step 2 - Process new data before merging
                 // line - there should be two lines. rotate first
-                list<vector<point3D_t>>::iterator lineItor = laneItor->begin();
 
-                lineRotation(*lineItor, -theta, leftRotated);  // left line
-                lineItor++;
-                lineRotation(*lineItor, -theta, rightRotated); // right line
+                lineRotation(laneItor->front(), -theta, leftRotated);  // left line
+                lineRotation(laneItor->back(), -theta, rightRotated);  // right line
 
 #ifdef VISUALIZATION_ON
                 list<vector<point3D_t>> rotated;
@@ -576,34 +589,50 @@ bool isResampleSec(uint32 segId)
                 rotated.push_back(rightRotated);
                 sprintf_s(IMAGE_NAME_STR, "section_%d_lane_%d_merging_%d_rotated.png",
                           sectionConfig.segId, matchedLane, MERGED_TIMES);
-                showImage(rotated,  Scalar(0, 255, 0), IMAGE_NAME_STR);
+                showImage(rotated, Scalar(0, 255, 0), IMAGE_NAME_STR);
 #endif
+
+                // extract valid points for re-sampling or polynomial fitting
+                for (uint32 i = 0; i < leftRotated.size(); i++)
+                {
+                    if (0 < leftRotated[i].paintFlag)
+                    {
+                        leftRotatedValid.push_back(leftRotated[i]);
+                    }
+                }
+                for (uint32 i = 0; i < rightRotated.size(); i++)
+                {
+                    if (0 < rightRotated[i].paintFlag)
+                    {
+                        rightRotatedValid.push_back(rightRotated[i]);
+                    }
+                }
 
                 // re-sample or polynomial fitting
                 if (isResampleSec(sectionConfig.segId))
                 {
-                    interpolationSample(leftRotated,  leftSample);
-                    interpolationSample(rightRotated, rightSample);
+                    interpolationSample(leftRotatedValid,  leftSample);
+                    interpolationSample(rightRotatedValid, rightSample);
 #ifdef VISUALIZATION_ON
                     list<vector<point3D_t>> intersampled;
                     intersampled.push_back(leftSample);
                     intersampled.push_back(rightSample);
                     sprintf_s(IMAGE_NAME_STR, "section_%d_lane_%d_merging_%d_interpolate_sample.png",
                               sectionConfig.segId, matchedLane, MERGED_TIMES);
-                    showImage(intersampled,  Scalar(0, 0, 255), IMAGE_NAME_STR);
+                    showImage(intersampled, Scalar(0, 0, 255), IMAGE_NAME_STR);
 #endif
                 }
                 else
                 {
-                    polynomialFitting(leftRotated,  leftSample);
-                    polynomialFitting(rightRotated, rightSample);
+                    polynomialFitting(leftRotatedValid,  leftSample);
+                    polynomialFitting(rightRotatedValid, rightSample);
 #ifdef VISUALIZATION_ON
                     list<vector<point3D_t>> polysampled;
                     polysampled.push_back(leftSample);
                     polysampled.push_back(rightSample);
                     sprintf_s(IMAGE_NAME_STR, "section_%d_lane_%d_merging_%d_polyval_sample.png",
                               sectionConfig.segId, matchedLane, MERGED_TIMES);
-                    showImage(polysampled,  Scalar(0, 0, 255), IMAGE_NAME_STR);
+                    showImage(polysampled, Scalar(0, 0, 255), IMAGE_NAME_STR);
 #endif
                 }
 
@@ -702,7 +731,15 @@ bool isResampleSec(uint32 segId)
             } // end of new data lane iterator
 
 #ifdef VISUALIZATION_ON
-            MERGED_TIMES++;
+            if (PREVIOUS_SEGID == sectionConfig.segId)
+            {
+                MERGED_TIMES++;
+            }
+            else
+            {
+                PREVIOUS_SEGID = sectionConfig.segId;
+                MERGED_TIMES = 0;
+            }
 #endif
 
             grpItor++;
@@ -991,6 +1028,11 @@ bool isResampleSec(uint32 segId)
                             rotline.clear();
                         } // 3 lanes
 
+#ifdef VISUALIZATION_ON
+                            sprintf_s(IMAGE_NAME_STR, "fg_section_%d_rotated_lines.png",
+                                      configSecItor->segId);
+                            showImage(fgSecItor->fgSectionData, Scalar(0, 0, 255), IMAGE_NAME_STR);
+#endif
                     } // end of none valid lanes
                 }
                 else
