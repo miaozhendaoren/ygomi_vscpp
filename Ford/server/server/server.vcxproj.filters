@@ -115,4 +115,63 @@
       <Filter>Source Files\roadVecGen</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="sources\database\include\database.h">
+      <Filter>Header Files\database</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\database\include\databaseDef.h">
+      <Filter>Header Files\database</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\database\include\databaseServer.h">
+      <Filter>Header Files\database</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\framework\include\appInitCommon.h">
+      <Filter>Header Files\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\framework\include\Thread_Master_DBAccess.h">
+      <Filter>Header Files\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\framework\include\Thread_Receive_Message.h">
+      <Filter>Header Files\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\framework\include\Thread_Update_Message.h">
+      <Filter>Header Files\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\framework\include\Thread_VisualizePreProc.h">
+      <Filter>Header Files\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="include\typeDefine.h">
+      <Filter>Header Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\interface\include\laneQueueClass.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\interface\include\messageProcessClass.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\interface\include\messageQueueClass.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\log\include\LogInfo.h">
+      <Filter>Header Files\log</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\visualization\include\3dsId.h">
+      <Filter>Header Files\visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\visualization\include\Loader3DS.h">
+      <Filter>Header Files\visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\visualization\include\Model3DS.h">
+      <Filter>Header Files\visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\visualization\include\Visualization.h">
+      <Filter>Header Files\visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\visualization\include\VisualizeControl.h">
+      <Filter>Header Files\visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="include\configure.h">
+      <Filter>Header Files\include</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

@@ -20,7 +20,7 @@
 #include "LogInfo.h"
 #include "messageQueueClass.h"
 #include "appInitCommon.h"
-
+#include "VisualizeControl.h"
 
 
 SOCKET sockServer;			// socket
@@ -59,7 +59,34 @@ void msgQueueInit()
 	databaseQueue_gp = new messageQueueClass(300);
 
 }
+bool readOverViewPoint(char* fileName,eyeLookAt_t &eye)
+{
+	FILE* fp = fopen(fileName,"r");
+	if(fp == NULL)
+	{
+		return false;
+	}
+	char tempBuff[100];
+	fscanf(fp,"%s",tempBuff);
+	if(std::strstr(tempBuff,"overViewPoint:") != NULL)
+	{
+		fscanf(fp,"%f,%f,%f",&(eye.eyePosition.x),&(eye.eyePosition.y),&(eye.eyePosition.z));
+		eye.lookatPosition.x = eye.eyePosition.x;
+		eye.lookatPosition.y = 0;
+		eye.lookatPosition.z = eye.eyePosition.z;
+	}
+	fclose(fp);
+	return true;
+}
+void viewPointInit()
+{
+	bool readStatus = readOverViewPoint("./config/DE_Airport_overViewPoint.txt",serverEyeInfo[0]);
+	if(!readStatus)
+    {
+        logPrintf(logLevelError_e,"COMM","can't read the overView point!"); 
+    }
 
+}
 unsigned int __stdcall startSocket(void *data)
 {
 	// Initialize WinSock and check version  
@@ -133,6 +160,7 @@ unsigned int __stdcall startSocket(void *data)
 			//clientList.push_back(client);
 		}
 	}
+	fclose(fp);
 #if 0
 	sockClient = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockClient == INVALID_SOCKET)  

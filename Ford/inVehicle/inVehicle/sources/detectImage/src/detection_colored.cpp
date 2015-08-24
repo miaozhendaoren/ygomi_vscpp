@@ -17,15 +17,20 @@
 #include <iostream>
 #include <vector>
 
-#include <opencv2\core\core.hpp>
-#include <opencv2\highgui\highgui.hpp>
-#include <opencv2\imgproc\imgproc.hpp>
-#include <opencv2/objdetect/objdetect.hpp>
-#include <opencv2/video/tracking.hpp>
+//#include <opencv2\core\core.hpp>
+//#include <opencv2\highgui\highgui.hpp>
+//#include <opencv2\imgproc\imgproc.hpp>
+//#include <opencv2/objdetect/objdetect.hpp>
+//#include <opencv2/video/tracking.hpp>
+#include <opencv2/opencv.hpp>
 
 #include "svm.h"
 #include "detection_colored.h"
 #include "database.h"
+#include "markLocate.h"
+
+#include "roadScan.h"
+using namespace ns_roadScan;
 
 using namespace cv;
 using namespace std;
@@ -33,7 +38,10 @@ using namespace std;
 namespace ns_detection
 {
 
-Detector_colored::Detector_colored() : _MAX_NUM_FEATURES(200), _MAX_RED_CANDIDATES(10)
+Detector_colored::Detector_colored(float highStep, double dist_per_piexl,int horizon_line) :Detector(highStep,dist_per_piexl,horizon_line),
+										_MAX_NUM_FEATURES(1500), 
+                                       _MAX_RED_CANDIDATES(10),
+                                       _INVALID_TYPE(100)
 {
     _sw = 32;
     _d.winSize = Size(_sw, _sw);
@@ -45,36 +53,46 @@ Detector_colored::Detector_colored() : _MAX_NUM_FEATURES(200), _MAX_RED_CANDIDAT
     _kernel_size = 3;
     _canny_low_Threshold = 50;
     _canny_high_Threshold = 300;
-    _saturation_Threshold = 50;
+    _saturation_Threshold = 20;
 
     _ratioT = 30; 
     _areaT = 250;
 
+    _image.push_back(imread("./resource/Germany/png/10100.png"));
+    _image.push_back(imread("./resource/Germany/png/12300.png"));
+    _image.push_back(imread("./resource/Germany/png/13100.png"));
+    _image.push_back(imread("./resource/Germany/png/13310.png"));
+    _image.push_back(imread("./resource/Germany/png/13810.png"));
+    _image.push_back(imread("./resource/Germany/png/20500.png"));
+    _image.push_back(imread("./resource/Germany/png/20600.png"));
+    _image.push_back(imread("./resource/Germany/png/20930.png"));
+    _image.push_back(imread("./resource/Germany/png/21500.png"));
+    _image.push_back(imread("./resource/Germany/png/22220.png"));
+    _image.push_back(imread("./resource/Germany/png/22400.png"));
+    _image.push_back(imread("./resource/Germany/png/23700.png"));
+    _image.push_back(imread("./resource/Germany/png/23900.png"));
+    _image.push_back(imread("./resource/Germany/png/24000.png"));
+    _image.push_back(imread("./resource/Germany/png/25000.png"));
+    _image.push_back(imread("./resource/Germany/png/25900.png"));
+    _image.push_back(imread("./resource/Germany/png/26100.png"));
+    _image.push_back(imread("./resource/Germany/png/26210.png"));
     _image.push_back(imread("./resource/Germany/png/27452.png"));
     _image.push_back(imread("./resource/Germany/png/27453.png"));
     _image.push_back(imread("./resource/Germany/png/27454.png"));
     _image.push_back(imread("./resource/Germany/png/27455.png"));
     _image.push_back(imread("./resource/Germany/png/27456.png"));
+    _image.push_back(imread("./resource/Germany/png/27458.png"));
     _image.push_back(imread("./resource/Germany/png/28300.png"));
     _image.push_back(imread("./resource/Germany/png/28600.png"));
-    _image.push_back(imread("./resource/Germany/png/20600.png"));
-    _image.push_back(imread("./resource/Germany/png/22400.png"));
-    _image.push_back(imread("./resource/Germany/png/24000.png"));
-    _image.push_back(imread("./resource/Germany/png/23900.png"));
-    _image.push_back(imread("./resource/Germany/png/22220.png"));
-    _image.push_back(imread("./resource/Germany/png/99900.png"));
-    _image.push_back(imread("./resource/Germany/png/23700.png"));
-    _image.push_back(imread("./resource/Germany/png/31400.png"));
-    _image.push_back(imread("./resource/Germany/png/35010.png"));
-    _image.push_back(imread("./resource/Germany/png/30600.png"));
-    _image.push_back(imread("./resource/Germany/png/20500.png"));
     _image.push_back(imread("./resource/Germany/png/30100.png"));
-    _image.push_back(imread("./resource/Germany/png/13100.png"));
-    _image.push_back(imread("./resource/Germany/png/12300.png"));
-    _image.push_back(imread("./resource/Germany/png/13810.png"));
-    _image.push_back(imread("./resource/Germany/png/10100.png"));
-    _image.push_back(imread("./resource/Germany/png/13310.png"));
+    _image.push_back(imread("./resource/Germany/png/30600.png"));
+    _image.push_back(imread("./resource/Germany/png/31400.png"));
+    _image.push_back(imread("./resource/Germany/png/33100.png"));
+    _image.push_back(imread("./resource/Germany/png/33600.png"));
+    _image.push_back(imread("./resource/Germany/png/35010.png"));
+    _image.push_back(imread("./resource/Germany/png/99900.png"));
 
+    
     _cir_model = svm_load_model("./resource/Germany/svm/cir_model.txt");
     _rec_model = svm_load_model("./resource/Germany/svm/rec_model.txt");
     _tri_model = svm_load_model("./resource/Germany/svm/tri_model.txt");
@@ -94,14 +112,14 @@ int Detector_colored::contoursSelect(vector<vector<Point>> &contours,int *validI
         double area = contourArea( contours[idx]); 
         double length = arcLength( contours[idx],true); 
 
-        if (length*length <= area*double(ratioT))
+        if ((length*length <= area*double(ratioT)) && ((area < 150*150) && (area > 20*20)))
         {
             validIdx[totalValid] = idx;
             validVal[totalValid] = area;
             totalValid ++;
         }                
     }
-    int canNumber = min(totalValid, _MAX_RED_CANDIDATES);
+    int canNumber = min(totalValid,_MAX_RED_CANDIDATES);
 
     //find max 10 contourArea    
     for (int i = 0; i < canNumber; i++)
@@ -188,134 +206,178 @@ Detector::Shape Detector_colored::ShapeDetect(vector<Point> &approx, InputArray 
 ///////////////////////////////////////////////////////////////////////////////////////////
 Mat Detector_colored::ID2Image(int target)
 {
-    Mat s;
-    switch (target)
+	Mat s;
+	switch (target)
     {
-    case 27452:
-        {
-            s = _image[0];
-            break;
-        }
-    case 27453:
-        {
-            s = _image[1];
-            break;
-        }
-    case 27454:
-        {
-            s = _image[2];
-            break;
-        }
-    case 27455:
-        {
-            s = _image[3];
-            break;
-        }
-    case 27456:
-        {
-            s = _image[4];
-            break;
-        }
-    case 28300:
-        {
-            s = _image[5];
-            break;
-        }
-    case 28600:
-        {
-            s = _image[6];
-            break;
-        }
-    case 20600:
-        {
-            s = _image[7];
-            break;
-        }
-    case 22400:
-        {
-            s = _image[8];
-            break;
-        }
-    case 24000:
-        {
-            s = _image[9];
-            break;
-        }
-    case 23900:
-        {
-            s = _image[10];
-            break;
-        }
-    case 22220:
-        {
-            s = _image[11];
-            break;
-        }
-    case 99900:
-        {
-            s = _image[12];
-            break;
-        }
-    case 23700:
-        {
-            s = _image[13];
-            break;
-        }
-    case 31400:
-        {
-            s = _image[14];
-            break;
-        }
-    case 35010:
-        {
-            s = _image[15];
-            break;
-        }
-    case 30600:
-        {
-            s = _image[16];
-            break;
-        }
-    case 20500:
-        {
-            s = _image[17];
-            break;
-        }
-    case 30100:
-        {
-            s = _image[18];
-            break;
-        }
-    case 13100:
-        {
-            s = _image[19];
-            break;
-        }
-    case 12300:
-        {
-            s = _image[20];
-            break;
-        }
-    case 13810:
-        {
-            s = _image[21];
-            break;
-        }
-    case 10100:
-        {
-            s = _image[22];
-            break;
-        }
-    case 13310:
-        {
-            s = _image[23];
-            break;
-        }
-    default:
-        s = _image[0];
-        break;
-    }
-    return s;
+	case 10100:
+		{
+			s = _image[0];
+			break;
+		}
+	case 12300:
+		{
+			s = _image[1];
+			break;
+		}
+	case 13100:
+		{
+			s = _image[2];
+			break;
+		}
+	case 13310:
+		{
+			s = _image[3];
+			break;
+		}
+	case 13810:
+		{
+			s = _image[4];
+			break;
+		}
+	case 20500:
+		{
+			s = _image[5];
+			break;
+		}
+	case 20600:
+		{
+			s = _image[6];
+			break;
+		}
+	case 20930:
+		{
+			s = _image[7];
+			break;
+		}
+	case 21500:
+		{
+			s = _image[8];
+			break;
+		}
+	case 22200:
+		{
+			s = _image[9];
+			break;
+		}
+	case 22240:
+		{
+			s = _image[10];
+			break;
+		}
+	case 23700:
+		{
+			s = _image[11];
+			break;
+		}
+	case 23900:
+		{
+			s = _image[12];
+			break;
+		}
+	case 24000:
+		{
+			s = _image[13];
+			break;
+		}
+	case 25000:
+		{
+			s = _image[14];
+			break;
+		}
+	case 25900:
+		{
+			s = _image[15];
+			break;
+		}
+	case 26100:
+		{
+			s = _image[16];
+			break;
+		}
+	case 26210:
+		{
+			s = _image[17];
+			break;
+		}
+	case 27452:
+		{
+			s = _image[18];
+			break;
+		}
+	case 27453:
+		{
+			s = _image[19];
+			break;
+		}
+	case 27454:
+		{
+			s = _image[20];
+			break;
+		}
+	case 27455:
+		{
+			s = _image[21];
+			break;
+		}
+	case 27456:
+		{
+			s = _image[22];
+			break;
+		}
+	case 27458:
+		{
+			s = _image[23];
+			break;
+		}
+	case 28300:
+		{
+			s = _image[24];
+			break;
+		}
+	case 28600:
+		{
+			s = _image[25];
+			break;
+		}
+	case 30100:
+		{
+			s = _image[26];
+			break;
+		}
+	case 30600:
+		{
+			s = _image[27];
+			break;
+		}
+	case 31400:
+		{
+			s = _image[28];
+			break;
+		}
+	case 33100:
+		{
+			s = _image[29];
+			break;
+		}
+	case 33600:
+		{
+			s = _image[30];
+			break;
+		}
+	case 35010:
+		{
+			s = _image[31];
+			break;
+		}
+	case 99900:
+		{
+			s = _image[32];
+			break;
+		}
+	default:
+		break;
+	}
+	return s;
 }
 
 void Detector_colored::CannyThreshold(Mat src_gray,Mat &dst)
@@ -382,7 +444,7 @@ void Detector_colored::handleTrackedPoints(cv:: Mat &output,std::vector<cv::Poin
     }
 }
 
-int Detector_colored::TS_classify(Detector::Shape shape,Mat image,InputArray curve)
+int Detector_colored::TS_classify(Detector::Shape shape,Mat image,InputArray curve,string path)
 {
     // default type
     int type = 0;
@@ -392,8 +454,10 @@ int Detector_colored::TS_classify(Detector::Shape shape,Mat image,InputArray cur
         {
             cv::Rect r = cv::boundingRect(curve);
             Mat image_roi = image(r);
-            char currFileName[1000];
-            sprintf_s( currFileName, 1000, ".\\testImage\\TRI\\%05d.jpg",_triImageID++);
+            char currFileName[500];
+            int stringLen = path.size();
+            sprintf_s( currFileName, 100, (char *)path.data());
+            sprintf_s(&currFileName[stringLen], 400, "/TRI/%05d.jpg",triImageID++);
             imwrite(currFileName, image_roi);
         }
 #else
@@ -406,8 +470,10 @@ int Detector_colored::TS_classify(Detector::Shape shape,Mat image,InputArray cur
         {
             cv::Rect r = cv::boundingRect(curve);
             Mat image_roi = image(r);
-            char currFileName[1000];
-            sprintf_s( currFileName, 1000, ".\\testImage\\REC\\%05d.jpg",_recImageID++);
+            char currFileName[500];
+            int stringLen = path.size();
+            sprintf_s( currFileName, 100, (char *)path.data());
+            sprintf_s( &currFileName[stringLen], 400, "/REC/%05d.jpg",recImageID++);
             imwrite(currFileName, image_roi);
         }
 #else
@@ -420,8 +486,10 @@ int Detector_colored::TS_classify(Detector::Shape shape,Mat image,InputArray cur
         {
             cv::Rect r = cv::boundingRect(curve);
             Mat image_roi = image(r);
-            char currFileName[1000];
-            sprintf_s( currFileName, 1000, ".\\testImage\\CIR\\%05d.jpg",_cirImageID++);
+            char currFileName[500];
+            int stringLen = path.size();
+            sprintf_s( currFileName, 100, (char *)path.data());
+            sprintf_s( &currFileName[stringLen], 400, "/CIR/%05d.jpg",cirImageID++);
             imwrite(currFileName, image_roi);
         }
 #else
@@ -475,7 +543,7 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
     // 7. find findContours.
     vector<vector<Point>> contours;
     vector<Vec4i> hierarchy;    
-    findContours( satImage, contours, hierarchy,CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE );
+    findContours( satImage, contours, hierarchy,CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE );
 
     // 8. shape detection and signs classfication.
     int k = 0;
@@ -499,13 +567,7 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
             maxValue); 
 
         RNG rng(12345);
-
-        // clear the output target.
-        for(int idx = 0; idx< _MAX_RED_CANDIDATES; idx++)
-        {
-            target.TS_type[idx] = 0;
-        }    
-
+   
         for(int idx = 0; idx< canNumber; idx++)
         {
             Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
@@ -538,44 +600,32 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
             int type = TS_classify(shape,image,curve);
 
             // if is valid traffic sign type
-            if(type!=0)
+            if(type > _INVALID_TYPE)
             {    
                 int flag = 1;                                
 
                 for (int j = 0; j < k; j++)
                 {
-                    cv::Point2f center2 = target.TS_center[j];
+                    cv::Point2f center2 = target.trafficSign[j].center;
                     //if same type and same centers,jump off
                     if(cv::norm(center2-center)< 10) // if same target!
                     {
-                        if (type == target.TS_type[j])
+                        if (type == target.trafficSign[j].type)
                         {
                             flag = 0;
                             break;
                         }
-                        else if ((type == 20600)&&(target.TS_type[j] ==27453)) // Fixme later, fast workaround to avoid false alarm of SL30
-                        {
-                            flag = 0;
-                            break;
-                        }
-                        else if ((type == 27453)&&(target.TS_type[j] ==20600)) // update the existing 20600.
-                        {
-                            flag = 2;
-                            target.TS_type[j] = type;
-                            target.TS_area[j] = area;
-                            target.TS_rect[j] = r;
-                            target.TS_center[j] = center;    
-                            break;
-                        } 
                     }
                 }//end for    
 
-                if ((flag ==1)&&(type != 28300)&&(type != 28600)) // remove 28300 && 28600
+                if(flag ==1) // remove 28300 && 28600
                 {
-                    target.TS_type[k] = type;
-                    target.TS_area[k] = area;
-                    target.TS_rect[k] = r;
-                    target.TS_center[k] = center;                    
+                    TS_Structure::TS_element detectSign;
+                    detectSign.type = type;
+                    detectSign.area = area;
+                    detectSign.rect = r;
+                    detectSign.center = center;         
+                    target.trafficSign.push_back(detectSign);
 #ifdef TRACK_ENABLE                     
                     points[0].push_back (center);
                     initial.push_back (center);
@@ -585,14 +635,56 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
                     //cout<< " frameNumber = "<<frameNumber <<"  Sign type = " << ID2Name(type) << endl;
                     // display the label.                    
                     rectangle(image, r , Scalar(0,255,0), 2, 8, 0);
-                    string s = ns_database::ID2Name(type); 
-                    //detector.setLabel(image,s.c_str(), contours[index]);
+                /*    string s = ID2Name(type); 
+                    detector.setLabel(image,s.c_str(), contours[index]);*/
                     k++;                        
                 }
-            }//end for
-        }
-        totalNumber = k;        
-        target.totalNumber = k;
+            }//end if
+            else
+            {
+                if( (type == 0) && (shape = rectangles))
+                {
+                    Mat image_roi = imag(r);
+
+                    //cv::namedWindow("Original Image");                            // define the window
+                    //cv::imshow("Original Image", image_roi);                    // show the image
+                    //cv::waitKey(1);
+
+                    // 1. convert Color to HSV
+                    cv::Mat hsvR;            
+                    cv::cvtColor(image_roi, hsvR, CV_BGR2HSV);
+
+                    std::vector<cv::Mat> planesR;    
+                    cv::split(hsvR,planesR);
+
+                    Mat hMat = planesR[0];
+
+                     /// set bin number
+                     int histSize = 36;
+                     float range[] = { -180, 180 } ;
+                     const float* histRange = { range };
+                     bool uniform = true; bool accumulate = false;
+                     Mat y_hist;
+                     double minVal,maxVal;
+                     Point minIdx,maxIdx;
+
+                     calcHist(&planesR[0], 1, 0, Mat(), y_hist, 1, &histSize, &histRange, uniform, accumulate);
+                     minMaxLoc(y_hist, &minVal, &maxVal, &minIdx, &maxIdx);
+
+                     double ratio = (float)r.width /(float)r.height;
+                     if(maxIdx == Point(0,20) && (ratio > 0.85) && (ratio < 1.15))
+                     {
+                        TS_Structure::TS_element detectSign;
+                        detectSign.type = 30600;
+                        detectSign.area = area;
+                        detectSign.rect = r;
+                        detectSign.center = center;         
+                        target.trafficSign.push_back(detectSign);
+                        k++;
+                     }
+                }
+            }
+        }        
 
         delete validIdx;
         delete validVal;
@@ -660,10 +752,10 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
         //Mat background = Mat::zeros(image.rows, 4*image.cols/3, CV_8UC3);
         Mat background(image.rows,4*image.cols/3, CV_8UC3,Scalar(128,128,128));    
 
-        for(int i = 0; i< min(totalNumber,4); i++)
+        for(int i = 0; i< min(target.trafficSign.size(),4); i++)
         {
-            int type = target.TS_type[i];
-            Rect rect = target.TS_rect[i];
+            int type = target.trafficSign[i].type;
+            Rect rect = target.trafficSign[i].rect;
             Mat hsv_roi = hsv(rect);
             Mat rgb_roi = imag(rect);
             Mat subWin1 = ID2Image(type);
@@ -709,4 +801,5 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
     }
     waitKey(1);
 }
+
 }

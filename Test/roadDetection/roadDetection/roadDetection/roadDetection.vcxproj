@@ -58,7 +58,8 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../../Ford/inVehicle/inVehicle/include;../../../../Ford/inVehicle/inVehicle/sources/imageBuffer/include;../../../../Ford/inVehicle/inVehicle/sources/detectImage/include;../../../../Ford/inVehicle/inVehicle/sources/database/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../Ford/inVehicle/inVehicle/include;../../../../Ford/inVehicle/inVehicle/sources/imageBuffer/include;../../../../Ford/inVehicle/inVehicle/sources/detectImage/include;../../../../Ford/inVehicle/inVehicle/sources/database/include;../../../../Ford\inVehicle\inVehicle\sources\frameWork\include;../../../..\Ford\inVehicle\inVehicle\sources\interface\include;../../../../Ford\inVehicle\inVehicle\sources\log\include;../../../../Ford\inVehicle\inVehicle\sources\visualization\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ROAD_SCAN_UT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -71,7 +72,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>../../../../Ford/inVehicle/inVehicle/include;../../../../Ford/inVehicle/inVehicle/sources/database/include;../../../../Ford/inVehicle/inVehicle/sources/detectImage/include;../../../../Ford/inVehicle/inVehicle/sources/imageBuffer/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../Ford/inVehicle/inVehicle/include;../../../../Ford/inVehicle/inVehicle/sources/database/include;../../../../Ford/inVehicle/inVehicle/sources/detectImage/include;../../../../Ford/inVehicle/inVehicle/sources/imageBuffer/include;../../../../Ford/inVehicle/inVehicle/sources/frameWork/include;../../../../Ford/inVehicle/inVehicle/sources/interface/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ROAD_SCAN_UT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -81,14 +83,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\src\detection.cpp" />
+    <ClCompile Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\src\markLocate.cpp" />
     <ClCompile Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\src\roadScan.cpp" />
     <ClCompile Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\src\utils.cpp" />
-    <ClCompile Include="roadScan_main.cpp" />
+    <ClCompile Include="roadScan_main.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="roadScan_main_liang.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="roadScan_main_luo.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\include\typeDefine.h" />
     <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\database\include\database.h" />
     <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\database\include\databaseDef.h" />
+    <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\include\Detection.h" />
+    <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\include\markLocate.h" />
     <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\include\roadScan.h" />
     <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\include\utils.h" />
     <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\imageBuffer\include\ImageBuffer.h" />

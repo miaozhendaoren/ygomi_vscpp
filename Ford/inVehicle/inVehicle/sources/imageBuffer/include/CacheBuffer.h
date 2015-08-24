@@ -25,6 +25,8 @@ public:
 	void addImage(imageCamera_t& image);
 	void swatchBuffer();
 	void getBackendBuffer(vector<imageCamera_t> **bufPtr);
+	void lockCacheBuffer();
+	void releaseCacheBuffer();
 	
 private:
 	vector<imageCamera_t> imageVec[CACHE_BUFFER_NUM];  //ping pong cache buffer to save the image 

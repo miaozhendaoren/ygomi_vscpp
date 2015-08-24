@@ -113,6 +113,7 @@ namespace ns_database
         uint8  numFurniture;
         uint8  numDynamicData_used;
         uint8  numDynamicData;
+        uint8  uiLaneNum_used;
         uint8  uiLaneNum;
     };
 	 
@@ -224,10 +225,9 @@ namespace ns_database
                                     OUT std::list<furAttributes_t>& furnitureAttrList, 
                                     OUT std::list<point3D_t>& pointInRangeList);
 
-        void readTlvToFurniture(IN  void** input,
-                        IN  resource_e sourceFlag,
-						OUT furAttributes_t* furnitureElement);
-
+        void readTlvToFurniturePublic(IN uint8* tlvBuff, 
+                                      IN uint32 buffLen,
+                                      OUT furAttributes_t &furAttr);
     protected:
         std::string _dbFileName;
         FILE* _dbFid;
@@ -309,6 +309,10 @@ namespace ns_database
                             IN  resource_e sourceFlag,
                             OUT point3D_t& pointElement, 
                             OUT int* numByteInBuff);
+
+        void readTlvToFurniture(IN  void** input,
+                            IN  resource_e sourceFlag,
+						    OUT furAttributes_t* furnitureElement);
 
         void readTlv(IN  void** input,
                      IN  resource_e sourceFlag,

@@ -1,0 +1,11 @@
+./resource/Germany/airport2/cam_20150811111511.mp4 ./resource/Germany/airport2/list_20150811111511.txt
+./resource/Germany/airport2/cam_20150811112010.mp4 ./resource/Germany/airport2/list_20150811112010.txt
+./resource/Germany/airport2/cam_20150811112510.mp4 ./resource/Germany/airport2/list_20150811112510.txt
+./resource/Germany/airport2/cam_20150811113010.mp4 ./resource/Germany/airport2/list_20150811113010.txt
+./resource/Germany/airport2/cam_20150811113510.mp4 ./resource/Germany/airport2/list_20150811113510.txt
+./resource/Germany/airport2/cam_20150811114010.mp4 ./resource/Germany/airport2/list_20150811114010.txt
+./resource/Germany/airport2/cam_20150811114510.mp4 ./resource/Germany/airport2/list_20150811114510.txt
+./resource/Germany/airport2/cam_20150811115010.mp4 ./resource/Germany/airport2/list_20150811115010.txt
+./resource/Germany/airport2/cam_20150811115510.mp4 ./resource/Germany/airport2/list_20150811115510.txt
+./resource/Germany/airport2/cam_20150811120010.mp4 ./resource/Germany/airport2/list_20150811120010.txt
+./resource/Germany/airport2/cam_20150811120510.mp4 ./resource/Germany/airport2/list_20150811120510.txt

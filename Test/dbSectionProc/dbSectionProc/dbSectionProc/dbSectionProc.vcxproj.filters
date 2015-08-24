@@ -30,16 +30,16 @@
     <ClCompile Include="..\..\..\..\Ford\server\server\sources\log\src\LogInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="source\polynomialFit.cpp">
+    <ClCompile Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\src\ExtractSection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="source\RoadVecGen.cpp">
+    <ClCompile Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\src\polynomialFit.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="source\VisualizationApis.cpp">
+    <ClCompile Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\src\RoadVecGen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="source\ExtractSection.cpp">
+    <ClCompile Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\src\VisualizationApis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,19 +56,19 @@
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\log\include\LogInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\apiDataStruct.h">
+    <ClInclude Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\include\apiDataStruct.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\polynomialFit.h">
+    <ClInclude Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\include\ExtractSection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\RoadVecGen.h">
+    <ClInclude Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\include\polynomialFit.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\VisualizationApis.h">
+    <ClInclude Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\include\RoadVecGen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\ExtractSection.h">
+    <ClInclude Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\include\VisualizationApis.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

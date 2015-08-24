@@ -15,6 +15,7 @@
 */
 #include <gl/glut.h>
 #include <Windows.h>
+#include <sstream> // for debugging
 #include "appInitCommon.h"
 #include "databaseServer.h" // databaseServer
 #include "LogInfo.h"
@@ -70,7 +71,9 @@ unsigned int __stdcall Thread_Update_Message(void *data)
 					}
 					else
 					{
-						logPrintf(logLevelInfo_e,"UPDATE_MSG","<<<< Send message header to specified client OK"); 
+                        std::stringstream msgStr;
+                        msgStr << "<<<< Send message header to specified client OK, payload size: " << msgTempPtr->headerLen;
+						logPrintf(logLevelInfo_e,"UPDATE_MSG",msgStr.str().c_str()); 
 
 						// send payload
 						if((msgTempPtr->payloadLen > 0) && (updateMsgPtr->payload != NULL))
@@ -84,8 +87,10 @@ unsigned int __stdcall Thread_Update_Message(void *data)
 								//updateMsgPtr->payload = NULL;
 							}
 							else
-							{ 
-								logPrintf(logLevelInfo_e,"UPDATE_MSG","<<<< Send message payload to specified client OK"); 
+							{
+                                std::stringstream msgStr;
+                                msgStr << "<<<< Send message playload to specified client OK, payload size: " << msgTempPtr->payloadLen;
+								logPrintf(logLevelInfo_e,"UPDATE_MSG",msgStr.str().c_str()); 
 								if(ret >=  msgTempPtr->payloadLen)
 								{
 									//delete updateMsgPtr->payload;

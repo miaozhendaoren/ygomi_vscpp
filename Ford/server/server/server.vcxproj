@@ -118,6 +118,27 @@ copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib
     <ClCompile Include="sources\visualization\src\Visualization.cpp" />
     <ClCompile Include="sources\visualization\src\VisualizeControl.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\configure.h" />
+    <ClInclude Include="include\typeDefine.h" />
+    <ClInclude Include="sources\database\include\database.h" />
+    <ClInclude Include="sources\database\include\databaseDef.h" />
+    <ClInclude Include="sources\database\include\databaseServer.h" />
+    <ClInclude Include="sources\framework\include\appInitCommon.h" />
+    <ClInclude Include="sources\framework\include\Thread_Master_DBAccess.h" />
+    <ClInclude Include="sources\framework\include\Thread_Receive_Message.h" />
+    <ClInclude Include="sources\framework\include\Thread_Update_Message.h" />
+    <ClInclude Include="sources\framework\include\Thread_VisualizePreProc.h" />
+    <ClInclude Include="sources\interface\include\laneQueueClass.h" />
+    <ClInclude Include="sources\interface\include\messageProcessClass.h" />
+    <ClInclude Include="sources\interface\include\messageQueueClass.h" />
+    <ClInclude Include="sources\log\include\LogInfo.h" />
+    <ClInclude Include="sources\visualization\include\3dsId.h" />
+    <ClInclude Include="sources\visualization\include\Loader3DS.h" />
+    <ClInclude Include="sources\visualization\include\Model3DS.h" />
+    <ClInclude Include="sources\visualization\include\Visualization.h" />
+    <ClInclude Include="sources\visualization\include\VisualizeControl.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

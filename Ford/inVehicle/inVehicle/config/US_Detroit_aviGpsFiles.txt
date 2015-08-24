@@ -1,0 +1,4 @@
+./resource/US/Detroit/MKS360_20130722_003_Uncompressed.avi ./resource/US/Detroit/gps_003.txt
+./resource/US/Detroit/MKS360_20130722_004_Uncompressed.avi ./resource/US/Detroit/gps_004.txt
+./resource/US/Detroit/MKS360_20130722_005_Uncompressed.avi ./resource/US/Detroit/gps_005.txt
+./resource/US/Detroit/MKS360_20130722_006_Uncompressed.avi ./resource/US/Detroit/gps_006.txt

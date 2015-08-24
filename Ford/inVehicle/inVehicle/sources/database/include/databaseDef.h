@@ -75,6 +75,7 @@ namespace ns_database
         data_pointLatitudeR_e    = 0x005F,
         data_pointLongitudeR_e   = 0x0060,
         data_pointAltitudeR_e    = 0x0061,
+        data_mergeCounter_e      = 0x0062,
         data_pointMax_e,
 
         data_lineBase_e = 0x0101,

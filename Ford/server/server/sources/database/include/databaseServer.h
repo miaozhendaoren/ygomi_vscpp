@@ -103,7 +103,7 @@ namespace ns_database
 
 		uint32 getFurnitureVersion();
 			
-        void syncFurnitureToVehicle(uint8 *furnitureListP, uint32 *msgLen, uint16 *pduNum, int32 maxPayloadLen);
+        void syncFurnitureToVehicle(uint8 *furnitureListP, int32 *msgLen, int32 *pduNum, int32 maxPayloadLen);
 
         void getNewDataVec(std::list<std::vector<point3D_t>> &newDataVec);
 

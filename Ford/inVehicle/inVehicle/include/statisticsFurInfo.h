@@ -21,11 +21,26 @@
 
 using ns_database::furAttributesInVehicle_t;
 using ns_database::point3D_t;
+
+namespace ns_statistics
+{
+struct furWithPosition_t
+{
+    public:
+        ns_database::furAttributesInVehicle_t  furAttri;
+        int offsetNumPerFur;
+        std::vector<float> offset;
+        std::vector<point3D_t> position;
+};
+
 struct statisticsFurInfo_t
 {
 	int16 number;
 	point3D_t firstGps;
-	furAttributesInVehicle_t furAttri;
+	furAttributesInVehicle_t  furAttri;
+    std::vector<int> offsetNumPerFur;
+    std::vector<std::vector<float>> offset;
+    std::vector<std::vector<point3D_t>> position;
 };
 struct deleteFurInfo_t
 {
@@ -34,3 +49,7 @@ struct deleteFurInfo_t
 	int16 frameNumber;
 	furAttributesInVehicle_t furAttri;
 };
+
+ const double MIN_DIST = 999999999*999999999;
+ const int VAR_ACC_TIME = 1;
+}

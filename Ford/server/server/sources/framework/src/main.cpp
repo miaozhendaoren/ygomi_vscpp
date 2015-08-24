@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
 	appInitEvents();
 	databaseInit();
 	msgQueueInit();
+	viewPointInit();
 	//startSocket();
 
 	glutInit(&argc, argv);

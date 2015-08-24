@@ -19,18 +19,16 @@
 #include <iostream>
 #include "appInitCommon.h"
 #include "LogInfo.h"
-
+#include <sstream> // for debugging
 
 using namespace std;
 
-#define RECV_MAX_BYTE_NUM			(1024*10)
 
 list<portToVehi_t> portToVehiList;
 uint8 *test;
 unsigned int __stdcall Thread_Receive_Message(void *data)
 {
 	
-	uint8 recvBuff[RECV_MAX_BYTE_NUM];
 	uint16 clientNum = 0;
 	portToVehiList.clear();
 
@@ -79,13 +77,13 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 					SOCKET sockTemp = clientListIdx->sockClient;
 					sockaddr_in from;
 					messageProcessClass recvMsg;
-					diffMsgHeader_t *recvHeader = (diffMsgHeader_t*)recvMsg.getDiffRptMsgHeader();
+					diffRptMsg_t *recvHeader = recvMsg.getDiffRptMsg();
 					//step1: receive the message header length
 					int headerLen = 0;
-					uint8* recvBuffP = recvBuff;
-					while(headerLen < sizeof(recvHeader->headerLen))
+					uint8* recvBuffP = (uint8*)recvHeader;
+					while(headerLen < sizeof(recvHeader->msgHeader.headerLen))
 					{
-						int ret = recv(sockTemp,(char*)recvBuffP,sizeof(recvHeader->headerLen),0);
+						int ret = recv(sockTemp,(char*)recvBuffP,sizeof(recvHeader->msgHeader.headerLen),0);
 						//int ret = recvfrom(sockServer,(char*)recvBuffP,sizeof(recvHeader->headerLen),0,(SOCKADDR*)&from,&len);
 						if(ret  == INVALID_SOCKET)
 						{
@@ -102,13 +100,12 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 					}
 					// receive one message header length.
 					int recvAllSize = 0;
-					recvHeader->headerLen = *((uint16*)recvBuff);
 
 					//step2: receive one message header
 					//recvBuffP = &recvBuff[headerLen];
-					while( recvAllSize < recvHeader->headerLen - headerLen)
+					while( recvAllSize < recvHeader->msgHeader.headerLen - sizeof(recvHeader->msgHeader.headerLen))
 					{
-						int ret = recv(sockTemp,(char*)recvBuffP,recvHeader->headerLen - recvAllSize - headerLen,0);
+						int ret = recv(sockTemp,(char*)recvBuffP,recvHeader->msgHeader.headerLen - recvAllSize - sizeof(recvHeader->msgHeader.headerLen),0);
 						//int ret = recvfrom(sockServer,(char*)recvBuffP,headerLen - recvAllSize,0,(SOCKADDR*)&from,&len); 
 						if(ret == INVALID_SOCKET)
 						{ 
@@ -125,14 +122,14 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 						}
 					}
 					// all the message header has been received.
-					memcpy((void*)&recvMsg,(void*)recvBuff,recvHeader->headerLen);
+					//memcpy((void*)&recvMsg,(void*)recvBuff,recvHeader->headerLen);
 
 					//step3: receive all the payload in the message
-					if(recvHeader->payloadLen != 0)
+					if(recvHeader->msgHeader.payloadLen != 0)
 					{
 						int paylaodSize = 0;
 						diffRptMsg_t *recvDiffMsg = (diffRptMsg_t*)recvMsg.getDiffRptMsg();
-						recvDiffMsg->payload = new uint8[recvHeader->payloadLen];// malloc memory to store the payload
+						recvDiffMsg->payload = new uint8[recvHeader->msgHeader.payloadLen];// malloc memory to store the payload
 						if(recvDiffMsg->payload == NULL)
 						{
 							goto RESTART_LABEL;
@@ -140,9 +137,9 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 						//recvDiffMsg->payload = new uint8[1024*1024];
 						uint8* paylaodPtr = recvDiffMsg->payload;
 						test =  recvDiffMsg->payload;
-						while(paylaodSize < recvHeader->payloadLen)
+						while(paylaodSize < recvHeader->msgHeader.payloadLen)
 						{
-							int ret = recv(sockTemp,(char*)paylaodPtr,recvHeader->payloadLen - paylaodSize,0);
+							int ret = recv(sockTemp,(char*)paylaodPtr,recvHeader->msgHeader.payloadLen - paylaodSize,0);
 							//int ret = recvfrom(sockServer,(char*)paylaodPtr,recvHeader->payloadLen - paylaodSize,0,(SOCKADDR*)&from,&len); 
 							if(ret == INVALID_SOCKET)
 							{ 
@@ -162,6 +159,25 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 						}
 					}
 					messageQueue_gp->push(&recvMsg);
+
+#if SERVER_LOG_DIFF_MSG==1
+                    {
+                        std::stringstream fileName;
+                        fileName << "log/messages.bin";
+                        FILE *fpOut = fopen(fileName.str().c_str(), "ab");
+
+                        diffRptMsg_t *diffMsg = recvMsg.getDiffRptMsg();
+
+                        // All message header
+                        fwrite(diffMsg, diffMsg->msgHeader.headerLen, 1, fpOut);
+
+                        // All message payload
+                        fwrite(diffMsg->payload, diffMsg->msgHeader.payloadLen, 1, fpOut);
+
+                        fclose(fpOut);
+                    }
+#endif
+
 					ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
 				}
 

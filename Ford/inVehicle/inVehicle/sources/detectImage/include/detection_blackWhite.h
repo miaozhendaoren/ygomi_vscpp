@@ -16,6 +16,7 @@
 #ifndef DTECTION_BLACK_WHITE_H
 #define DTECTION_BLACK_WHITE_H
 
+#include "svm.h"
 #include "Detection.h"
 
 namespace ns_detection
@@ -54,7 +55,7 @@ private:
     cv::Mat ID2Image(int target);
 
 public:
-    Detector_blackWhite();
+    Detector_blackWhite(float highStep, double dist_per_piexl,int horizon_line);
 
     void trafficSignDetect(cv::Mat image, TS_Structure &target);
 };

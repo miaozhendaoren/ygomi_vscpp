@@ -80,7 +80,7 @@ void getPaintEdgeLocation(Mat &inputImage, Point paintPoint, Point &leftLocation
 void getInformationOfEveryLine(gpsInformationAndInterval &GPSAndInterval,Mat &roadDraw,Mat &longLane,int lineNum,int startPoint,dataEveryRow &rowData,Parameters inParam);
 void calThread(Mat &Inimg, int &hisTH,Mat &dstImage);
 int calRidgePar(Mat &Inimg);
-void ridgeDetect(Mat image_f,Mat &Kapa, double sigma1, double sigma2);
+void ridgeDetect(Mat &image_f,Mat &Kapa, double sigma1, double sigma2);
 
 void calThread(Mat &Inimg, int &hisTH, Mat&dstImage);
 int calRidgePar(Mat &Inimg);
@@ -92,7 +92,7 @@ int searchRegularPolygon(Mat &src,Mat &dxImg, Mat &dyImg,vector<int> &radusVec,i
 
 void stopLineDetection(Mat &Inimage,vector<laneMarker> &lanemarker,int histThres);
 
-void numberDetection(Mat &Inimage,vector<laneMarker> &lanemarker,int histThres);
+void laneMarkerDetection(Mat &Inimage,vector<laneMarker> &lanemarker,int histThres);
 double getPSNR ( const Mat& I1, const Mat& I2);
 
 void arrowDetection(Mat &Inimage,vector<laneMarker> &lanemarker); 
@@ -103,6 +103,14 @@ int imageAdjust(Mat &src, Mat &dst,
 	double gamma );
 void shadowProcess(Mat &src, Mat &dst);
 bool judgeShadow(Mat &src);
+void findGPSInterval(vector<gpsInformationAndInterval> &gpsAndInterval,Point2d &point, Mat &inImage,Parameters inParam, Point2d &pointRel);
 
+void linkInterval(Mat &src, Mat &dst);
+void ridgeDetect2(Mat image_f,Mat &Kapa, double sigma1, double sigma2);
+int arrowClassify(Mat &inImge);
+void calHAndInvertH(Parameters &inParam, Mat &H, Mat &invertH);
+void blockCalRidge(Mat &matlongLane_cut, Parameters& inParam,Mat &allUnitKapa,Mat &allUnitContous,Mat &allKappBin);
+void linkPaintLine(Mat allUnitContous,vector<laneMarker> &lanemarker,Mat &Tline_link_out);
 }
+
 #endif

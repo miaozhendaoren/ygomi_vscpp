@@ -22,11 +22,13 @@
 #include "databaseInVehicle.h" // databaseInVehicle
 #include "ImageBuffer.h"
 #include "roadScan.h" // readParamRoadScan
+#include "detection_colored.h"    // Detector_colored
+#include "detection_blackWhite.h" // Detector_blackWhite
+#include "configure.h"
 
 extern	SOCKET sockServer;
 extern	SOCKET sockClient;
 extern	SOCKADDR_IN serverAddr;
-extern volatile SOCKET g_ServerSockUDP;
 
 extern	int g_SocketLen;
 extern  uint32 g_VehicleID;
@@ -38,6 +40,17 @@ extern ns_database::databaseInVehicle* database_gp;
 extern ns_historyLine::saveLinePointInSafe	historyInfoP;
 extern ImageBufferAll imageBuffer;
 extern ns_roadScan::Parameters inParam;
+extern cv::Mat H;
+extern cv::Mat invertH;
+extern int g_CameraPort;
+
+//#if(RD_SIGN_DETECT == RD_SIGN_DETECT_COLOR)
+//    extern ns_detection::Detector_colored *trafficSignDetector;
+//#elif(RD_SIGN_DETECT == RD_SIGN_DETECT_WHITE_BLACK)
+//	extern ns_detection::Detector_blackWhite *trafficSignDetector;
+//#endif
+
+extern ns_detection::Detector *trafficSignDetector;
 
 void trySetConnectSocket(bool flag);
 void appInitEvents(void);

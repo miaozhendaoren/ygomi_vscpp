@@ -16,20 +16,29 @@
 #ifndef DTECTION_H
 #define DTECTION_H
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include <vector>
+//#include <opencv2/core/core.hpp>
+//#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/opencv.hpp>
+#include "database.h"
+#include "databaseInVehicle.h"
+#include "roadScan.h"
 
 namespace ns_detection
 {
-
 class TS_Structure
 {
-public:
-    int totalNumber;
-    int TS_type[10];
-    int TS_area[10];
-    cv::Rect TS_rect[10]; 
-    cv::Point2f TS_center[10];
+    public: 
+        
+    struct TS_element{
+        int type;
+        int area;
+        cv::Rect rect;
+        cv::Point2f center;
+        std::vector<float> offset;
+        std::vector<ns_database::point3D_t> position;
+    };
+    std::vector<TS_element> trafficSign;
 };
 
 class Detector{
@@ -40,6 +49,9 @@ protected:
 
     const double _PI_DIV_180;
     const double _PI;
+    const int _OFFSET_NUMBER;
+    const double _DIST_PER_PIEXL;
+    const int _HORIZON_LINE_PIEXL;
 
     // Common private functions
     double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0);
@@ -53,9 +65,10 @@ protected:
     void loadFeat(std::vector<int> &feat, char *fileName);
 
 public:
-    Detector();
-
-    void trafficSignDetect(cv::Mat image, TS_Structure &target);
+    std::vector<float> offset;
+    Detector(float highStep, double dist_per_piexl, int horizon_line);
+    virtual void trafficSignDetect(cv::Mat image, TS_Structure &target) = 0;
+    void positionMeasure(ns_roadScan::Parameters &inParam, cv::Point2d &GPS_current, cv::Point2d &GPS_next, cv::Mat &imageIn, TS_Structure &target);
 };
 
 }

@@ -58,6 +58,7 @@ namespace ns_database
         sideFlag_used = 0;
         offset_used = 0;
         reliabRating_used = 0;
+        boundary_used = 0;
     }
 
     database::database()
@@ -182,7 +183,8 @@ namespace ns_database
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointDeviation2_e - data_pointBase_e], data_pointDeviation2_e, tvHalf_e, 2, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointDeviation3_e - data_pointBase_e], data_pointDeviation3_e, tvHalf_e, 2, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointReliabRating_e - data_pointBase_e], data_pointReliabRating_e, tvUint8_e, 1, 1, 0);
-        setTvlCfg(&_tlvCfg_dataPoint_a[data_pointPaintFlag_e - data_pointBase_e], data_pointPaintFlag_e, tvUint8_e, 1, 1, 0);
+        setTvlCfg(&_tlvCfg_dataPoint_a[data_pointPaintFlag_e - data_pointBase_e], data_pointPaintFlag_e, tvSingle_e, 1, 1, 0);
+        setTvlCfg(&_tlvCfg_dataPoint_a[data_mergeCounter_e - data_pointBase_e], data_mergeCounter_e, tvUint32_e, 1, 1, 0);
 
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointLatitudeL_e - data_pointBase_e], data_pointLatitudeL_e, tvDouble_e, 8, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointLongitudeL_e - data_pointBase_e], data_pointLongitudeL_e, tvDouble_e, 8, 1, 0);
@@ -203,48 +205,40 @@ namespace ns_database
             itemIdx = typeId - secBase_e;
             *tlvCfg = _tlvCfg_sec_a[itemIdx];
             *idBase = secBase_e;
-        }
-
-        if((typeId >= data_pointBase_e) && (typeId < data_pointMax_e))
+        }else if((typeId >= data_pointBase_e) && (typeId < data_pointMax_e))
         {
             itemIdx = typeId - data_pointBase_e;
             *tlvCfg = _tlvCfg_dataPoint_a[itemIdx];
             *idBase = data_pointBase_e;
-        }
-
-        if((typeId >= data_lineBase_e) && (typeId < data_lineMax_e))
+        }else if((typeId >= data_lineBase_e) && (typeId < data_lineMax_e))
         {
             itemIdx = typeId - data_lineBase_e;
             *tlvCfg = _tlvCfg_dataLine_a[itemIdx];
             *idBase = data_lineBase_e;
-        }
-
-        if((typeId >= header_base_e) && (typeId < header_max_e))
+        }else if((typeId >= header_base_e) && (typeId < header_max_e))
         {
             itemIdx = typeId - header_base_e;
             *tlvCfg = _tlvCfg_header_a[itemIdx];
             *idBase = header_base_e;
-        }
-
-        if((typeId >= seg_base_e) && (typeId < seg_max_e))
+        }else if((typeId >= seg_base_e) && (typeId < seg_max_e))
         {
             itemIdx = typeId - seg_base_e;
             *tlvCfg = _tlvCfg_seg_a[itemIdx];
             *idBase = seg_base_e;
-        }
-
-        if((typeId >= vec_base_e) && (typeId < vec_max_e))
+        }else if((typeId >= vec_base_e) && (typeId < vec_max_e))
         {
             itemIdx = typeId - vec_base_e;
             *tlvCfg = _tlvCfg_vec_a[itemIdx];
             *idBase = vec_base_e;
-        }
-
-        if((typeId >= fur_base_e) && (typeId < fur_max_e))
+        }else if((typeId >= fur_base_e) && (typeId < fur_max_e))
         {
             itemIdx = typeId - fur_base_e;
             *tlvCfg = _tlvCfg_fur_a[itemIdx];
             *idBase = fur_base_e;
+        }else
+        {
+            tlvCfg->typeId = null_e;
+            *idBase = null_e;
         }
 
     }
@@ -1634,12 +1628,25 @@ namespace ns_database
         }
     }
 
+    void database::readTlvToFurniturePublic(IN uint8* tlvBuff, 
+                                            IN uint32 buffLen,
+                                            OUT furAttributes_t &furAttr)
+    {
+        void*  inputLoc = tlvBuff;
+        void** input = &inputLoc;
+
+        _mEndPosition = tlvBuff + buffLen;
+
+        readTlvToFurniture(input, memory_e, &furAttr);
+    }
+
     void database::readTlvToFurniture(IN  void** input,
                                       IN  resource_e sourceFlag,
                                       OUT furAttributes_t* furnitureElement)
     {
         // Initialize segment element
         int furnitureEnd = 0;
+        int firstFurniture = 1;
 
         furnitureElement->segId_used = 0;
         furnitureElement->furId_used = 0;
@@ -1686,6 +1693,14 @@ namespace ns_database
                         }
                         case fur_location_e:
                         {
+                            if(firstFurniture == 0)
+                            {
+                                furnitureEnd = 1;
+                                break;
+                            }
+
+                            firstFurniture = 0;
+
                             furnitureElement->location_used = 1;
 
                             int numBytes;

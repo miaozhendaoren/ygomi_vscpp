@@ -26,13 +26,11 @@
 
 #pragma comment(lib, "ws2_32.lib") 
 
-#define RECV_MAX_BYTE_NUM                (1024*10)
 
 using ns_historyLine::saveLinePointInSafe;
 
 unsigned int __stdcall Thread_DBUpdate(void *data)
 {
-    uint8 recvBuff[RECV_MAX_BYTE_NUM];
     while(1)
     {
 		
@@ -44,7 +42,7 @@ RESTART_LABEL:
 		diffRptMsg_t* recvHeader =  recvMsg.getUpdateRptMsg();
 		// receive message header length
 		int headerLen = 0;
-		uint8* recvBuffP = recvBuff; 
+		uint8* recvBuffP = (uint8*)recvHeader; 
 		while( headerLen < sizeof(recvHeader->msgHeader.headerLen))
 		{
 			int nRet = recv(sockClient,(char*)recvBuffP,sizeof(recvHeader->msgHeader.headerLen) - headerLen,0);
@@ -66,7 +64,7 @@ RESTART_LABEL:
 
 		//receive message header
 		int headerSize = 0;
-		headerLen = *((uint16*)recvBuff);
+		headerLen = recvHeader->msgHeader.headerLen;
 		while( headerSize < (headerLen - sizeof(recvHeader->msgHeader.headerLen)) )
 		{
 			int nRet = recv(sockClient,(char*)recvBuffP,headerLen - headerSize - sizeof(recvHeader->msgHeader.headerLen),0);
@@ -81,7 +79,7 @@ RESTART_LABEL:
 				headerSize += nRet;
 			}
 		} 
-		memcpy((void*)recvHeader,(void*)recvBuff,headerLen);
+		//memcpy((void*)recvHeader,(void*)recvBuff,headerLen);
 		//receive message payload
 		
 		if(recvHeader->msgHeader.payloadLen != 0)

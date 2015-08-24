@@ -16,7 +16,10 @@
 #ifndef DTECTION_COLORED_H
 #define DTECTION_COLORED_H
 
+#include <opencv2/core/core.hpp>
+#include "svm.h"
 #include "Detection.h"
+#include "roadScan.h"
 
 namespace ns_detection
 {
@@ -39,8 +42,10 @@ private:
 
     const int _MAX_NUM_FEATURES;
     const int _MAX_RED_CANDIDATES;
+	const int _INVALID_TYPE;
 
     static const int _WRITE_IMAGE = 0;
+	
 
 #if WRITE_IMAGE == 1
     int _triImageID = 0;
@@ -66,12 +71,12 @@ private:
     cv::Mat ID2Image(int target);
     bool Detector_colored::acceptTrackedPoint(int i,std::vector<uchar> status,std::vector<cv::Point2f> *points);
     void Detector_colored::handleTrackedPoints(cv:: Mat &output,std::vector<cv::Point2f> *points,std::vector<cv::Point2f>initial);
-    int Detector_colored::TS_classify(Detector::Shape shape,cv::Mat image,cv::InputArray curve);
+    int Detector_colored::TS_classify(Detector::Shape shape,cv::Mat image,cv::InputArray curve,std::string path = "");
 
 public:
-    Detector_colored();
-
+    Detector_colored(float highStep, double dist_per_piexl,int horizon_line);
     void trafficSignDetect(cv::Mat image, TS_Structure &target);
+    //void positionMeasure(ns_roadScan::Parameters &inParam, cv::Point2d &GPS_current, cv::Point2d &GPS_next, cv::Mat &imageIn, TS_Structure &target);
 };
 }
 

@@ -33,6 +33,12 @@ using namespace std;
 namespace ns_roadScan
 {
 
+#ifdef ROAD_SCAN_UT
+#define DEBUG_ROAD_SCAN
+#else
+//#define DEBUG_ROAD_SCAN
+#endif
+
 #define SCALE 10
 #define HH  28
 #define BIRDVIEWROW    (10)
@@ -151,6 +157,7 @@ struct Parameters
 	int distanceOfUpMove;
 	int distanceOfLeft;
 	int distanceOfRight;
+    int ridgeThreshold;
 
 	int stretchRate;
 
@@ -160,7 +167,13 @@ struct Parameters
 
 	Point2d GPSref;
 
-	int ridgeThresh;
+	double imageScaleHeight;
+    double imageScaleWidth;
+
+	int imageRows;
+	int imageCols;
+
+    bool discardRoadDataAfterLaneChange;
 };
 
 struct SLineInfo
@@ -184,7 +197,9 @@ struct PairPoints
 struct laneMarker
 {
 	vector<Point> boundary;
+	vector<Point2d> boudaryRel;
 	Point2d landMarkWeight;
+	Point2d landMarkWeightRel;
 	Point rPoint;
 	Point lPoint;
 	Point uPoint;

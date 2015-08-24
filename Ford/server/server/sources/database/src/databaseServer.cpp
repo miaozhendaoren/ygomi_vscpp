@@ -450,7 +450,7 @@ namespace ns_database
 
                 while (furIter != (*segIter).end())
                 {
-                    if ( checkTwoFurnitureSame(&(*furIter), &furnitureServerIn, _distThreshFar, _angleThresh) )
+                    if ( checkTwoFurnitureSame(&(*furIter), &furnitureServerIn, _distThreshNear, _angleThresh) )
                     {
                         furFoundFlag = true;
                         break;
@@ -661,7 +661,7 @@ namespace ns_database
         logPrintf(logLevelInfo_e, "DB_UPDATE", "Reseting furnitures", FOREGROUND_BLUE | FOREGROUND_GREEN);
     }
 
-    void databaseServer::syncFurnitureToVehicle(uint8 *furnitureListP, uint32 *msgLen, uint16 *pduNum, int32 maxPayloadLen)
+    void databaseServer::syncFurnitureToVehicle(uint8 *furnitureListP, int32 *msgLen, int32 *pduNum, int32 maxPayloadLen)
     {
         WaitForSingleObject(_hMutexMemory,INFINITE);
 

@@ -48,18 +48,37 @@ using namespace ns_database;
 unsigned int __stdcall Thread_Master_DBAccess(void *data)
 {
 #if SERVER_PLAY_BACK_MODE==1
-    ifstream fin("newData.txt");
-    string line;
-
-    vector<vector<double>> valVecVec;
-    double val;
-    int dataIdx = 1;
+    std::stringstream fileName;
+    fileName << "log/messages.bin";
+    FILE *fpMsg = fopen(fileName.str().c_str(), "rb");
 #endif
 
     while(1)
     {
 #if SERVER_PLAY_BACK_MODE==0
         WaitForSingleObject(g_readySema_msgQueue,INFINITE);
+#else
+        messageProcessClass recvMsg;
+
+        diffRptMsg_t *diffMsg = recvMsg.getDiffRptMsg();
+        
+        uint8* recvBuffP = (uint8*)diffMsg;
+
+        // message header size
+        fread(&(diffMsg->msgHeader.headerLen), sizeof(diffMsg->msgHeader.headerLen), 1, fpMsg);
+
+        recvBuffP += sizeof(diffMsg->msgHeader.headerLen);
+
+        // message header
+        fread(recvBuffP, diffMsg->msgHeader.headerLen - sizeof(diffMsg->msgHeader.headerLen), 1, fpMsg);
+
+        // message payload
+        diffMsg->payload = new uint8[diffMsg->msgHeader.payloadLen];
+
+        fread(diffMsg->payload, diffMsg->msgHeader.payloadLen, 1, fpMsg);
+
+        messageQueue_gp->push(&recvMsg);
+#endif
 
         // check message queue is empty
         if( !messageQueue_gp->empty())
@@ -134,8 +153,11 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
                                     
 										updateMsgPtr->payload = new uint8[MAX_PAYLOAD_BYTE_NUM];
 										//get the payload memory address and pdu info.
-										database_gp->syncFurnitureToVehicle(updateMsgPtr->payload , &(updateMsgPtr->msgHeader.payloadLen), &(updateMsgPtr->msgHeader.numPDUs), MAX_PAYLOAD_BYTE_NUM);
-										
+                                        int32 msgLen, numPdu;
+										database_gp->syncFurnitureToVehicle(updateMsgPtr->payload , &msgLen, &numPdu, MAX_PAYLOAD_BYTE_NUM);
+										updateMsgPtr->msgHeader.payloadLen = msgLen;
+                                        updateMsgPtr->msgHeader.numPDUs = numPdu;
+
 										int updatePduOffset = 0;
 										for(int updatePduIdx=0; updatePduIdx<updateMsgPtr->msgHeader.numPDUs; updatePduIdx++)
 										{
@@ -185,11 +207,9 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 								case UPDATE_FURNITURE:
 									{
 										uint8 *pduStartPtr = diffRptMsgPtr->payload + diffRptMsgPtr->payloadHeader.pduHeader[pduIdx].pduOffset;
-                                        void*  inputLoc = pduStartPtr;
-                                        void** input = &inputLoc;
-
                                         furAttributes_t furAttr;
-                                        database_gp->readTlvToFurniture(input, memory_e, &furAttr);
+
+                                        database_gp->readTlvToFurniturePublic(pduStartPtr, pduLen, furAttr);
                                         furUpdateVec.push_back(furAttr);
 
 										PlaySound("./resource/sound/detect.wav",NULL, SND_FILENAME|SND_ASYNC);
@@ -210,11 +230,9 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 								case REDUCE_ONE_FURNITURE:
 									{
 										uint8 *pduStartPtr = diffRptMsgPtr->payload + diffRptMsgPtr->payloadHeader.pduHeader[pduIdx].pduOffset;
-										void*  inputLoc = pduStartPtr;
-                                        void** input = &inputLoc;
-
                                         furAttributes_t furAttr;
-                                        database_gp->readTlvToFurniture(input, memory_e, &furAttr);
+
+                                        database_gp->readTlvToFurniturePublic(pduStartPtr, pduLen, furAttr);
                                         furDeleteVec.push_back(furAttr);
 
 										PlaySound("./resource/sound/reduce.wav",NULL, SND_FILENAME|SND_ASYNC);
@@ -225,15 +243,16 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 
                         // Convert info into TLV and prepare update message
                         {
-						    uint8 *payloadFromDb = new uint8[MAX_PAYLOAD_BYTE_NUM + MAX_ROAD_POINT_BYTES];
+                            int32 totalBufLen = MAX_PAYLOAD_BYTE_NUM + MAX_ROAD_POINT_BYTES;
+						    uint8 *payloadFromDb = new uint8[totalBufLen];
 						    if(payloadFromDb == NULL)
 						    {
 							    break;
 						    }
 
 						    uint8 *outBuffPtr = payloadFromDb;
-                            uint32 outBuffOffset = 0;
-                            int32  outPduIdx = 0;
+                            int32 outBuffOffset = 0;
+                            int32 outPduIdx = 0;
                             bool updateFlag = false;
 
 						    // furntiure update message
@@ -245,20 +264,6 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
                                     furAttributes_t furAttrOut;
 
                                     database_gp->addFurniture(&furAttr, &furAttrOut);
-
-                                    int32 outBuffLen;
-                                    void*  outputLoc = outBuffPtr;
-                                    void** output = &outputLoc;
-                                    database_gp->convFurnitureToTlv(&furAttrOut, memory_e, output, &outBuffLen);
-
-                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = updateDatabase_e;
-                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureElement_e;
-                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
-
-                                    outBuffPtr += outBuffLen;
-                                    outBuffOffset += outBuffLen;
-
-                                    ++outPduIdx;
                                 }
 
                                 updateFlag = true;
@@ -273,20 +278,6 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
                                     furAttributes_t furAttrOut;
 
                                     database_gp->reduceFurnitureByFurId(&furAttr, &furAttrOut);
-
-                                    int32 outBuffLen;
-                                    void*  outputLoc = outBuffPtr;
-                                    void** output = &outputLoc;
-                                    database_gp->convFurnitureToTlv(&furAttrOut, memory_e, output, &outBuffLen);
-
-                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = deleteDatabase_e;
-                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureElement_e;
-                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
-
-                                    outBuffPtr += outBuffLen;
-                                    outBuffOffset += outBuffLen;
-
-                                    ++outPduIdx;
                                 }
 
                                 updateFlag = true;
@@ -327,9 +318,27 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
                             // pack the update message
                             if(updateFlag)
                             {
-		                        int numPDUs = outPduIdx;
+                                // Convert all furniture to TLVs
+                                uint8* bufferAddr = outBuffPtr;
+                                int32 furMsgLen;
+                                int32 furPduNum;
 
-                                updateMsgPtr->msgHeader.numPDUs += outPduIdx;
+                                database_gp->syncFurnitureToVehicle(bufferAddr, &furMsgLen, &furPduNum, totalBufLen - outBuffOffset);
+
+								for(int furIdx = 0; furIdx < furPduNum; furIdx++)
+								{
+									updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
+									updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureList_e;
+									updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
+									
+                                    outBuffOffset += furMsgLen / furPduNum;
+                                    ++outPduIdx;
+								}
+                                outBuffPtr += furMsgLen;
+
+                                int numPDUs = outPduIdx;
+
+                                updateMsgPtr->msgHeader.numPDUs = numPDUs;
 							    updateMsgPtr->msgHeader.headerLen = sizeof(updateMsgPtr->msgHeader) + numPDUs*sizeof(updateMsgPtr->payloadHeader.pduHeader[0]);
 							    updateMsgPtr->msgHeader.msgTypeID = UPDATE_REQ_MSG;
 							    updateMsgPtr->msgHeader.priority = highLevel_e;
@@ -351,7 +360,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 				diffRptMsgPtr->payload = NULL;
             }
         }
-#else
+#if 0
 		for(int idx = 0; idx < 6; ++idx)
         {
             if(getline(fin,line))

@@ -5,6 +5,18 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Detroit_Video_Release|Win32">
+      <Configuration>Detroit_Video_Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Frankfurt_Camera_Release|Win32">
+      <Configuration>Frankfurt_Camera_Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Frankfurt_Video_Release|Win32">
+      <Configuration>Frankfurt_Video_Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
@@ -18,6 +30,7 @@
     <ClCompile Include="sources\detectImage\src\detection_blackWhite.cpp" />
     <ClCompile Include="sources\detectImage\src\detection_colored.cpp" />
     <ClCompile Include="sources\detectImage\src\lineDetection.cpp" />
+    <ClCompile Include="sources\detectImage\src\markLocate.cpp" />
     <ClCompile Include="sources\detectImage\src\roadScan.cpp" />
     <ClCompile Include="sources\detectImage\src\svm.cpp" />
     <ClCompile Include="sources\detectImage\src\utils.cpp" />
@@ -44,6 +57,9 @@
     <ClInclude Include="sources\database\include\database.h" />
     <ClInclude Include="sources\database\include\databaseDef.h" />
     <ClInclude Include="sources\detectImage\include\Detection.h" />
+    <ClInclude Include="sources\detectImage\include\detection_blackWhite.h" />
+    <ClInclude Include="sources\detectImage\include\detection_colored.h" />
+    <ClInclude Include="sources\detectImage\include\markLocate.h" />
     <ClInclude Include="sources\detectImage\include\svm.h" />
     <ClInclude Include="sources\frameWork\include\AppInitCommon.h" />
     <ClInclude Include="sources\frameWork\include\Signal_Thread_Sync.h" />
@@ -82,6 +98,24 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Frankfurt_Camera_Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Frankfurt_Video_Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Detroit_Video_Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -89,6 +123,15 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Frankfurt_Camera_Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Frankfurt_Video_Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Detroit_Video_Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -99,6 +142,24 @@
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Frankfurt_Camera_Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Frankfurt_Video_Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Detroit_Video_Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
     <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(IncludePath)</IncludePath>
@@ -140,6 +201,93 @@
 if not exist "$(OutDir)\resource" md "$(OutDir)\resource"
 xcopy "$(ProjectDir)\config" "$(OutDir)\config" /s/y
 xcopy "$(ProjectDir)\resource" "$(OutDir)\resource" /s/y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Frankfurt_Camera_Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_FRANKFORT_CAMERA;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(OutDir)\config" md "$(OutDir)\config"
+if not exist "$(OutDir)\resource" md "$(OutDir)\resource"
+if not exist "$(OutDir)\resource\carModel" md "$(OutDir)\resource\carModel"
+if not exist "$(OutDir)\resource\DHD" md "$(OutDir)\resource\DHD"
+if not exist "$(OutDir)\resource\Germany" md "$(OutDir)\resource\Germany"
+xcopy "$(ProjectDir)\config" "$(OutDir)\config" /s/y
+xcopy "$(ProjectDir)\resource\carModel" "$(OutDir)\resource\carModel" /s/y
+xcopy "$(ProjectDir)\resource\DHD" "$(OutDir)\resource\DHD" /s/y
+xcopy "$(ProjectDir)\resource\Germany" "$(OutDir)\resource\Germany" /s/y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Frankfurt_Video_Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_FRANKFORT_VIDEO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(OutDir)\config" md "$(OutDir)\config"
+if not exist "$(OutDir)\resource" md "$(OutDir)\resource"
+if not exist "$(OutDir)\resource\carModel" md "$(OutDir)\resource\carModel"
+if not exist "$(OutDir)\resource\DHD" md "$(OutDir)\resource\DHD"
+if not exist "$(OutDir)\resource\Germany" md "$(OutDir)\resource\Germany"
+xcopy "$(ProjectDir)\config" "$(OutDir)\config" /s/y
+xcopy "$(ProjectDir)\resource\carModel" "$(OutDir)\resource\carModel" /s/y
+xcopy "$(ProjectDir)\resource\DHD" "$(OutDir)\resource\DHD" /s/y
+xcopy "$(ProjectDir)\resource\Germany" "$(OutDir)\resource\Germany" /s/y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Detroit_Video_Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_DETROIT_VIDEO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(OutDir)\config" md "$(OutDir)\config"
+if not exist "$(OutDir)\resource" md "$(OutDir)\resource"
+if not exist "$(OutDir)\resource\carModel" md "$(OutDir)\resource\carModel"
+if not exist "$(OutDir)\resource\DHD" md "$(OutDir)\resource\DHD"
+if not exist "$(OutDir)\resource\US" md "$(OutDir)\resource\US"
+xcopy "$(ProjectDir)\config" "$(OutDir)\config" /s/y
+xcopy "$(ProjectDir)\resource\carModel" "$(OutDir)\resource\carModel" /s/y
+xcopy "$(ProjectDir)\resource\DHD" "$(OutDir)\resource\DHD" /s/y
+xcopy "$(ProjectDir)\resource\US" "$(OutDir)\resource\US" /s/y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

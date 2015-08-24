@@ -135,6 +135,9 @@
     <ClCompile Include="sources\imageBuffer\src\CacheBuffer.cpp">
       <Filter>Source Files\imageBuffer</Filter>
     </ClCompile>
+    <ClCompile Include="sources\detectImage\src\markLocate.cpp">
+      <Filter>Source Files\detectImage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sources\visualization\include\3dsId.h">
@@ -214,6 +217,15 @@
     </ClInclude>
     <ClInclude Include="include\configure.h">
       <Filter>Header Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\detectImage\include\markLocate.h">
+      <Filter>Header Files\detectImage</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\detectImage\include\detection_blackWhite.h">
+      <Filter>Header Files\detectImage</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\detectImage\include\detection_colored.h">
+      <Filter>Header Files\detectImage</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

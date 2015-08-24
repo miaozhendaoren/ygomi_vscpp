@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "typeDefine.h"
-#define MAX_PDU_NUM							100
+#define MAX_PDU_NUM							300
 #define MAX_PAYLOAD_BYTE_NUM				(1024*500)  //500K
 #define MAX_ROAD_POINT_BYTES				(1024*100000) //100000K
 //message ID

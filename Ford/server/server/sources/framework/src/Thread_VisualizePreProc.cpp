@@ -22,6 +22,7 @@
 #include "databaseDef.h"
 #include "appInitCommon.h"
 #include "VisualizeControl.h"
+#include "configure.h"
 //#include "roadSideVectorGen.h"
 
 using namespace ns_database;
@@ -29,10 +30,11 @@ using namespace std;
 //point3DFloat_t pointVecBuf[MAX_BUFFER_DEPTH_DRAW_LINE_POINT];
 vector<point3DFloat_t> pointVecBuf;
 
-
 int convertSignType(int type)
 {
 	int number = 0;
+
+#if(RD_SIGN_LOCATION == GERMAN)
 	switch(type)
 	{
 	case 10100:
@@ -41,7 +43,7 @@ int convertSignType(int type)
 	case 12300:
 		number = 2;
 		break;
-    case 13100:
+	case 13100:
 		number = 3;
 		break;
 	case 13310:
@@ -56,82 +58,92 @@ int convertSignType(int type)
 	case 20600:
 		number = 7;
 		break;
-	case 22220:
+	case 20930:
 		number = 8;
 		break;
-	case 22400:
+	case 21500:
 		number = 9;
 		break;
-	case 23700:
+	case 22220:
 		number = 10;
 		break;
-	case 23900:
+	case 22400:
 		number = 11;
 		break;
-	case 24000:
+	case 23700:
 		number = 12;
 		break;
-	case 27452:
+	case 23900:
 		number = 13;
 		break;
-	case 27453:
+	case 24000:
 		number = 14;
 		break;
-	case 27454:
+	case 25000:
 		number = 15;
 		break;
-	case 27455:
+	case 25900:
 		number = 16;
 		break;
-	case 27456:
+	case 26100:
 		number = 17;
 		break;
-	case 28300:
+	case 26210:
 		number = 18;
 		break;
-	case 28600:
+	case 27452:
 		number = 19;
 		break;
-	case 30100:
+	case 27453:
 		number = 20;
 		break;
-	case 30600:
+	case 27454:
 		number = 21;
 		break;
-	case 31400:
+	case 27455:
 		number = 22;
 		break;
-	case 35010:
+	case 27456:
 		number = 23;
 		break;
-    case 1:
-        number = 24;
-        break;
-    case 2:
-        number = 25;
-        break;
-    case 3:
-        number = 26;
-        break;
-    case 4:
-        number = 27;
-        break;
-    case 5:
-        number = 28;
-        break;
-    case 6:
-        number = 29;
-        break;
-    case 7:
-        number = 30;
-        break;
-    case 8:
-        number = 31;
-        break;
+	case 27458:
+		number = 24;
+		break;
+	case 28300:
+		number = 25;
+		break;
+	case 28600:
+		number = 26;
+		break;
+	case 30100:
+		number = 27;
+		break;
+	case 30600:
+		number = 28;
+		break;
+	case 31400:
+		number = 29;
+		break;
+	case 33100:
+		number = 30;
+		break;
+	case 33600:
+		number = 31;
+		break;
+	case 35010:
+		number = 32;
+		break;
+	case 99900:
+		number = 33;
+		break;
 	default:
-		number = 0;
+		number = 1;
 		break;
 	}
+#else if(RD_SIGN_LOCATION == UNITED_STATES)
+
+	number = type;
+#endif
 	return number;
 }
 
@@ -180,7 +192,6 @@ void changeDataBaseCoord(point3D_t* changePoint, point3DFloat_t* outPoint)
 }
 
 void convFurToSignInfo(list<list<furAttributesServer_t>>& furnitureList, 
-                       point3D_t& standPoint, 
                        signInfo_t* signInfo, 
                        int* numSign)
 {
@@ -332,20 +343,6 @@ void extractQuadInfo(point3DFloat_t startPoint, point3DFloat_t endPoint, float w
 
 unsigned int __stdcall Thread_VisualizePreProc(void *data)
 {
-	point3D_t standPoint;
-	//initialize standPoint;
-	standPoint.alt = 0.0;
-	standPoint.lat = 42.296853333333331;//;
-	standPoint.lon = -83.213250000000002;
-
-	serverEyeInfo[0].eyePosition.x = 328;
-	serverEyeInfo[0].eyePosition.y = 300;
-	serverEyeInfo[0].eyePosition.z = -545;
-
-	serverEyeInfo[0].lookatPosition.x = 328;
-	serverEyeInfo[0].lookatPosition.y = 0;
-	serverEyeInfo[0].lookatPosition.z = -545;
-
 	engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
 	engine3DPtr->SwapServerEyeBuffer();
 
@@ -559,7 +556,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 			list<list<furAttributesServer_t>> furnitureList;
 			database_gp->getAllFurnitures(furnitureList);
 
-			convFurToSignInfo(furnitureList, standPoint, signInfo, &numSign);
+			convFurToSignInfo(furnitureList, signInfo, &numSign);
 			furnitureList.clear();
 
 			engine3DPtr->AddSignInfo(numSign,signInfo);

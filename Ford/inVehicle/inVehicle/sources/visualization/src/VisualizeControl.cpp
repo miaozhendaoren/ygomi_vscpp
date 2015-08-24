@@ -24,6 +24,7 @@
 #include "messageProcessClass.h"
 #include "appInitCommon.h"
 #include "VisualizeControl.h"
+#include "configure.h"
 
 OPENGL_3D_ENGINE *engine3DPtr;
 eyeLookAt_t serverEyeInfo[2];
@@ -36,37 +37,52 @@ int window_width = DEFAULT_WINDOW_WIDTH;
 
 void load_all_textures(void)
 {
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/101-00.bmp",1);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/123-00.bmp",2);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/131-00.bmp",3);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/133-10.bmp",4);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/138-10.bmp",5);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/205-00.bmp",6);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/206-00.bmp",7);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/222-20.bmp",8);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/224-00.bmp",9);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/237-00.bmp",10);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/239-00.bmp",11);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/240-00.bmp",12);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/274-52.bmp",13);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/274-53.bmp",14);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/274-54.bmp",15);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/274-55.bmp",16);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/274-56.bmp",17);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/283-00.bmp",18);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/286-00.bmp",19);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/301-00.bmp",20);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/306-00.bmp",21);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/314-00.bmp",22);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/350-10.bmp",23);
-    engine3DPtr->load_bmp24_texture("./resource/US/bmp/1.bmp",24);
-    engine3DPtr->load_bmp24_texture("./resource/US/bmp/2.bmp",25);
-    engine3DPtr->load_bmp24_texture("./resource/US/bmp/3.bmp",26);
-    engine3DPtr->load_bmp24_texture("./resource/US/bmp/4.bmp",27);
-    engine3DPtr->load_bmp24_texture("./resource/US/bmp/5.bmp",28);
-    engine3DPtr->load_bmp24_texture("./resource/US/bmp/6.bmp",29);
-    engine3DPtr->load_bmp24_texture("./resource/US/bmp/7.bmp",30);
-    engine3DPtr->load_bmp24_texture("./resource/US/bmp/8.bmp",31);
+#if((RD_LOCATION&RD_NATION_MASK) == RD_GERMAN)
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/10100.bmp",1);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/12300.bmp",2);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/13100.bmp",3);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/13310.bmp",4);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/13810.bmp",5);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/20500.bmp",6);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/20600.bmp",7);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/20930.bmp",8);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/21500.bmp",9);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/22220.bmp",10);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/22400.bmp",11);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/23700.bmp",12);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/23900.bmp",13);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/24000.bmp",14);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/25000.bmp",15);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/25900.bmp",16);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/26100.bmp",17);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/26210.bmp",18);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/27452.bmp",19);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/27453.bmp",20);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/27454.bmp",21);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/27455.bmp",22);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/27456.bmp",23);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/27458.bmp",24);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/28300.bmp",25);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/28600.bmp",26);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/30100.bmp",27);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/30600.bmp",28);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/31400.bmp",29);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/33100.bmp",30);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/33600.bmp",31);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/35010.bmp",32);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/99900.bmp",33);
+
+#else if((RD_LOCATION&RD_NATION_MASK) == RD_UNIT_STATES)
+
+	engine3DPtr->load_bmp24_texture("./resource/US/bmp/1.bmp",1);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/2.bmp",2);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/3.bmp",3);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/4.bmp",4);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/5.bmp",5);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/6.bmp",6);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/7.bmp",7);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/8.bmp",8);
+#endif
 }
 
 //Initialize the 3D engine, load all bitmap files

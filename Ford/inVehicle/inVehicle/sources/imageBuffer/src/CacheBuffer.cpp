@@ -36,3 +36,13 @@ void CacheBuffer::getBackendBuffer(vector<imageCamera_t> **bufPtr)
 {
 	*bufPtr = &imageVec[writeIdx^1];
 }
+
+void CacheBuffer::lockCacheBuffer()
+{
+	WaitForSingleObject(_hMutex,INFINITE); 
+}
+
+void CacheBuffer::releaseCacheBuffer()
+{
+	ReleaseMutex(_hMutex);
+}

@@ -28,6 +28,7 @@
 #include "Visualization.h"
 #include "VisualizeControl.h"
 #include "saveLinePointInSafe.h"
+#include "configure.h"
 
 using namespace ns_database;
 using namespace std;
@@ -42,6 +43,8 @@ vector<point3DFloat_t> pointVecBuf;
 int convertSignType(int type)
 {
 	int number = 0;
+
+#if((RD_LOCATION&RD_NATION_MASK) == RD_GERMAN)
 	switch(type)
 	{
 	case 10100:
@@ -65,58 +68,92 @@ int convertSignType(int type)
 	case 20600:
 		number = 7;
 		break;
-	case 22220:
+	case 20930:
 		number = 8;
 		break;
-	case 22400:
+	case 21500:
 		number = 9;
 		break;
-	case 23700:
+	case 22220:
 		number = 10;
 		break;
-	case 23900:
+	case 22400:
 		number = 11;
 		break;
-	case 24000:
+	case 23700:
 		number = 12;
 		break;
-	case 27452:
+	case 23900:
 		number = 13;
 		break;
-	case 27453:
+	case 24000:
 		number = 14;
 		break;
-	case 27454:
+	case 25000:
 		number = 15;
 		break;
-	case 27455:
+	case 25900:
 		number = 16;
 		break;
-	case 27456:
+	case 26100:
 		number = 17;
 		break;
-	case 28300:
+	case 26210:
 		number = 18;
 		break;
-	case 28600:
+	case 27452:
 		number = 19;
 		break;
-	case 30100:
+	case 27453:
 		number = 20;
 		break;
-	case 30600:
+	case 27454:
 		number = 21;
 		break;
-	case 31400:
+	case 27455:
 		number = 22;
 		break;
-	case 35010:
+	case 27456:
 		number = 23;
 		break;
+	case 27458:
+		number = 24;
+		break;
+	case 28300:
+		number = 25;
+		break;
+	case 28600:
+		number = 26;
+		break;
+	case 30100:
+		number = 27;
+		break;
+	case 30600:
+		number = 28;
+		break;
+	case 31400:
+		number = 29;
+		break;
+	case 33100:
+		number = 30;
+		break;
+	case 33600:
+		number = 31;
+		break;
+	case 35010:
+		number = 32;
+		break;
+	case 99900:
+		number = 33;
+		break;
 	default:
-		number = 0;
+		number = 1;
 		break;
 	}
+#else if((RD_LOCATION&RD_NATION_MASK) == RD_UNIT_STATES)
+
+	number = type;
+#endif
 	return number;
 }
 
@@ -160,7 +197,7 @@ void coordinateChange(point3D_t* standPoint, point3D_t* changePoint, point3DFloa
 void changeDataBaseCoord(point3D_t* changePoint, point3DFloat_t* outPoint)
 {
     outPoint->x = changePoint->lat;
-    outPoint->y = 0;
+    outPoint->y = changePoint->alt;
     outPoint->z = changePoint->lon;
 }
 
@@ -261,7 +298,6 @@ void computeCurrentSpeedChar(point3DFloat_t *startPoint, point3DFloat_t *endPoin
 }
 
 void convFurToSignInfo(list<list<furAttributesInVehicle_t>>& furnitureList, 
-	point3D_t& standPoint, 
 	signInfo_t* signInfo, 
 	int* numSign)
 {
@@ -422,7 +458,6 @@ void extractQuadInfo(point3DFloat_t startPoint, point3DFloat_t endPoint, float w
 
 unsigned int __stdcall Thread_VisualizePreProc(void *data)
 {
-	bool standPointFlag = false;
 	point3D_t standPoint;
 
 	eyeLookAt_t eyeInfo[200];
@@ -457,28 +492,18 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 	glutTimerFunc((unsigned int)(1000),&gpsTimer,2);
 
+	standPoint.lat = inParam.GPSref.x;//42.296853333333331;//gGpsInfo.dLatitude;
+	standPoint.lon = inParam.GPSref.y;//-83.213250000000002;//gGpsInfo.dLongitude;
+	standPoint.alt = 0.0;//gGpsInfo.altitude;
+
+	engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
+	engine3DPtr->SwapServerEyeBuffer();
+
+
 	while(1)
 	{
 		//wait for GPS thread to get GPS signal
 		WaitForSingleObject(g_readySema_GPS, INFINITE); 
-		if(!standPointFlag)
-		{
-			standPoint.lat = 42.296855933108084;//42.296853333333331;//gGpsInfo.dLatitude;
-			standPoint.lon = -83.213250649943689;//-83.213250000000002;//gGpsInfo.dLongitude;
-			standPoint.alt = 0.0;//gGpsInfo.altitude;
-
-			serverEyeInfo[0].eyePosition.x = 328;
-			serverEyeInfo[0].eyePosition.y = 300;
-			serverEyeInfo[0].eyePosition.z = -545;
-
-			serverEyeInfo[0].lookatPosition.x = 328;
-			serverEyeInfo[0].lookatPosition.y = 0;
-			serverEyeInfo[0].lookatPosition.z = -545;
-			standPointFlag = true;
-
-			engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
-			engine3DPtr->SwapServerEyeBuffer();
-		}
 
 #if 1
 		//get all lines
@@ -667,7 +692,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 			database_gp->getAllFurnitures(furnitureList);
 
-			convFurToSignInfo(furnitureList, standPoint, signInfo, &numSign);
+			convFurToSignInfo(furnitureList, signInfo, &numSign);
 
 			furnitureList.clear();
 

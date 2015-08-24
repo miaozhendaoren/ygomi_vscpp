@@ -24,6 +24,18 @@
     <ClCompile Include="roadScan_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="roadScan_main_luo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="roadScan_main_liang.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\src\markLocate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\src\detection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\include\roadScan.h">
@@ -42,6 +54,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\include\typeDefine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\include\markLocate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\include\Detection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

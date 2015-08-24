@@ -27,6 +27,9 @@
 #include "saveLinePointInSafe.h"
 #include "ImageBuffer.h"
 #include "roadScan.h" // readParamRoadScan
+#include "VisualizeControl.h"
+#include "configure.h"
+#include "utils.h"
 
 HANDLE g_readySema_GPS;
 HANDLE g_readySema_DiffDet;
@@ -39,7 +42,6 @@ ImageBufferAll imageBuffer;
 SOCKET sockServer;
 SOCKET sockClient;
 SOCKADDR_IN serverAddr;
-volatile SOCKET g_ServerSockUDP;
 
 int g_SocketLen;
 
@@ -50,6 +52,16 @@ unsigned short g_EmulatorPort;
 HANDLE socketMutex;
 
 ns_roadScan::Parameters inParam;
+cv::Mat H, invertH;
+
+int g_CameraPort = 0;
+
+//#if(RD_SIGN_DETECT == RD_SIGN_DETECT_COLOR)
+//    ns_detection::Detector_colored *trafficSignDetector;
+//#elif(RD_SIGN_DETECT == RD_SIGN_DETECT_WHITE_BLACK)
+//	ns_detection::Detector_blackWhite *trafficSignDetector;
+//#endif
+ns_detection::Detector *trafficSignDetector;
 
 void trySetConnectSocket(bool flag)
 {
@@ -87,14 +99,58 @@ void databaseInit()
     
 }
 
+bool readOverViewPoint(char* fileName,eyeLookAt_t &eye)
+{
+	FILE* fp = fopen(fileName,"r");
+	if(fp == NULL)
+	{
+		return false;
+	}
+	char tempBuff[100];
+	while(!feof(fp))
+	{
+		fscanf(fp,"%s",tempBuff);
+		if(std::strstr(tempBuff,"overViewPoint:") != NULL)
+		{
+			fscanf(fp,"%f,%f,%f",&(eye.eyePosition.x),&(eye.eyePosition.y),&(eye.eyePosition.z));
+			eye.lookatPosition.x = eye.eyePosition.x;
+			eye.lookatPosition.y = 0;
+			eye.lookatPosition.z = eye.eyePosition.z;
+		}
+		if(std::strstr(tempBuff,"cameraPort:") != NULL)
+		{
+			fscanf(fp,"%d",&g_CameraPort);
+		}
+	}
+	fclose(fp);
+	return true;
+}
+
 int detectorInit()
 {
-    bool readStatus = ns_roadScan::readParamRoadScan("./config//US.txt", inParam);
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+    bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Airport2.txt", inParam);
+	readStatus &= readOverViewPoint("./config/DE_Airport_overViewPoint.txt",serverEyeInfo[0]);
+#elif (RD_LOCATION == RD_US_DETROIT)
+	bool readStatus = ns_roadScan::readParamRoadScan("./config/US_Detroit.txt", inParam);
+	readStatus &= readOverViewPoint("./config/US_Detroit_overViewPoint.txt",serverEyeInfo[0]);
+#elif (RD_LOCATION == RD_US_PALO_ALTO)
+	bool readStatus = ns_roadScan::readParamRoadScan("./config/US_Palo_Alto.txt", inParam);
+	readStatus &= readOverViewPoint("./config/US_Palo_Alto_overViewPoint.txt",serverEyeInfo[0]);
+#endif
     if(!readStatus)
     {
         return -1;
     }else
     {
+#if(RD_SIGN_DETECT == RD_SIGN_DETECT_COLOR)
+        trafficSignDetector = new ns_detection::Detector_colored(0.5,inParam.distancePerPixel,295);
+#elif(RD_SIGN_DETECT == RD_SIGN_DETECT_WHITE_BLACK)
+        trafficSignDetector = new ns_detection::Detector_blackWhite(0.5,inParam.distancePerPixel,250);
+#elif(RD_SIGN_DETECT == RD_SIGN_DETECT_OFF)
+#endif
+        // Calculate H and H inverse for road scan and traffic sign detection
+        ns_roadScan::calHAndInvertH(inParam, H, invertH);
         return 0;
     }
 }
@@ -189,6 +245,7 @@ bool startSocket()
 		}
 	}
 
+	fclose(fp);
     //open the UDP socket client, connect to server side
     sockClient = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockClient == INVALID_SOCKET)  

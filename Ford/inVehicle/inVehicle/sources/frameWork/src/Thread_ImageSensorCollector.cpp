@@ -38,15 +38,20 @@ using namespace cv;
 
 VideoCapture capture;
 
+#define LAST_FRAME_NUM 100
 #if(RD_USE_CAMERA == ON) 
 CNEMA_GPGGA_PROC gNemaGpggaProc;
 #define NC_UDP_GPS_DATA_BUF_LEN        (1500)
 char nc_udpGpsBuffer[NC_UDP_GPS_DATA_BUF_LEN];
 CacheBuffer cacheBuffer;
+volatile SOCKET g_ServerSockUDP;
 #else
-#define LAST_FRAME_NUM 50
 char aviNames[50][100];
 char gpsNames[50][100];
+HANDLE g_readySema_VideoReader;
+unsigned int timeDelay;
+volatile SOCKET g_EmulatorSockUDP;
+SOCKADDR_IN emulatorAddr;
 #endif
 
 #if(RD_USE_CAMERA == ON)
@@ -71,8 +76,11 @@ bool openImageSensor_Cam(int device,VideoCapture& capture ,int &numFrame)
 		numFrame = capture.get(CV_CAP_PROP_FRAME_COUNT);
 		//capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
 		//numFrame = capture.get(CV_CAP_PROP_POS_FRAMES);
-		double fps = capture.get(CV_CAP_PROP_FPS);
+		//double fps = capture.get(CV_CAP_PROP_FPS);
 		capture.set(CV_CAP_PROP_POS_AVI_RATIO, 0);
+		capture.set(CV_CAP_PROP_FPS ,30);
+		capture.set(CV_CAP_PROP_FRAME_WIDTH ,1280);
+		capture.set(CV_CAP_PROP_FRAME_HEIGHT ,720);
 	}
 	return true;
 }
@@ -94,7 +102,7 @@ void gpsSensorCollect_UDP(void)
 	//receive GPS data in NEMA 0183 GPGGA
 	int numRecv = recvfrom(g_ServerSockUDP, nc_udpGpsBuffer, NC_UDP_GPS_DATA_BUF_LEN, 0, (struct sockaddr*)&from, &fromlen);
 
-	cacheBuffer.swatchBuffer();
+	//cacheBuffer.swatchBuffer();
 	if (numRecv != SOCKET_ERROR)
     {
 		//update the receive system time.
@@ -121,22 +129,24 @@ void imageTimer(int value)
 {
 	if(3 == value)
 	{
-		cv::Mat currentImage;
-		glutTimerFunc((unsigned int)(50),&imageTimer,3);
+		imageCamera_t tempImage;
+		glutTimerFunc((unsigned int)(33),&imageTimer,3);
 
 		//get the 
-		if(imageSensorCollect_Cam(capture,currentImage))
+		cacheBuffer.lockCacheBuffer();
+		if(imageSensorCollect_Cam(capture,tempImage.image))
 		{
-			imageCamera_t tempImage;
 			tempImage.st = getSysTimeMs();
-			resize(currentImage, currentImage, cv::Size(IMAGE_SENSOR_WIDTH, IMAGE_SENSOR_HEIGHT));
-			tempImage.image = currentImage.clone();
 
 			cacheBuffer.addImage(tempImage);
+			cacheBuffer.releaseCacheBuffer();
 
-			cv::namedWindow("image");
-			cv::imshow("image",currentImage);
-			cv::waitKey(1);
+			//cv::namedWindow("image");
+			//cv::imshow("image",tempImage.image);
+			//cv::waitKey(1);
+		}else
+		{
+			cacheBuffer.releaseCacheBuffer();
 		}
 	}
 }
@@ -174,20 +184,35 @@ bool InitGpsSocket_UDP()
 	return true;
 }
 
+void coordinateChange(point3D_t* changePoint,point3D_t* standPoint,point3D_t *outPoint)
+{
+	GLfloat dif_x = changePoint->lat - standPoint->lat;
+	GLfloat dif_y = changePoint->lon - standPoint->lon;
+	GLfloat dif_z = changePoint->alt - standPoint->alt;
+	float latitude = (standPoint->lat)*PI/180;
+
+	outPoint->lat = dif_x*COEFF_DD2METER;  //latitude
+	outPoint->lon = dif_y*(111413*cos(latitude)-94*cos(3*latitude));  //longitude
+	outPoint->alt = 0;//dif_z;
+
+}
+
 unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 {
-	int device = 0;
 	int numFrame;
 	bool init = true;
 	point3D_t currentGps;
 	point3D_t preGps;
 
-	if(!openImageSensor_Cam(device,capture ,numFrame))
+	if(!openImageSensor_Cam(g_CameraPort,capture ,numFrame))
 	{
 		logPrintf(logLevelInfo_e, "IMAGE_COLLECTOR", "Open Camera failed!");
 		return -1;
 	}
 	
+    imageBuffer.setImageSize(capture.get(CV_CAP_PROP_FRAME_WIDTH),
+        capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+
 	if(!InitGpsSocket_UDP())
 	{
 		logPrintf(logLevelInfo_e, "IMAGE_COLLECTOR", "Open GPS UDP socket failed!");
@@ -195,7 +220,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	}
 
 	//start the timer to get the camera image
-	glutTimerFunc((unsigned int)(1000),&imageTimer,3);
+	glutTimerFunc((unsigned int)(50),&imageTimer,3);
 
 	while(1)
 	{
@@ -215,6 +240,21 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 			cacheBuffer.getBackendBuffer(&imageTempVec);
 			int numImage = imageTempVec->size();
 			double totalTime = (gGpsInfo.st > gGpsInfo.stPre)?(gGpsInfo.st - gGpsInfo.stPre):(0xffffffff-(gGpsInfo.stPre -gGpsInfo.st)+1);
+			if((totalTime < 800)||(totalTime > 1200))
+			{
+				if(imageBuffer.getCurrentImageNum() < LAST_FRAME_NUM)
+				{
+					imageBuffer.cleanCurrentBuffer();
+				}else
+				{
+					imageBuffer.setReadyFlag();
+				}
+				preGps.alt = gGpsInfo.altitude;
+				preGps.lat = gGpsInfo.dLatitude;
+				preGps.lon = gGpsInfo.dLongitude;
+				continue;
+			}
+
 			point3D_t startPoint;
 			point3D_t endPoint;
 			startPoint.alt = gGpsInfo.altitudePre;
@@ -225,6 +265,34 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 			endPoint.lat = gGpsInfo.dLatitude;
 			endPoint.lon = gGpsInfo.dLongitude;
 
+			point3D_t outPoint;
+			coordinateChange(&endPoint,&startPoint,&outPoint);
+			if(sqrt((outPoint.lat*outPoint.lat)+(outPoint.lon*outPoint.lon)) > 200)
+			{
+				if(imageBuffer.getCurrentImageNum() < LAST_FRAME_NUM)
+				{
+					imageBuffer.cleanCurrentBuffer();
+				}else
+				{
+					imageBuffer.setReadyFlag();
+				}
+				preGps.alt = gGpsInfo.altitude;
+				preGps.lat = gGpsInfo.dLatitude;
+				preGps.lon = gGpsInfo.dLongitude;
+				continue;
+			}
+
+			if(imageTempVec->empty())
+			{
+				preGps.alt = gGpsInfo.altitude;
+				preGps.lat = gGpsInfo.dLatitude;
+				preGps.lon = gGpsInfo.dLongitude;
+				continue;
+			}
+			cv::namedWindow("image");
+			cv::imshow("image",(*imageTempVec->begin()).image);
+			cv::waitKey(1);
+
 			for(std::vector<imageCamera_t>::iterator imageIter = imageTempVec->begin();
 				imageIter != imageTempVec->end();
 				++imageIter)
@@ -233,6 +301,9 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 				double timeOffset = ((*imageIter).st > gGpsInfo.stPre)?((*imageIter).st - gGpsInfo.stPre):(0xffffffff - (gGpsInfo.stPre - (*imageIter).st)+1);
 				double ratio = timeOffset/totalTime;
 				insertGps(startPoint, endPoint, ratio, currentGps);
+
+				coordinateChange(&currentGps,&preGps,&outPoint);
+				//if(sqrt((outPoint.lat*outPoint.lat)+(outPoint.lon*outPoint.lon)) > 10)
 
 				//save image to imagebuffer
 				imageBuffer.setSaveFlag();
@@ -246,6 +317,28 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 
 }
 #else
+std::string GetFileNameByFilePath(const std::string filepath)
+{
+	std::string filename;
+	if(filepath.size() < 0)
+	return "";
+	string::size_type ix = filepath.find_last_of('/');
+	if(ix != string::npos)
+	{
+		return filepath.substr(ix+1,filepath.size()-ix);
+	}
+	else
+	{
+		string::size_type ix = filepath.find_last_of('\\');
+		if(ix != string::npos)
+		{
+			return filepath.substr(ix+1,filepath.size()-ix);
+		}
+	}
+
+	return "";
+}
+
 void updateGpsInfo(point3D_t gpsPoint)
 {
 	gGpsInfo.dLatitudePrePre = gGpsInfo.dLatitudePre;
@@ -321,18 +414,50 @@ void getSpeedAndDirectionInfo(point3D_t currentGps, point3D_t preGps, double fps
 	}
 }
 
+bool InitTimeOffsetSocket_UDP()
+{
+	g_EmulatorSockUDP = socket(AF_INET, SOCK_DGRAM, 0);
+    if (g_EmulatorSockUDP == INVALID_SOCKET)  
+    {  
+        logPrintf(logLevelFatal_e, "COMM", "Creating emulator UDP socket failed!");
+        return false;
+    }
+	emulatorAddr.sin_family = AF_INET;
+	emulatorAddr.sin_addr.S_un.S_addr = g_EmulatorIP;
+	emulatorAddr.sin_port = g_EmulatorPort;
+	return true;
+}
+
+void imageTimer(int value)
+{
+	if(3 == value)
+	{
+		glutTimerFunc(timeDelay,&imageTimer,3);
+		ReleaseSemaphore(g_readySema_VideoReader, 1 ,NULL);
+	}
+}
+
 unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 {
 	int numFiles;
 	int idxFile = 0;
 	int numFrame;
+	int totalNumFrame;
 	double fps;
+	int counter = 0;
 	point3D_t currentGps;
 	point3D_t preGps;
-	//currentGps.alt = 0;
-	//currentGps.lat = 0;
-	//currentGps.lon = 0;
+	g_readySema_VideoReader = CreateSemaphore(NULL,0,10,"semaphore_VideoReader");
+
+	InitTimeOffsetSocket_UDP();
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+    FILE* fp = fopen("./config/DE_Airport2_aviGpsFiles.txt", "r"); 
+#elif (RD_LOCATION == RD_US_DETROIT)
+	FILE* fp = fopen("./config/US_Detroit_aviGpsFiles.txt", "r"); 
+#elif (RD_LOCATION == RD_US_PALO_ALTO)
 	FILE* fp = fopen("./config/aviGpsFiles.txt", "r"); 
+#endif
+	
 	if(fp == NULL)
 	{
 		printf("cannot open the aviGpsFiles.txt file\n");
@@ -366,7 +491,14 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	{
 		printf("can't open file: %s",aviNames[idxFile]);
 	}
+	totalNumFrame = numFrame;
 	fps = capture.get(CV_CAP_PROP_FPS);  //get the frames per seconds of the video
+
+	imageBuffer.setImageSize(capture.get(CV_CAP_PROP_FRAME_WIDTH),
+	    capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+
+	timeDelay = (unsigned int)(1000/fps);
+	glutTimerFunc(timeDelay,&imageTimer,3);
 
 	while(1)
 	{
@@ -390,6 +522,8 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 				continue;
 			}
 			fclose(gpsFile);
+			totalNumFrame = numFrame;
+
 			gpsFile = fopen(gpsNames[idxFile],"r");
 			fseek(gpsFile, 0, SEEK_SET);
 			
@@ -397,18 +531,59 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 			fscanf(gpsFile,"%lf,%lf\n",&preGps.lat,&preGps.lon);
 			preGps.alt = 0;
 			fseek(gpsFile, 0, SEEK_SET);
-#if 1
+
 			if(imageBuffer.getCurrentImageNum() < LAST_FRAME_NUM)
 			{
 				imageBuffer.cleanCurrentBuffer();
 			}else
 			{
 				imageBuffer.setReadyFlag();
-                //WaitForSingleObject(g_readySema_DiffDet, INFINITE);
 			}
-#endif
 		}
 
+		WaitForSingleObject(g_readySema_VideoReader, INFINITE);
+		//send the information to server side
+		{
+			if(counter >= (int)(fps))
+			{
+				counter = 0;
+				
+				char sendBuff[200];
+	            int sendLen = 1;
+				int checkSum = 0;
+				int videoOffset = (totalNumFrame - numFrame) * 1000 / fps;
+				string fileName = GetFileNameByFilePath(aviNames[idxFile]);
+
+	            sprintf(sendBuff, "$VEHICLE,%ld,%s,%i", g_VehicleID, fileName.c_str(), videoOffset);
+
+				for(int index = sendLen; index < sizeof(sendBuff); index++)
+				{
+					if('\0' != sendBuff[index])
+					{
+						checkSum ^= sendBuff[index];
+						sendLen++;
+					}
+					else
+					{
+						break;
+					}
+				}
+				sprintf(&sendBuff[sendLen],"*%2X",checkSum);
+				sendLen += 3;
+					
+				int nRet = sendto(g_EmulatorSockUDP,(char*)sendBuff,sendLen,0,(SOCKADDR*)&emulatorAddr,g_SocketLen);
+				if ((nRet == SOCKET_ERROR) || (nRet == 0))
+				{
+					logPrintf(logLevelInfo_e, "COMM", "Send message failed!");
+				}
+				else
+				{
+					logPrintf(logLevelInfo_e, "COMM", "<<<< Send message OK");
+				}
+			}
+			counter++;			
+		}
+		//get one frame image and GPS
 		{
 			if(!readImageAndGps(capture, gpsFile, image, currentGps))
 			{
@@ -430,14 +605,13 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 		{
 			imageBuffer.setSaveFlag();
 		}
-		resize(image, image, cv::Size(IMAGE_SENSOR_WIDTH, IMAGE_SENSOR_HEIGHT));
+		
 		imageBuffer.addImage(image,currentGps,preGps,speed,direction);
 
 		preGps = currentGps;
 		cv::namedWindow("image");
 		cv::imshow("image",image);
 		cv::waitKey(1);
-		Sleep(50);
 	}
 }
 #endif

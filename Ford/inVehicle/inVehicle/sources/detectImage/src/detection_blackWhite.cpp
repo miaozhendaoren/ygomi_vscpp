@@ -31,7 +31,8 @@ using namespace std;
 namespace ns_detection
 {
 
-Detector_blackWhite::Detector_blackWhite() : _MAX_NUM_FEATURES(1500)
+Detector_blackWhite::Detector_blackWhite(float highStep, double dist_per_piexl,int horizon_line) :Detector(highStep,dist_per_piexl,horizon_line),
+				_MAX_NUM_FEATURES(1500)
 {
     _sw = 32;
     _d.winSize = Size(_sw, _sw);
@@ -749,14 +750,12 @@ int Detector_blackWhite::searchRegularPolygon(Mat &src,Mat &dxImg, Mat &dyImg,ve
                     }
                     if(type != 0)
                     {
-                        target.TS_type[target.totalNumber] = type;
-                        target.TS_area[target.totalNumber] = roi.area();
-                        target.TS_rect[target.totalNumber] = roi;
-                        target.TS_center[target.totalNumber] = maxLoc3[index];                    
-                        // display the label.
-                        //string s = ID2Image(type); 
-                        target.totalNumber ++;
-                        //setLabel(src,s.c_str(), contours[index]);                        
+                        TS_Structure::TS_element detectSign;
+                        detectSign.type = type;
+                        detectSign.area = roi.area();
+                        detectSign.rect = roi;
+                        detectSign.center = maxLoc3[index];         
+                        target.trafficSign.push_back(detectSign);                       
                     }        
                 }
             }
@@ -806,11 +805,11 @@ void Detector_blackWhite::trafficSignDetect(Mat image, TS_Structure &target)
 
     Mat background(image.rows,4*image.cols/3, CV_8UC3,Scalar(128,128,128));    
 
-    for(int i = 0; i< target.totalNumber; i++)
+    for(int i = 0; i< target.trafficSign.size(); i++)
     {
         char currFileName[1000];
-        int type = target.TS_type[i];
-        Rect rect = target.TS_rect[i];
+        int type = target.trafficSign[i].type;
+        Rect rect = target.trafficSign[i].rect;
 
         Mat subWin1 = ID2Image(type);
 

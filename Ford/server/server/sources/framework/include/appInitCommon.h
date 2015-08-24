@@ -26,10 +26,12 @@ void appInitEvents(void);
 void databaseInit();
 unsigned int __stdcall startSocket(void *data);
 void msgQueueInit();
+void viewPointInit();
 
 #define MAX_CLIENT_NUM		10
 
 #define SERVER_PLAY_BACK_MODE 0
+#define SERVER_LOG_DIFF_MSG   1
 
 struct portToVehi_t
 {
