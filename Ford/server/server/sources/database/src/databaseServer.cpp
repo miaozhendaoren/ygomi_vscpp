@@ -185,10 +185,10 @@ namespace ns_database
     {
         WaitForSingleObject(_hMutexMemory,INFINITE);
 
-        uint8 segExistFlag;
+        uint8 segExistFlag = 0;
         segAttributes_t segAttr;
 
-        getSegmentByGps(gpsP, &segExistFlag, &segAttr);
+        //getSegmentByGps(gpsP, &segExistFlag, &segAttr); // FIXME: replace by new get segment func
 
         if(segExistFlag == 1)
         {

@@ -485,7 +485,7 @@ namespace ns_database
         int byteNum = 0;
 
         list<list<vector<point3D_t>>>::iterator vecListIter = _vectorList.begin();
-        list<list<lineAttributes_t>>::iterator vecAttrListIter = _lineAttrList.begin();
+        list<segAttributes_t>::iterator segAttrListIter = _segmentList.begin();
 
         // For each segment
         while(vecListIter != _vectorList.end())
@@ -494,13 +494,11 @@ namespace ns_database
             // Segment with no vector
             {
                 ++vecListIter;
-                ++vecAttrListIter;
+                ++segAttrListIter;
                 continue;
             }
 
-            list<lineAttributes_t>::iterator attrIter = vecAttrListIter->begin();
-
-            uint32 segmentIdDb = attrIter->segmentId;
+            uint32 segmentIdDb = segAttrListIter->segId;
 
             //if(segmentIdDb == segmentIdIn)
             // Segment ID match
@@ -523,6 +521,7 @@ namespace ns_database
                 while(pointListIter != vecListIter->end())
                 {
                     // Get vector info from the first element
+                    /*
                     tlvCfgP = &_tlvCfg_dataLine_a[data_lineId_e - data_lineBase_e];
                     setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, attrIter->lineId);
                     byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
@@ -538,7 +537,7 @@ namespace ns_database
                     tlvCfgP = &_tlvCfg_dataLine_a[data_lineSegVersion_e - data_lineBase_e];
                     setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, attrIter->segVersion);
                     byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
-
+                    */
                     int numPoints = (*pointListIter).size();
 
                     tlvCfgP = &_tlvCfg_dataLine_a[data_linePointList_e - data_lineBase_e];
@@ -568,14 +567,13 @@ namespace ns_database
                     }
 
                     ++pointListIter;
-                    ++attrIter;
                 }
 
                 //break;
             }
 
             ++vecListIter;
-            ++vecAttrListIter;
+            ++segAttrListIter;
         }
 
         *length = byteNum;
@@ -617,6 +615,15 @@ namespace ns_database
         // Push new data into database
         _vectorList = allLines;
         _lineAttrList = lineAttr;
+
+        ReleaseMutex(_hMutexMemory);
+    }
+
+    void database::resetSegCfg(IN list<segAttributes_t> &segConfigList)
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+
+        _segmentList = segConfigList;
 
         ReleaseMutex(_hMutexMemory);
     }

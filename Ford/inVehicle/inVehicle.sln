@@ -5,6 +5,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "inVehicle", "inVehicle\inVe
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		DE_Lehre_Video_Release|Win32 = DE_Lehre_Video_Release|Win32
 		Debug|Win32 = Debug|Win32
 		Detroit_Video_Release|Win32 = Detroit_Video_Release|Win32
 		Frankfurt_Camera_Release|Win32 = Frankfurt_Camera_Release|Win32
@@ -12,6 +13,8 @@ Global
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{07EE8913-8170-498C-842A-ED7A5EA4FEB0}.DE_Lehre_Video_Release|Win32.ActiveCfg = DE_Lehre_Video_Release|Win32
+		{07EE8913-8170-498C-842A-ED7A5EA4FEB0}.DE_Lehre_Video_Release|Win32.Build.0 = DE_Lehre_Video_Release|Win32
 		{07EE8913-8170-498C-842A-ED7A5EA4FEB0}.Debug|Win32.ActiveCfg = Debug|Win32
 		{07EE8913-8170-498C-842A-ED7A5EA4FEB0}.Debug|Win32.Build.0 = Debug|Win32
 		{07EE8913-8170-498C-842A-ED7A5EA4FEB0}.Detroit_Video_Release|Win32.ActiveCfg = Detroit_Video_Release|Win32

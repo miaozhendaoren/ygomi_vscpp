@@ -91,6 +91,10 @@ Detector_colored::Detector_colored(float highStep, double dist_per_piexl,int hor
     _image.push_back(imread("./resource/Germany/png/33600.png"));
     _image.push_back(imread("./resource/Germany/png/35010.png"));
     _image.push_back(imread("./resource/Germany/png/99900.png"));
+    _image.push_back(imread("./resource/Germany/png/20910.png"));
+    _image.push_back(imread("./resource/Germany/png/25400.png"));
+    _image.push_back(imread("./resource/Germany/png/26700.png"));
+    _image.push_back(imread("./resource/Germany/png/31401.png"));
 
     
     _cir_model = svm_load_model("./resource/Germany/svm/cir_model.txt");
@@ -111,13 +115,31 @@ int Detector_colored::contoursSelect(vector<vector<Point>> &contours,int *validI
     {
         double area = contourArea( contours[idx]); 
         double length = arcLength( contours[idx],true); 
-
-        if ((length*length <= area*double(ratioT)) && ((area < 150*150) && (area > 20*20)))
-        {
-            validIdx[totalValid] = idx;
-            validVal[totalValid] = area;
-            totalValid ++;
-        }                
+        bool insideFlag = false;
+		if ((length*length <= area*double(ratioT)) && ( (area > 15*15))) // && (area < 150*150)
+		{
+            // test one road sign whether insides other road sign.
+            Rect rect = boundingRect(contours[idx]);
+            Point center;
+            center.x = rect.x + rect.width/2;
+            center.y = rect.y + rect.height/2;
+            for(int idx1 = 0; idx1 != idx; idx1 < cSize)
+            {   
+               double dist = pointPolygonTest(contours[idx1],center,false);
+               if(dist == 1)
+               {
+                   insideFlag = true;
+                   break;
+               }
+                ++idx1;
+            }
+            if(insideFlag == false)
+            {
+                validIdx[totalValid] = idx;
+                validVal[totalValid] = area;
+                totalValid ++;
+            }
+		}	 
     }
     int canNumber = min(totalValid,_MAX_RED_CANDIDATES);
 
@@ -259,7 +281,7 @@ Mat Detector_colored::ID2Image(int target)
 			s = _image[9];
 			break;
 		}
-	case 22240:
+	case 22400:
 		{
 			s = _image[10];
 			break;
@@ -374,6 +396,26 @@ Mat Detector_colored::ID2Image(int target)
 			s = _image[32];
 			break;
 		}
+    case 20910:
+        {
+            s = _image[33];
+            break;
+        }
+    case 25400:
+        {
+            s = _image[34];
+            break;
+        }
+    case 26700:
+        {
+            s = _image[35];
+            break;
+        }
+    case 31401:
+        {
+            s = _image[36];
+            break;
+        }
 	default:
 		break;
 	}

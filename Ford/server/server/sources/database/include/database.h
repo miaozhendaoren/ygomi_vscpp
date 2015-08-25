@@ -199,6 +199,8 @@ namespace ns_database
         void resetAllVectors(IN std::list<std::list<std::vector<point3D_t>>>& allLines, 
                              IN std::list<std::list<lineAttributes_t>>& lineAttr);
 
+        void resetSegCfg(IN std::list<segAttributes_t> &segConfigList);
+
         void getSegmentByGps(IN  point3D_t*       gps, 
                              OUT uint8*           existFlag, 
                              OUT segAttributes_t* segmentAttr);

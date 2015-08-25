@@ -19,6 +19,7 @@
 #include "typeDefine.h"
 #include "database.h"
 #include "databaseServer.h"
+#include "RoadVecGen.h"
 #include "messageProcessClass.h"
 #include "messageQueueClass.h"
 
@@ -30,8 +31,8 @@ void viewPointInit();
 
 #define MAX_CLIENT_NUM		10
 
-#define SERVER_PLAY_BACK_MODE 0
-#define SERVER_LOG_DIFF_MSG   1
+#define SERVER_PLAY_BACK_MODE 1
+#define SERVER_LOG_DIFF_MSG   0
 
 struct portToVehi_t
 {
@@ -51,6 +52,7 @@ extern list<portToVehi_t> portToVehiList;
 extern messageQueueClass* messageQueue_gp;
 extern messageQueueClass* databaseQueue_gp;
 extern ns_database::databaseServer* database_gp;
+extern ns_database::CRoadVecGen *roadVecGen_gp;
 
 extern SOCKET sockServer;			// socket
 extern SOCKET sockClient;

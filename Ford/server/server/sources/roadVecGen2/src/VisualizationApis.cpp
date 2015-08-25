@@ -180,7 +180,8 @@ void showImage(list<vector<point3D_t>> dataInput, Scalar scalar, string winname)
         for (int i = 0; i < numOfPoints; i++)
         {
             // flip Y axis as OpenCV starts from top left to right bottom
-            if (0.0 < lineItor->at(i).paintFlag)
+            if (0.0 < lineItor->at(i).paintFlag &&
+                1.0 >= lineItor->at(i).paintFlag)
             {
                 curr.x = (int)(lineItor->at(i).lon - minX) + 50;
                 curr.y = (int)(height - (lineItor->at(i).lat - minY)) - 50;

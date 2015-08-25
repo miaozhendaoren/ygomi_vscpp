@@ -4,13 +4,14 @@
 
 list<list<vector<point3D_t>>>       newDataVec;
 list<list<vector<point3D_t>>>       fgData;
+list<segAttributes_t>               segConfigList;
 
 CRoadVecGen g_RoadVecGen;
 
 void main()
 {
     // set configuration path
-    g_RoadVecGen.setSectionConfigPath(".\\config\\manualSeg.txt");
+    g_RoadVecGen.setSectionConfigPath(".\\config\\manualSeg.txt", segConfigList);
 
     // road new reported data from file
     readReportData(".\\config\\pathlist.txt", newDataVec);

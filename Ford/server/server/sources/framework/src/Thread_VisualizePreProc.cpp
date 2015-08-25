@@ -360,13 +360,11 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 			//standPoint = (*(*allLines.begin()).begin())[0];
 
 			list<list<vector<point3D_t>>>::iterator lineInSegIter = allLines.begin();
-			list<list<lineAttributes_t>>::iterator lineAttrInSegIter = lineAttr.begin();
 
 			// For each segment
 			while(lineInSegIter != allLines.end())
 			{
 				list<vector<point3D_t>>::iterator lineIter = (*lineInSegIter).begin();
-				list<lineAttributes_t>::iterator lineAttrIter = (*lineAttrInSegIter).begin();
 
 				int lineNum = (*lineInSegIter).size();
 				int lineIdx = 0;
@@ -379,9 +377,9 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 				// For each vector
 				while(lineIter != (*lineInSegIter).end())
 				{
-					lineTypeEnum_t lineStyle = (lineTypeEnum_t)(*lineAttrIter).lineStyle;
+					lineTypeEnum_t lineStyle = lineTypeEnum_dash;// Not used //(lineTypeEnum_t)(*lineAttrIter).lineStyle;
             
-					int numberPoint = (*lineAttrIter).numPoints;
+					int numberPoint = lineIter->size();
 					point3DFloat_t tempPoint;
 
 					for(int pointIdx = 0; pointIdx < numberPoint; pointIdx++)
@@ -482,12 +480,10 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 					//computeServerEyePosition(numberPoint, pointVecBuf,serverEyeInfo);
 
 					lineIter++;
-					lineAttrIter++;
 					lineIdx++;
 				}
 
 				lineInSegIter++;
-				lineAttrInSegIter++;
 			}
 
 			database_gp->getAllVectors_clear(allLines, lineAttr);

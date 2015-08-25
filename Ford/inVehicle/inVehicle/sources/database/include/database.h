@@ -65,6 +65,12 @@ namespace ns_database
         int    count;
     };
 
+	struct point2D_t
+    {
+        double lat;
+        double lon;
+    };
+
     struct pointRelative3D_t
     {
         float x; // lon direction
@@ -80,12 +86,13 @@ namespace ns_database
         uint8  lineStyle;
         uint32 segVersion;
         int numPoints;
+		int count;
     };
 
     struct segAttributes_t
     {
-        uint8  segId_used;
-        uint32 segId;
+        uint8  segId_used;//
+        uint32 segId;//
         uint8  version_used;
         uint32 version;
         uint8  type_used;
@@ -93,7 +100,7 @@ namespace ns_database
         uint8  numPort_used;
         int32  numPort;
         uint8  ports_used;
-        point3D_t ports[MAX_NUM_PORT];
+        point3D_t ports[MAX_NUM_PORT];//
         uint8  links_used;
         uint32 links[MAX_NUM_PORT];
         uint8  roadLength_used;
@@ -106,8 +113,10 @@ namespace ns_database
         uint8  numFurniture;
         uint8  numDynamicData_used;
         uint8  numDynamicData;
+        uint8  uiLaneNum_used;
+        uint8  uiLaneNum;
     };
-
+	 
     class furAttributes_t
     {
     public:
@@ -189,6 +198,8 @@ namespace ns_database
 
         void resetAllVectors(IN std::list<std::list<std::vector<point3D_t>>>& allLines, 
                              IN std::list<std::list<lineAttributes_t>>& lineAttr);
+
+        void resetSegCfg(IN std::list<segAttributes_t> &segConfigList);
 
         void getSegmentByGps(IN  point3D_t*       gps, 
                              OUT uint8*           existFlag, 

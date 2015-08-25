@@ -15,12 +15,13 @@
 * Change Log:
 *      Date                Who             What
 *      2015/05/08         Xin Shao        Create
-*       2015/05/11          Qin Shi          Add message process
+*      2015/05/11         Qin Shi         Add message process
 *******************************************************************************
 */
 #include <stdlib.h>
 #include <time.h>
 #include <opencv2\core\core.hpp>
+#include <opencv2\core\operations.hpp>
 #include <opencv2\highgui\highgui.hpp>
 #include <opencv2\imgproc\imgproc.hpp>
 #include <opencv2\opencv.hpp>
@@ -758,36 +759,87 @@ void filterFurToReport(point3D_t currentGps,list<statisticsFurInfo_t>* furnListI
         {
             if(!checkGpsInRange(&currentGps,&(furnListInBuffIdx->firstGps),database_gp->_distThreshNear))
             {
-
                 point3D_t gpsReport;
                 double minVar = MIN_DIST;
                 float  minOffset = 50.0;
-                // calculate the GPS infomation according to different offset.
+
                 if(furnListInBuffIdx->position.size() > VAR_ACC_TIME)
-                {    
-                    int stepIdx;
-                    int offsetIdx;
-
-                    vector<point3D_t> meanLoc;
-
-                    //step 1: calculate the location mean.
-                   // for( stepIdx = 0; stepIdx < furnListInBuffIdx->offsetNumPerFur.size()-1; stepIdx++)
+                {  
+                    if(VAR_ALG == 1)
                     {
-                        int stepNum =  furnListInBuffIdx->offsetNumPerFur[0];
-                        vector<float> offsetVector = furnListInBuffIdx->offset[0];
-                        vector<point3D_t> positionVector = furnListInBuffIdx->position[0];
 
-                        for( offsetIdx = 0; offsetIdx < stepNum;offsetIdx++)
-                        {                
-                            float stepSize = offsetVector[offsetIdx];
-                            int counter = 1;
-                            int offsetIdx2 = 0;
-                            point3D_t meanLocTemp;
+                    // calculate the GPS infomation according to different offset.  
+                        int stepIdx;
+                        int offsetIdx;
+
+                        vector<point3D_t> meanLoc;
+
+                        //step 1: calculate the location mean.
+                       // for( stepIdx = 0; stepIdx < furnListInBuffIdx->offsetNumPerFur.size()-1; stepIdx++)
+                        {
+                            int stepNum =  furnListInBuffIdx->offsetNumPerFur[0];
+                            vector<float> offsetVector = furnListInBuffIdx->offset[0];
+                            vector<point3D_t> positionVector = furnListInBuffIdx->position[0];
+
+                            for( offsetIdx = 0; offsetIdx < stepNum;offsetIdx++)
+                            {                
+                                float stepSize = offsetVector[offsetIdx];
+                                int counter = 1;
+                                int offsetIdx2 = 0;
+                                point3D_t meanLocTemp;
                  
-                            meanLocTemp = positionVector[offsetIdx];                 
+                                meanLocTemp = positionVector[offsetIdx];                 
 
-                            for(int stepIdx2 = 1; stepIdx2 < furnListInBuffIdx->offsetNumPerFur.size(); stepIdx2++)
-                            {
+                                for(int stepIdx2 = 1; stepIdx2 < furnListInBuffIdx->offsetNumPerFur.size(); stepIdx2++)
+                                {
+                                        int stepNum2 =  furnListInBuffIdx->offsetNumPerFur[stepIdx2];
+                                        vector<float> offsetVector2 = furnListInBuffIdx->offset[stepIdx2];
+                                        vector<point3D_t> positionVector2 = furnListInBuffIdx->position[stepIdx2];
+                           
+                                        while(offsetIdx2 < stepNum2)
+                                        {
+                                            if(offsetVector2[offsetIdx2] == stepSize)
+                                            {  break; }
+                                            else
+                                            {   offsetIdx2++; }
+                                        }
+                            
+                                        if(offsetIdx2 < stepNum2)
+                                        {
+                                            meanLocTemp.lat += positionVector2[offsetIdx2].lat;
+                                            meanLocTemp.lon += positionVector2[offsetIdx2].lon;
+                                            counter ++;
+                                        }
+                                }
+
+                                meanLocTemp.lat = meanLocTemp.lat / counter;
+                                meanLocTemp.lon = meanLocTemp.lon / counter;
+                                meanLoc.push_back(meanLocTemp);
+                            }      
+                        }
+
+                        // step 2: calculate the location variance.
+                        {
+                            int stepNum =  furnListInBuffIdx->offsetNumPerFur[0];
+                            vector<float> offsetVector = furnListInBuffIdx->offset[0];
+                            vector<point3D_t> positionVector = furnListInBuffIdx->position[0];
+
+                            for( offsetIdx = 0; offsetIdx < stepNum;offsetIdx++)
+                            {                
+                                float stepSize = offsetVector[offsetIdx];
+                                int counter = 1;
+
+                                int offsetIdx2 = 0;
+                        
+                                point3D_t locTemp; 
+
+                                double varTemp;
+                                locTemp.lat = positionVector[offsetIdx].lat - meanLoc[offsetIdx].lat;
+                                locTemp.lon = positionVector[offsetIdx].lon - meanLoc[offsetIdx].lon;
+                                varTemp = locTemp.lat*locTemp.lat + locTemp.lon*locTemp.lon;
+
+                                for(int stepIdx2 = 1; stepIdx2 < furnListInBuffIdx->offsetNumPerFur.size(); stepIdx2++)
+                                {
                                     int stepNum2 =  furnListInBuffIdx->offsetNumPerFur[stepIdx2];
                                     vector<float> offsetVector2 = furnListInBuffIdx->offset[stepIdx2];
                                     vector<point3D_t> positionVector2 = furnListInBuffIdx->position[stepIdx2];
@@ -802,92 +854,93 @@ void filterFurToReport(point3D_t currentGps,list<statisticsFurInfo_t>* furnListI
                             
                                     if(offsetIdx2 < stepNum2)
                                     {
-                                        meanLocTemp.lat += positionVector2[offsetIdx2].lat;
-                                        meanLocTemp.lon += positionVector2[offsetIdx2].lon;
+                                        locTemp.lat = positionVector2[offsetIdx2].lat - meanLoc[offsetIdx].lat;
+                                        locTemp.lon = positionVector2[offsetIdx2].lon - meanLoc[offsetIdx].lon;
+                                        varTemp += locTemp.lat*locTemp.lat + locTemp.lon*locTemp.lon;
                                         counter ++;
                                     }
-                            }
-
-                            meanLocTemp.lat = meanLocTemp.lat / counter;
-                            meanLocTemp.lon = meanLocTemp.lon / counter;
-                            meanLoc.push_back(meanLocTemp);
-                        }      
-                    }
-
-                    // step 2: calculate the location variance.
-                    {
-                        int stepNum =  furnListInBuffIdx->offsetNumPerFur[0];
-                        vector<float> offsetVector = furnListInBuffIdx->offset[0];
-                        vector<point3D_t> positionVector = furnListInBuffIdx->position[0];
-
-                        for( offsetIdx = 0; offsetIdx < stepNum;offsetIdx++)
-                        {                
-                            float stepSize = offsetVector[offsetIdx];
-                            int counter = 1;
-
-                            int offsetIdx2 = 0;
-                        
-                            point3D_t locTemp; 
-
-                            double varTemp;
-                            locTemp.lat = positionVector[offsetIdx].lat - meanLoc[offsetIdx].lat;
-                            locTemp.lon = positionVector[offsetIdx].lon - meanLoc[offsetIdx].lon;
-                            varTemp = locTemp.lat*locTemp.lat + locTemp.lon*locTemp.lon;
-
-                            for(int stepIdx2 = 1; stepIdx2 < furnListInBuffIdx->offsetNumPerFur.size(); stepIdx2++)
-                            {
-                                int stepNum2 =  furnListInBuffIdx->offsetNumPerFur[stepIdx2];
-                                vector<float> offsetVector2 = furnListInBuffIdx->offset[stepIdx2];
-                                vector<point3D_t> positionVector2 = furnListInBuffIdx->position[stepIdx2];
-                           
-                                while(offsetIdx2 < stepNum2)
-                                {
-                                    if(offsetVector2[offsetIdx2] == stepSize)
-                                    {  break; }
-                                    else
-                                    {   offsetIdx2++; }
                                 }
-                            
-                                if(offsetIdx2 < stepNum2)
-                                {
-                                    locTemp.lat = positionVector2[offsetIdx2].lat - meanLoc[offsetIdx].lat;
-                                    locTemp.lon = positionVector2[offsetIdx2].lon - meanLoc[offsetIdx].lon;
-                                    varTemp += locTemp.lat*locTemp.lat + locTemp.lon*locTemp.lon;
-                                    counter ++;
-                                }
-                            }
 
-                            if((minVar > varTemp/counter) && (counter > VAR_ACC_TIME))
-                            {
-                                minVar = varTemp/counter;
-                                gpsReport = meanLoc[offsetIdx];
-                                minOffset = offsetVector[offsetIdx]; 
+                                if((minVar > varTemp/counter) && (counter > VAR_ACC_TIME))
+                                {
+                                    minVar = varTemp/counter;
+                                    gpsReport = meanLoc[offsetIdx];
+                                    minOffset = offsetVector[offsetIdx]; 
+                                }
+                                //cout << "var time:" << counter << endl;
                             }
-                            //cout << "var time:" << counter << endl;
                         }
-                    }
-                    //cout << "best multiple index: " << minOffset << endl;
-                }
+                        //cout << "best multiple index: " << minOffset << endl;
+                        // report
+                        if(minVar != MIN_DIST)
+                        {
+                            furAttributesInVehicle_t reportFur;
+                            reportFur = furnListInBuffIdx->furAttri;
+                            reportFur.location = gpsReport;
+                            outListPtr->push_back(reportFur);
 
-                // report
-                if(minVar != MIN_DIST)
-                {
-                    furAttributesInVehicle_t reportFur;
-                    reportFur = furnListInBuffIdx->furAttri;
-                    reportFur.location = gpsReport;
-                    outListPtr->push_back(reportFur);
-
-                    idxTmp = furnListInBuffIdx;
-                    ++furnListInBuffIdx;
-                    furnListInBuffPtr->erase(idxTmp);
+                            idxTmp = furnListInBuffIdx;
+                            ++furnListInBuffIdx;
+                            furnListInBuffPtr->erase(idxTmp);
                     
+                        }
+                    }        
+                    else
+                    {
+                        // find the intersection point to measure the position
+                        Mat slopeMatrix(furnListInBuffIdx->position.size(),2,CV_64FC1);
+                        Mat constMatrix(furnListInBuffIdx->position.size(),1,CV_64FC1);
+                        // Ax=b, construct the A matrix and b matrix)
+                        for(int stepIdx = 0; stepIdx < furnListInBuffIdx->position.size(); ++stepIdx)
+                        {
+                            vector<point3D_t> positionVector = furnListInBuffIdx->position[stepIdx];
+                            vector<Point2f> positionVec2d;
+                            // 3d point transform to 2d.
+                            for(int numIdx = 0; numIdx < positionVector.size();++numIdx)
+                            {
+                                Point2f point;
+                                point.x = positionVector[numIdx].lat;
+                                point.y = positionVector[numIdx].lon;
+                                positionVec2d.push_back(point);
+                            }
+
+                            Vec4f     lineFit;
+                            fitLine(positionVec2d,lineFit,CV_DIST_L2,1,0.01,0.01);// line fitting
+
+                            slopeMatrix.at<double>(stepIdx,0) = lineFit[1]/lineFit[0];
+                            slopeMatrix.at<double>(stepIdx,1) = -1.0;
+                            constMatrix.at<double>(stepIdx) = lineFit[1]/lineFit[0] * lineFit[2] - lineFit[3];
+
+                            //slopeMatrix.at<double>(stepIdx,0) = (positionVector[1].lon - positionVector[0].lon) / (positionVector[1].lat - positionVector[0].lat);
+                            //slopeMatrix.at<double>(stepIdx,1) = -1.0;
+                            //constMatrix.at<double>(stepIdx) = slopeMatrix.at<double>(stepIdx,0) * positionVector[1].lat - positionVector[1].lon;
+                        }
+                        // x = (A'A)^-1*A'*b
+                        Mat slopeMat_T =  slopeMatrix.t();
+
+                        Mat HermitMat = slopeMat_T*slopeMatrix;
+                        Mat HermitMat_inv = HermitMat.inv(DECOMP_SVD);
+
+                        Mat location = HermitMat_inv*slopeMat_T*constMatrix;
+                        
+                        gpsReport.lat = location.at<double>(0,0);
+                        gpsReport.lon = location.at<double>(1,0);
+                        gpsReport.alt = furnListInBuffIdx->position[0][0].alt;
+
+                        furAttributesInVehicle_t reportFur;
+                        reportFur = furnListInBuffIdx->furAttri;
+                        reportFur.location = gpsReport;
+                        outListPtr->push_back(reportFur);
+
+                        idxTmp = furnListInBuffIdx;
+                        ++furnListInBuffIdx;
+                        furnListInBuffPtr->erase(idxTmp);
+                    }
                 }
                 else
                 {
-                    ++furnListInBuffIdx;
+                     ++furnListInBuffIdx;
                 }
-
-
             }
             else
             {

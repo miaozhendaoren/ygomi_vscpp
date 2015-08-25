@@ -16,7 +16,8 @@
 #include <string.h>
 #include "database.h"   // database
 #include "databaseServer.h" // databaseServer
-//#include "appInitCommon.h"
+#include "RoadVecGen.h" // CRoadVecGen
+#include "appInitCommon.h"
 #include "LogInfo.h"
 #include "messageQueueClass.h"
 #include "appInitCommon.h"
@@ -35,6 +36,7 @@ HANDLE g_readySema_Redraw;
 HANDLE g_readySema_msgQueue;
 
 ns_database::databaseServer* database_gp;
+ns_database::CRoadVecGen *roadVecGen_gp;
 messageQueueClass* messageQueue_gp;
 messageQueueClass* databaseQueue_gp;
 
@@ -47,11 +49,18 @@ void appInitEvents(void)
 }
 void databaseInit()
 {
+    roadVecGen_gp = new ns_database::CRoadVecGen();
+
+    list<segAttributes_t> segConfigList;
+    roadVecGen_gp->setSectionConfigPath(".\\config\\DE_Airport_manualSeg.txt", segConfigList);
+
 	database_gp = new ns_database::databaseServer();
 
     void* input = 0;
 
     database_gp->readDb(&input, ns_database::file_e);
+
+    database_gp->resetSegCfg(segConfigList);
 }
 void msgQueueInit()
 {

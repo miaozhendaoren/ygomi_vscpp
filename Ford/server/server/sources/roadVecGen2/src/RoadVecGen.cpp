@@ -41,15 +41,35 @@ namespace ns_database
 #define LINE_TYPE_TH        50
 #define SOLID_OR_DASH_TH    0.5
 #define SAMPLE_SPACE        0.1
+#define SINGLE_LANE         1
+#define DOUBLE_LANE         2
 #define MAX_SUPPORTED_LANES 3
 #define INVALID_LANE_FLAG   -1
 #define VALID_LANE_FLAG     1
-#define LEFT_LANE           0
-#define MIDDLE_LANE         1
-#define RIGHT_LANE          2
 #define EACH_LANE_LINES_NUM 2
+#define SOLID_DASH          0
+#define DASH_DASH           1
+#define DASH_SOLID          2
+#define SOLID_SOLID         0
 
 const uint32 RESAMPLE_SEC_ID[] = {1, 8, 9, 10, 11, 12, 20, 21};
+
+const double LINE_TYPE_THRESHOLD[] = {
+    50,
+    50.0, 80.0, //  1,  2
+    50.0, 50.0, //  3,  4
+    30.0, 50.0, //  5,  6
+    50.0, 50.0, //  7,  8
+    50.0, 50.0, //  9, 10
+    50.0, 80.0, // 11, 12
+    50.0, 50.0, // 13, 14
+    50.0, 50.0, // 15, 16
+    50.0, 50.0, // 17, 18
+    50.0, 50.0, // 19, 20
+    50.0, 50.0, // 21, 22
+    50.0, 50.0, // 23, 24
+    50.0        // 25
+};
 
 bool isResampleSec(uint32 segId)
 {
@@ -68,23 +88,17 @@ bool isResampleSec(uint32 segId)
 
     CRoadVecGen::CRoadVecGen()
     {
-        _configPath[0] = '\0';
+        _configPath = "";
     }
 
 
-    CRoadVecGen::CRoadVecGen(char *configFilePath)
+    CRoadVecGen::CRoadVecGen(string configFilePath)
     {
-        if (nullptr == configFilePath)
-        {
-            _configPath[0] = '\0';
-        }
-        else
-        {
-            memcpy_s(_configPath, MAX_PATH - 1, configFilePath, MAX_PATH - 1);
-        }
+        _configPath = configFilePath;
 
         // read section configuration file
-        readSecConfig();
+        list<segAttributes_t> segConfigList;
+        readSecConfig(segConfigList);
 
         // initialize database
         initDatabase();
@@ -93,7 +107,7 @@ bool isResampleSec(uint32 segId)
 
     CRoadVecGen::~CRoadVecGen()
     {
-        _configPath[0] = '\0';
+        _configPath = "";
 
         // release list or vector data
         _segConfigList.clear();
@@ -121,12 +135,12 @@ bool isResampleSec(uint32 segId)
     }
 
 
-    void CRoadVecGen::roadSectionsGen(IN  list<list<vector<point3D_t>>>  rptData,
+    bool CRoadVecGen::roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
                                       OUT list<list<vector<point3D_t>>> &fgData)
     {
         if (rptData.empty())
         {
-            return;
+            return false;
         }
 
         // release data first
@@ -210,19 +224,16 @@ bool isResampleSec(uint32 segId)
 
 #endif
 
-        return;
+        return true;
     }
 
 
-    void CRoadVecGen::setSectionConfigPath(char *filename)
+    void CRoadVecGen::setSectionConfigPath(IN string filename, OUT list<segAttributes_t> &segConfigList)
     {
-        if (nullptr != filename)
-        {
-            memcpy_s(_configPath, MAX_PATH - 1, filename, MAX_PATH - 1);
-        }
+        _configPath = filename;
 
         // read section configuration file
-        readSecConfig();
+        readSecConfig(segConfigList);
 
         // initialize database
         initDatabase();
@@ -248,7 +259,7 @@ bool isResampleSec(uint32 segId)
     }
 
 
-    void CRoadVecGen::readSecConfig()
+    void CRoadVecGen::readSecConfig(OUT list<segAttributes_t> &segCfgList)
     {
         int sectionNum = 0;
         int sectionID  = 0;
@@ -258,7 +269,7 @@ bool isResampleSec(uint32 segId)
         memset(&segmentElement, 0, sizeof(segAttributes_t));
 
         FILE *fp = nullptr;
-        errno_t err = fopen_s(&fp, _configPath, "rt");
+        errno_t err = fopen_s(&fp, _configPath.c_str(), "rt");
         if(0 != err)
         {
             return;
@@ -294,10 +305,12 @@ bool isResampleSec(uint32 segId)
         }
 
         fclose(fp);
+
+        segCfgList = _segConfigList;
     }
 
 
-    void CRoadVecGen::interpolationSample(IN    vector<point3D_t>  sourceLine,
+    void CRoadVecGen::interpolationSample(IN    vector<point3D_t> &sourceLine,
                                           INOUT vector<point3D_t> &sampledLine)
     {
         if(sourceLine.empty() || sampledLine.empty())
@@ -392,7 +405,7 @@ bool isResampleSec(uint32 segId)
     }
 
 
-    void CRoadVecGen::calcRotationAngle(IN  segAttributes_t  sectionConfig,
+    void CRoadVecGen::calcRotationAngle(IN  segAttributes_t &sectionConfig,
                                         OUT double          &theta,
                                         OUT vector<double>  &xLimitation)
     {
@@ -435,7 +448,7 @@ bool isResampleSec(uint32 segId)
     }
 
 
-    void CRoadVecGen::lineRotation(IN  vector<point3D_t>  sourceLine,
+    void CRoadVecGen::lineRotation(IN  vector<point3D_t> &sourceLine,
                                    IN  double             theta,
                                    OUT vector<point3D_t> &rotatedLine)
     {
@@ -465,7 +478,9 @@ bool isResampleSec(uint32 segId)
     }
 
 
-    void CRoadVecGen::matchLaneType(IN  list<vector<point3D_t>>  sourceLane,
+    void CRoadVecGen::matchLaneType(IN  list<vector<point3D_t>> &sourceLane,
+                                    IN  uint32                   segId,
+                                    IN  uint32                   maxLaneNum,
                                     OUT uint32                  &laneNumber)
     {
         // check number of input lines
@@ -476,31 +491,46 @@ bool isResampleSec(uint32 segId)
         }
 
         // get left and right line of input lane
+        int lanetype = SOLID_SOLID;
+        double threshold = LINE_TYPE_THRESHOLD[segId];
+
         // left line of input lane
         double leftVal = getLineEstValue(sourceLane.front());
 
         // right line of input lane
         double rightVal = getLineEstValue(sourceLane.back());
 
-        // judge matched lane number, default is left lane
-        laneNumber = LEFT_LANE;
-        if (leftVal > LINE_TYPE_TH && rightVal < LINE_TYPE_TH)
+        // judge matched lane number
+        if (leftVal > threshold && rightVal < threshold)
         {
-            laneNumber = LEFT_LANE;
+            lanetype = SOLID_DASH;
         }
-        if (leftVal < LINE_TYPE_TH && rightVal < LINE_TYPE_TH)
+        if (leftVal < threshold && rightVal < threshold)
         {
-            laneNumber = MIDDLE_LANE;
+            lanetype = DASH_DASH;
         }
-        if (leftVal < LINE_TYPE_TH && rightVal > LINE_TYPE_TH)
+        if (leftVal < threshold && rightVal > threshold)
         {
-            laneNumber = RIGHT_LANE;
+            lanetype = DASH_SOLID;
+        }
+
+        if (SINGLE_LANE == maxLaneNum)
+        {
+            laneNumber = SOLID_SOLID;
+        }
+        if (DOUBLE_LANE == maxLaneNum)
+        {
+            laneNumber = (SOLID_DASH == lanetype) ? SOLID_DASH : DOUBLE_LANE - 1;
+        }
+        if (MAX_SUPPORTED_LANES == maxLaneNum)
+        {
+            laneNumber = lanetype;
         }
     }
 
 
-    bool CRoadVecGen::mergeSectionLane(IN    segAttributes_t        sectionConfig,
-                                       IN    reportSectionData      reportData,
+    bool CRoadVecGen::mergeSectionLane(IN    segAttributes_t       &sectionConfig,
+                                       IN    reportSectionData     &reportData,
                                        INOUT backgroundSectionData *bgDatabaseData)
     {
         // check section ID
@@ -550,6 +580,19 @@ bool isResampleSec(uint32 segId)
         list<list<list<vector<point3D_t>>>>::iterator grpItor = reportData.rptSecData.begin();
         while (grpItor != reportData.rptSecData.end())
         {
+
+#ifdef VISUALIZATION_ON
+            if (PREVIOUS_SEGID == sectionConfig.segId)
+            {
+                MERGED_TIMES++;
+            }
+            else
+            {
+                PREVIOUS_SEGID = sectionConfig.segId;
+                MERGED_TIMES = 0;
+            }
+#endif
+
             // lane
             list<list<vector<point3D_t>>>::iterator laneItor = grpItor->begin();
             while (laneItor != grpItor->end())
@@ -561,7 +604,8 @@ bool isResampleSec(uint32 segId)
                 rightRotatedValid.clear();
 
                 // step 1 - Lane number identification
-                matchLaneType(*laneItor, matchedLane);
+                matchedLane = 0;
+                matchLaneType(*laneItor, sectionConfig.segId, numOfLanes, matchedLane);
 
                 // step 2 - Process new data before merging
                 // line - there should be two lines. rotate first
@@ -598,7 +642,7 @@ bool isResampleSec(uint32 segId)
                 getLinePaintInfo(rightRotated, rightSample);
 
                 // re-sample or polynomial fitting
-                if (isResampleSec(sectionConfig.segId))
+                if (true/*isResampleSec(sectionConfig.segId)*/)
                 {
                     interpolationSample(leftRotatedValid,  leftSample);
                     interpolationSample(rightRotatedValid, rightSample);
@@ -714,18 +758,6 @@ bool isResampleSec(uint32 segId)
                 laneItor++;
             } // end of new data lane iterator
 
-#ifdef VISUALIZATION_ON
-            if (PREVIOUS_SEGID == sectionConfig.segId)
-            {
-                MERGED_TIMES++;
-            }
-            else
-            {
-                PREVIOUS_SEGID = sectionConfig.segId;
-                MERGED_TIMES = 0;
-            }
-#endif
-
             grpItor++;
         } // end of new data group iterator
 
@@ -739,6 +771,19 @@ bool isResampleSec(uint32 segId)
         if (_segConfigList.empty() || _bgDatabaseList.empty())
         {
             return false;
+        }
+
+        // erase previous foreground data
+        if (!_fgDatabaseList.empty())
+        {
+            list<foregroundSectionData>::iterator fgSecItor;
+            for (fgSecItor = _fgDatabaseList.begin(); fgSecItor != _fgDatabaseList.end(); fgSecItor++)
+            {
+                if (!fgSecItor->fgSectionData.empty())
+                {
+                    fgSecItor->fgSectionData.clear();
+                }
+            }
         }
 
         // number of sections
@@ -818,7 +863,7 @@ bool isResampleSec(uint32 segId)
                         // if lane 1 and 3 are valid, keep lane 1 and discard lane 3
                         if ((MAX_SUPPORTED_LANES == validLaneInd.size()) &&
                             (MAX_SUPPORTED_LANES - 1 == numOfValidLanes) &&
-                            (INVALID_LANE_FLAG == validLaneInd[MIDDLE_LANE]))
+                            (INVALID_LANE_FLAG == validLaneInd[DASH_DASH]))
                         {
                             numOfValidLanes = 1;
                             validLaneInd[MAX_SUPPORTED_LANES - 1] = INVALID_LANE_FLAG;
@@ -1088,7 +1133,7 @@ bool isResampleSec(uint32 segId)
     }
 
 
-    void CRoadVecGen::dotLineBlockIndex(IN  vector<point3D_t>  lineData,
+    void CRoadVecGen::dotLineBlockIndex(IN  vector<point3D_t> &lineData,
                                         OUT vector<int>       &dotBlkIndexSt,
                                         OUT vector<int>       &dotBlkIndexEd)
     {
@@ -1200,7 +1245,7 @@ bool isResampleSec(uint32 segId)
     }
 
 
-    void CRoadVecGen::polynomialFitting(IN    vector<point3D_t>  sourceLine,
+    void CRoadVecGen::polynomialFitting(IN    vector<point3D_t> &sourceLine,
                                         INOUT vector<point3D_t> &fittedLine)
     {
         // check number of input points
@@ -1245,7 +1290,7 @@ bool isResampleSec(uint32 segId)
     }
 
 
-    void CRoadVecGen::getLinePaintInfo(IN  vector<point3D_t>  sourceline,
+    void CRoadVecGen::getLinePaintInfo(IN  vector<point3D_t> &sourceline,
                                        OUT vector<point3D_t> &leftline)
     {
         // check input lines in current lane
@@ -1291,6 +1336,7 @@ bool isResampleSec(uint32 segId)
             return;
         }
 
+#if 1
         // map to x value on the sample line
         int numOfLeftPnts = leftline.size();
         double step = leftline[1].lon - leftline[0].lon;
@@ -1351,9 +1397,58 @@ bool isResampleSec(uint32 segId)
                 // add block index
                 bPaintedBlk = false;
                 blkIndStEd = ((blkIndStEd + 1) >= (blkNumStEd - 1)) ? \
-                             (blkNumStEd - 1) : (blkIndStEd + 1);
+                    (blkNumStEd - 1) : (blkIndStEd + 1);
             }
         }
+#else
+        // assign paint information according to x range
+        bool bPaintedBlk = false;
+        int blkIndStEd = 0;
+        int blkNumStEd = leftValSt.size();
+        int numOfLinePnts = leftline.size();
+        bool bNormalOrder = leftValSt[0] < leftValSt[blkNumStEd - 1];
+        if (bNormalOrder)
+        {
+            for (int i = 0; i < numOfLinePnts; i++)
+            {
+                if (leftValSt[blkIndStEd] <= leftline[i].lon &&
+                    leftValEd[blkIndStEd] >= leftline[i].lon)
+                {
+                    bPaintedBlk = true;
+                    leftline[i].paintFlag = 1;
+                }
 
+                if (leftValEd[blkIndStEd] < leftline[i].lon && bPaintedBlk)
+                {
+                    // add block index
+                    bPaintedBlk = false;
+                    blkIndStEd = ((blkIndStEd + 1) >= (blkNumStEd - 1)) ? \
+                        (blkNumStEd - 1) : (blkIndStEd + 1);
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < numOfLinePnts; i++)
+            {
+                if (leftValSt[blkIndStEd] >= leftline[i].lon &&
+                    leftValEd[blkIndStEd] <= leftline[i].lon)
+                {
+                    bPaintedBlk = true;
+                    leftline[i].paintFlag = 1;
+                }
+
+                if (leftValEd[blkIndStEd] > leftline[i].lon && bPaintedBlk)
+                {
+                    // add block index
+                    bPaintedBlk = false;
+                    blkIndStEd = ((blkIndStEd + 1) >= (blkNumStEd - 1)) ? \
+                        (blkNumStEd - 1) : (blkIndStEd + 1);
+                }
+            }
+        }
+#endif
     }
+
+
 }

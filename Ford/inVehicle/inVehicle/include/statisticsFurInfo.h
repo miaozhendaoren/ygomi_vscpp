@@ -50,6 +50,7 @@ struct deleteFurInfo_t
 	furAttributesInVehicle_t furAttri;
 };
 
- const double MIN_DIST = 999999999*999999999;
+ const double MIN_DIST = 9e+100;
  const int VAR_ACC_TIME = 1;
+ const bool VAR_ALG = 1;
 }

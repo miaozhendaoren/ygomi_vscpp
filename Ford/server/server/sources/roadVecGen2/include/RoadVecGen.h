@@ -16,8 +16,12 @@
 *******************************************************************************
 */
 
+#ifndef __ROAD_VEC_GEN_H__
+#define __ROAD_VEC_GEN_H__
+
 #include "apiDataStruct.h"
 #include "ExtractSection.h"
+#include <string>
 
 namespace ns_database
 {
@@ -27,7 +31,7 @@ namespace ns_database
     {
     public:
         CRoadVecGen();
-        CRoadVecGen(char *configFilePath);
+        CRoadVecGen(string configFilePath);
         ~CRoadVecGen();
 
         CRoadVecGen(const CRoadVecGen&) {}
@@ -45,7 +49,7 @@ namespace ns_database
         *               There may by empty items in the output.
         *
         */
-        void roadSectionsGen(IN  list<list<vector<point3D_t>>>  rptData,
+        bool roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
                              OUT list<list<vector<point3D_t>>> &fgData);
 
         /*
@@ -57,7 +61,7 @@ namespace ns_database
         *     filename - full path of configuration file.
         *
         */
-        void setSectionConfigPath(char *filename);
+        void setSectionConfigPath(IN string filename, OUT list<segAttributes_t> &segConfigList);
 
         /*
         * @FUNC
@@ -85,7 +89,7 @@ namespace ns_database
     protected:
         CExtractSection               _extractSecObj;
         sectionCon                    _stSecConfig;
-        char                          _configPath[MAX_PATH];
+        std::string                   _configPath;
         list<segAttributes_t>         _segConfigList; // section configurations
         list<backgroundSectionData>   _bgDatabaseList; // background database
         list<foregroundSectionData>   _fgDatabaseList; // foreground database
@@ -98,7 +102,7 @@ namespace ns_database
         * @PARAMS
         *
         */
-        void readSecConfig();
+        void readSecConfig(OUT list<segAttributes_t> &_segConfigList);
 
         /*
         * @FUNC
@@ -119,7 +123,7 @@ namespace ns_database
         *                   corresponding y values.
         *
         */
-        void interpolationSample(IN    vector<point3D_t>  sourceLine,
+        void interpolationSample(IN    vector<point3D_t> &sourceLine,
                                  INOUT vector<point3D_t> &sampledLine);
 
         /*
@@ -137,7 +141,7 @@ namespace ns_database
         *
         */
 
-        void calcRotationAngle(IN  segAttributes_t  sectionConfig,
+        void calcRotationAngle(IN  segAttributes_t &sectionConfig,
                                OUT double          &theta,
                                OUT vector<double>  &xLimitation);
 
@@ -151,7 +155,7 @@ namespace ns_database
         *     rotatedLine - returned rotated line.
         *
         */
-        void lineRotation(IN  vector<point3D_t>  sourceLine,
+        void lineRotation(IN  vector<point3D_t> &sourceLine,
                           IN  double             theta,
                           OUT vector<point3D_t> &rotatedLine);
 
@@ -166,10 +170,13 @@ namespace ns_database
         * @PARAM
         *     sourceLane - source lane data, including two lines. First line is the
         *                  the left one, and second line is the right one.
+        *     maxLaneNum - max lane number in current section.
         *     laneNumber - matched lane number, 1/2/3/...
         *
         */
-        void matchLaneType(IN  list<vector<point3D_t>>  sourceLane,
+        void matchLaneType(IN  list<vector<point3D_t>> &sourceLane,
+                           IN  uint32                   segId,
+                           IN  uint32                   maxLaneNum,
                            OUT uint32                  &laneNumber);
 
         /*
@@ -185,8 +192,8 @@ namespace ns_database
         *                      stored lane by lane.
         *
         */
-        bool mergeSectionLane(IN    segAttributes_t        sectionConfig,
-                              IN    reportSectionData      reportData,
+        bool mergeSectionLane(IN    segAttributes_t       &sectionConfig,
+                              IN    reportSectionData     &reportData,
                               INOUT backgroundSectionData *bgDatabaseData);
 
         /*
@@ -228,7 +235,7 @@ namespace ns_database
         *     dotBlkIndexEd - output of all dash line end index.
         *
         */
-        void dotLineBlockIndex(IN  vector<point3D_t>  lineData,
+        void dotLineBlockIndex(IN  vector<point3D_t> &lineData,
                                OUT vector<int>       &dotBlkIndexSt,
                                OUT vector<int>       &dotBlkIndexEd);
 
@@ -264,7 +271,7 @@ namespace ns_database
         *     fittedLine - output fitted line, X is used to calculate Y values.
         *
         */
-        void polynomialFitting(IN    vector<point3D_t>  sourceLine,
+        void polynomialFitting(IN    vector<point3D_t> &sourceLine,
                                INOUT vector<point3D_t> &fittedLine);
 
         /*
@@ -277,9 +284,11 @@ namespace ns_database
         *                  added. input x is used to do sample
         *
         */
-        void getLinePaintInfo(IN  vector<point3D_t>  sourceline,
+        void getLinePaintInfo(IN  vector<point3D_t> &sourceline,
                               OUT vector<point3D_t> &destline);
 
     };
 
 }
+
+#endif

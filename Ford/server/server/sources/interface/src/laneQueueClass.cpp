@@ -2,6 +2,10 @@
 #include "database.h"
 #include "laneQueueClass.h"
 
+using std::queue;
+using std::list;
+using std::vector;
+
 namespace laneSpace
 {
 	laneQueueClass::laneQueueClass(void)
@@ -96,4 +100,46 @@ namespace laneSpace
 		laneNum = 0;
 		//CloseHandle(_hMutex);  
 	}
+
+    void laneQueueClass::getAllVectors(OUT list<list<vector<point3D_t>>> &newDataList)
+    {
+        newDataList.clear();
+        int laneId = 0;
+
+        for(int laneIdx = 0; laneIdx < MAX_LANE_NUM; ++laneIdx)
+        {
+            if(laneQueuePtr[laneId] != NULL)
+            {
+                list<vector<point3D_t>> newDataSection;
+                vector<point3D_t> newDataVecL;
+                vector<point3D_t> newDataVecR;
+
+                queue<laneType_t> * lanePtr = laneQueuePtr[laneId];
+
+                while(lanePtr->size() > 0)
+                {
+                    laneType_t newDataTmp = lanePtr->front();;
+                    lanePtr->pop();
+
+                    point3D_t newDataL, newDataR;
+
+                    newDataL = newDataTmp.gpsL;
+                    newDataR = newDataTmp.gpsR;
+
+                    newDataL.paintFlag = newDataTmp.linePaintFlagL;
+                    newDataR.paintFlag = newDataTmp.linePaintFlagR;
+
+                    newDataVecL.push_back(newDataL);
+                    newDataVecR.push_back(newDataR);
+                }
+
+                newDataSection.push_back(newDataVecL);
+                newDataSection.push_back(newDataVecR);
+
+                newDataList.push_back(newDataSection);
+
+                laneId++;
+            }
+        }
+    }
 }

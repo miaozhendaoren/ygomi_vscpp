@@ -6,7 +6,7 @@
 #include "database.h"
 #include "databaseDef.h"
 
-#define IMAGE_BUFFER_DEPTH          200
+#define IMAGE_BUFFER_DEPTH          600
 #define IMAGE_BUFFER_NUM            2
 
 using namespace ns_database;

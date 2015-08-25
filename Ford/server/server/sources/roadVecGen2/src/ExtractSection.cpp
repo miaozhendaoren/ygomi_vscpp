@@ -25,10 +25,10 @@ namespace ns_database
     IN list<list<vector<point3D_t>>> &reportData   more than once report data
     OUT reportSectionData &rptSectionData          extract multi sections from report data 
     ***************************************************************************************************/
-    ISTATUS CExtractSection::extractSections(IN list<segAttributes_t> ltSectionDataScale,
-        IN  sectionCon stsectionConfig,
-        IN list<list<vector<point3D_t>>> reportData,
-        OUT list<reportSectionData> &ltRptSectionData)
+    ISTATUS CExtractSection::extractSections(IN list<segAttributes_t>         &ltSectionDataScale,
+                                             IN  sectionCon                   &stsectionConfig,
+                                             IN list<list<vector<point3D_t>>> &reportData,
+                                             OUT list<reportSectionData>      &ltRptSectionData)
     {
         list<vector<point3D_t>>   ltNewReportData,
             ltNoChangeLaneData;
@@ -74,7 +74,7 @@ namespace ns_database
                             {
                                 ltEffectiveLaneData.clear();
                                 ltMainEffectiveLaneData.clear();
-								continue;
+                                continue;
                             }
                         }
                     }
@@ -91,13 +91,13 @@ namespace ns_database
 
     *******************************************************************************/
         ISTATUS CExtractSection::getMatchSections(
-        IN list<segAttributes_t> ltSectionDataScale,
-        IN sectionCon stSectionConfig,
-        IN list<vector<point3D_t>> ltRawData,
-        IN list<vector<point3D_t>> ltEffectiveLaneData,
-        IN uint32 uiStartLoc,
-        IN uint32 uiEndLoc,
-        OUT list<reportSectionData> &ltMatchSections)
+            IN list<segAttributes_t>    &ltSectionDataScale,
+            IN sectionCon               &stSectionConfig,
+            IN list<vector<point3D_t>>  &ltRawData,
+            IN list<vector<point3D_t>>  &ltEffectiveLaneData,
+            IN uint32                    uiStartLoc,
+            IN uint32                    uiEndLoc,
+            OUT list<reportSectionData> &ltMatchSections)
     {
         vector<segAttributes_t> ltSectionCentrePoint;
 
@@ -224,10 +224,11 @@ namespace ns_database
 
 
     /****filter the correct section from two candinate sections *****/
-    ISTATUS CExtractSection::filterCandidateSectionBoundary(IN point3D_t point3DRefOne,
-        IN point3D_t point3DRefTwo,
-        IN segAttributes_t segCandidateOne,
-        IN segAttributes_t segCandidateTwo,
+    ISTATUS CExtractSection::filterCandidateSectionBoundary(
+        IN point3D_t         point3DRefOne,
+        IN point3D_t         point3DRefTwo,
+        IN segAttributes_t   segCandidateOne,
+        IN segAttributes_t   segCandidateTwo,
         OUT segAttributes_t &segClosestSection)
     {
         double dlDisA = ((point3DRefOne.lon - segCandidateOne.ports[0].lon)* (point3DRefOne.lon - segCandidateOne.ports[0].lon)+
@@ -256,10 +257,11 @@ namespace ns_database
 
 
     /*********locate the closest and second closest section boundary that distance from given point***********/
-    ISTATUS CExtractSection::locateCandidateSectionBoundary(IN point3D_t point3D,
-        IN vector<segAttributes_t> vSectionCentrePoint,
-        OUT segAttributes_t &segFirstCandidate,
-        OUT segAttributes_t &segSecondCandidate)
+    ISTATUS CExtractSection::locateCandidateSectionBoundary(
+        IN point3D_t                point3D,
+        IN vector<segAttributes_t> &vSectionCentrePoint,
+        OUT segAttributes_t        &segFirstCandidate,
+        OUT segAttributes_t        &segSecondCandidate)
     {
         double  dlLength  = 0, dlMinLength = 0;
         ISTATUS   iStatus = I_SUCCESS;
@@ -290,7 +292,8 @@ namespace ns_database
     }
     /*****encounter change lane need to split new report data into multi no change lane data
     OUT list<list<vector<point3D_t>>>   store multi segment that split from  list<vector<point3D_t>>  ****/
-    ISTATUS CExtractSection::splitChangeLaneData(IN list<vector<point3D_t>> newReportData,
+    ISTATUS CExtractSection::splitChangeLaneData(
+        IN list<vector<point3D_t>>        &newReportData,
         OUT list<list<vector<point3D_t>>> &ltSubReportData)
     {
         vector<point3D_t> vData_L = newReportData.front();
@@ -332,13 +335,14 @@ namespace ns_database
     }
 
     /*get the head and tail overlap start end location*/
-    ISTATUS CExtractSection::getReportHeadandTailOverlapLocation(IN list<vector<point3D_t>> ltLaneData,
-        IN sectionCon stSectionCon,
+    ISTATUS CExtractSection::getReportHeadandTailOverlapLocation(
+        IN list<vector<point3D_t>>  &ltLaneData,
+        IN sectionCon               &stSectionCon,
         OUT list<vector<point3D_t>> &ltEffectiveLaneData,
         OUT list<vector<point3D_t>> &ltMainEffectiveLaneData,
-        OUT uint32 &uiStartLoc,
-        OUT uint32 &uiEndLoc,
-        OUT double &dbLength)
+        OUT uint32                  &uiStartLoc,
+        OUT uint32                  &uiEndLoc,
+        OUT double                  &dbLength)
     {
         //1.extract effective point which flag not -1
         vector<point3D_t> vRawLineData_L,
@@ -423,10 +427,11 @@ namespace ns_database
 
 
     /**********loacte the position of head and end  overlap of report new data*************/
-    ISTATUS CExtractSection::getHeadandTailOverlapLocation(IN  list<vector<point3D_t>> LaneData,
-        IN sectionCon stSectionCon,
-        OUT uint32 &uiStartLoc, 
-        OUT uint32 &uiEndLoc)
+    ISTATUS CExtractSection::getHeadandTailOverlapLocation(
+        IN  list<vector<point3D_t>> &LaneData,
+        IN  sectionCon              &stSectionCon,
+        OUT uint32                  &uiStartLoc,
+        OUT uint32                  &uiEndLoc)
     {
         //1.just operate Left Line to calculate location
         vector<point3D_t> vLeftLine;
@@ -456,33 +461,24 @@ namespace ns_database
         return I_SUCCESS;
     }
 
-    ISTATUS CExtractSection::matchSections(IN list<segAttributes_t> ltSectionDataScale,
-        IN uint32 uiStartSecionID,
-        IN uint32 uiEndSecionID,
-        IN vector<segAttributes_t> ltSectionCentrePoint,
-        IN vector<point3D_t> vRawLeftLineData,
-        IN vector<point3D_t> vRawRightLineData,
+    ISTATUS CExtractSection::matchSections(
+        IN  list<segAttributes_t>   &ltSectionDataScale,
+        IN  uint32                   uiStartSecionID,
+        IN  uint32                   uiEndSecionID,
+        IN  vector<segAttributes_t> &ltSectionCentrePoint,
+        IN  vector<point3D_t>       &vRawLeftLineData,
+        IN  vector<point3D_t>       &vRawRightLineData,
         OUT list<reportSectionData> &ltMatchSections)
     {
-        double       dlMinLength_Front = 0,
-            dlMinLength_Back  = 0,
-            dlTempLength = 0;
+        double dlMinLength_Front(0), dlMinLength_Back(0), dlTempLength(0);
+        unsigned int uiSectionFrontLoc(0),uiSectionBackLoc(0);
 
-        unsigned int uiSectionFrontLoc  = 0,
-            uiSectionBackLoc   = 0;
-
-        vector<point3D_t>    vSectionLeftLine,
-            vSectionRightLine;
-        list<vector<point3D_t>>        ltSectionData,
-            ltOneLaneData;
-
-        list<list<vector<point3D_t>>>  ltLaneSectionData,
-            ltMultiSectionData,
-            ltMultiLaneData;
-
+        vector<point3D_t> vSectionLeftLine, vSectionRightLine;
+        list<vector<point3D_t>> ltSectionData,ltOneLaneData;
+        list<list<vector<point3D_t>>> ltLaneSectionData, ltMultiSectionData, ltMultiLaneData;
         list<list<list<vector<point3D_t>>>> ltSecionsData;
 
-        reportSectionData              rptSecionsData;
+        reportSectionData rptSecionsData;
 
         for (uint32 i = uiStartSecionID;i<uiEndSecionID;i++) 
         {

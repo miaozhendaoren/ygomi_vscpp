@@ -18,7 +18,7 @@
 #include "databaseServer.h" // databaseServer
 #include "appInitCommon.h"
 #include "laneQueueClass.h"
-#include "roadVectorGen.h" // roadVectorGen
+#include "RoadVecGen.h" // CRoadVecGen
 #include "LogInfo.h"  // logPrintf
 
 #pragma comment(lib,"winmm.lib")
@@ -34,7 +34,6 @@ bool checkLineFusionCondition(queue<laneType_t> *laneQueuePtr);
 extern uint8 *test;
 
 #if SERVER_PLAY_BACK_MODE==1
-#include "roadVectorGen.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -49,7 +48,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 {
 #if SERVER_PLAY_BACK_MODE==1
     std::stringstream fileName;
-    fileName << "log/messages.bin";
+    fileName << "log/messages -1500 frames-2.bin";
     FILE *fpMsg = fopen(fileName.str().c_str(), "rb");
 #endif
 
@@ -360,70 +359,6 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 				diffRptMsgPtr->payload = NULL;
             }
         }
-#if 0
-		for(int idx = 0; idx < 6; ++idx)
-        {
-            if(getline(fin,line))
-            {
-                istringstream sstr(line);
-                vector<double> valVec;
-                while(sstr >> val)
-                {
-                    valVec.push_back(val);
-                }
-                valVecVec.push_back(valVec);
-            }else
-            {
-                // File end
-                int stop = 1;
-            }
-        }
-        getline(fin,line);
-
-        printf("dataIdx = %d\n", dataIdx++);
-
-		if(valVecVec.size() == 0)
-		{
-			char str[10];
-			cin >> str;
-			exit(0);
-		}
-
-		list<vector<point3D_t>> newDataVecForSave;
-		vector<point3D_t> tempVecL;
-		vector<point3D_t> tempVecR;
-        for(int idx = 0; idx < valVecVec[0].size(); ++idx)
-        {
-            laneType_t linePoint;
-            linePoint.gpsL.lat = valVecVec[0][idx];
-            linePoint.gpsR.lat = valVecVec[1][idx];
-            linePoint.gpsL.lon = valVecVec[2][idx];
-            linePoint.gpsR.lon = valVecVec[3][idx];
-			linePoint.gpsL.paintFlag = valVecVec[4][idx];
-			linePoint.gpsR.paintFlag = valVecVec[5][idx];
-            linePoint.gpsL.alt = 0;
-            linePoint.gpsR.alt = 0;
-            linePoint.linePaintFlagL = valVecVec[4][idx];
-            linePoint.linePaintFlagR = valVecVec[5][idx];
-
-            laneQueueBuff.addLanePoint(0, linePoint);
-			tempVecL.push_back(linePoint.gpsL);
-			tempVecR.push_back(linePoint.gpsR);
-        }
-
-		newDataVecForSave.push_back(tempVecL);
-		newDataVecForSave.push_back(tempVecR);
-		database_gp->setNewDataVec(newDataVecForSave);
-
-        valVecVec.clear();
-
-        vector<int> storeLane;
-        storeLane.push_back(0);
-
-		bool flag = roadVectorGen(laneQueueBuff, storeLane, dashAlign_e);
-
-		ReleaseSemaphore(g_readySema_Redraw,1,NULL);
-#endif
     }
     return 0;
 }
@@ -457,11 +392,19 @@ bool processLaneBuffer()
 	if (storeLane.size() != 0)
 	{
 		// call fusion function and update database
-        bool flag = roadVectorGen(laneQueueBuff, storeLane, dashAlign_e);
+        list<list<vector<point3D_t>>> newDataList;
+        laneQueueBuff.getAllVectors(newDataList);
+
+        list<list<vector<point3D_t>>> fgData;
+        bool flag = roadVecGen_gp->roadSectionsGen(newDataList, fgData);
 
         if (flag == false)
         {
             return false;
+        }else
+        {
+            list<list<lineAttributes_t>> lineAttr;
+            database_gp->resetAllVectors(fgData, lineAttr);
         }
 
 		storeLane.clear();

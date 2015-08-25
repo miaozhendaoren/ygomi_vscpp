@@ -451,7 +451,9 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 
 	InitTimeOffsetSocket_UDP();
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
-    FILE* fp = fopen("./config/DE_Airport2_aviGpsFiles.txt", "r"); 
+    FILE* fp = fopen("./config/DE_Airport2_aviGpsFiles.txt", "r");
+#elif (RD_LOCATION == RD_GERMAN_LEHRE)
+    FILE* fp = fopen("./config/DE_Lehre_aviGpsFiles.txt", "r");
 #elif (RD_LOCATION == RD_US_DETROIT)
 	FILE* fp = fopen("./config/US_Detroit_aviGpsFiles.txt", "r"); 
 #elif (RD_LOCATION == RD_US_PALO_ALTO)
