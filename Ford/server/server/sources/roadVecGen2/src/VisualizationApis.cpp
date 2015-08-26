@@ -194,3 +194,38 @@ void showImage(list<vector<point3D_t>> dataInput, Scalar scalar, string winname)
 
     imwrite(winname, outputImage);
 }
+
+
+void saveListVec(list<vector<point3D_t>> &dataInput, char *filename)
+{
+    if (dataInput.empty() || (nullptr == filename))
+    {
+        return;
+    }
+
+    // open file for write
+    FILE *fp = nullptr;
+    errno_t err = fopen_s(&fp, filename, "w+");
+    if (0 != err)
+    {
+        printf("failed to open file %s\n", filename);
+        return;
+    }
+
+    list<vector<point3D_t>>::iterator line = dataInput.begin();
+    while (line != dataInput.end())
+    {
+        if (!line->empty())
+        {
+            vector<point3D_t>::iterator pnt = line->begin();
+            for (; pnt != line->end(); pnt++)
+            {
+                fprintf_s(fp, "%lf, %lf, %f\n", pnt->lon, pnt->lat, pnt->paintFlag);
+            }
+        }
+        line++;
+    }
+
+    fclose(fp);
+}
+

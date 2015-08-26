@@ -400,6 +400,7 @@ namespace ns_database
         tlvCfg_t* tlvCfgP;
         int byteNum = 0;
 
+        // Keep furniture ID as the first TLV of one furniture!
         tlvCfgP = &_tlvCfg_fur_a[fur_furId_e - fur_base_e];
         setTvlCommon(&tlvTmp, tlvCfgP->typeId, furnitureAttr->furId_used, tlvCfgP->tlvType, tlvCfgP->length, furnitureAttr->furId);
         byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
@@ -1686,6 +1687,14 @@ namespace ns_database
                     {
                         case fur_furId_e:
                         {
+                            // furniture ID is the first TLV of one furniture
+                            if(firstFurniture == 0)
+                            {
+                                furnitureEnd = 1;
+                                break;
+                            }
+                            firstFurniture = 0;
+
                             furnitureElement->furId_used = 1;
                             furnitureElement->furId = tlvTmp.value;
 
@@ -1700,14 +1709,6 @@ namespace ns_database
                         }
                         case fur_location_e:
                         {
-                            if(firstFurniture == 0)
-                            {
-                                furnitureEnd = 1;
-                                break;
-                            }
-
-                            firstFurniture = 0;
-
                             furnitureElement->location_used = 1;
 
                             int numBytes;

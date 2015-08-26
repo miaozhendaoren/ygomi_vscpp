@@ -580,7 +580,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 				}
 				else
 				{
-					logPrintf(logLevelInfo_e, "COMM", "<<<< Send message OK");
+					//logPrintf(logLevelInfo_e, "COMM", "<<<< Send message OK");
 				}
 			}
 			counter++;			

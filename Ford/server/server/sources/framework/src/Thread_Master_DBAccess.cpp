@@ -48,7 +48,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 {
 #if SERVER_PLAY_BACK_MODE==1
     std::stringstream fileName;
-    fileName << "log/messages -1500 frames-2.bin";
+    fileName << "log/messages -1500 frames-3.bin";
     FILE *fpMsg = fopen(fileName.str().c_str(), "rb");
 #endif
 
@@ -77,6 +77,11 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
         fread(diffMsg->payload, diffMsg->msgHeader.payloadLen, 1, fpMsg);
 
         messageQueue_gp->push(&recvMsg);
+
+		// print out message count infor
+		static int msgCount = 1;
+
+		cout << "message Count = " << msgCount++ << endl;
 #endif
 
         // check message queue is empty
@@ -140,7 +145,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 								{
 									//get the server's databaseVersion and compared with vehicle's,if different, send the different elements to vehicle.
 									int16 version = database_gp->getFurnitureVersion();
-									if(value != version)
+									/*if(value != version)
 									{
 										//get the all furniture TLV and send to vehicle's;
 										uint32 vehicleId;
@@ -168,7 +173,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 										updateMsgPtr->msgHeader.headerLen = sizeof(diffMsgHeader_t) + updateMsgPtr->msgHeader.numPDUs * sizeof(updateMsgPtr->payloadHeader.pduHeader[0]);
 										databaseQueue_gp->push(&sendMsg);
 										ReleaseSemaphore(g_readySema_readDb,1,NULL);
-									}
+									}*/
 								}
 								break;  
 							}
@@ -318,22 +323,32 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
                             if(updateFlag)
                             {
                                 // Convert all furniture to TLVs
-                                uint8* bufferAddr = outBuffPtr;
-                                int32 furMsgLen;
-                                int32 furPduNum;
+                                int32 segNumOfFur;
+                                database_gp->getSegNumOfFurniture(&segNumOfFur);
 
-                                database_gp->syncFurnitureToVehicle(bufferAddr, &furMsgLen, &furPduNum, totalBufLen - outBuffOffset);
+                                for(int segIndex = 0; segIndex < segNumOfFur; ++segIndex)
+                                {
+                                    uint8* bufferAddr = outBuffPtr;
+                                    int32 furMsgLen;
+                                    int32 furNum;
 
-								for(int furIdx = 0; furIdx < furPduNum; furIdx++)
-								{
-									updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
-									updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureList_e;
-									updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
-									
-                                    outBuffOffset += furMsgLen / furPduNum;
-                                    ++outPduIdx;
+                                    database_gp->getFurnitureTlvInSeg(segIndex,
+                                                                      totalBufLen - outBuffOffset,
+                                                                      bufferAddr, 
+                                                                      &furMsgLen, 
+                                                                      &furNum);
+
+                                    if(furNum > 0)
+                                    {
+									    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
+									    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureList_e;
+									    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
+
+                                        outBuffPtr += furMsgLen;
+                                        outBuffOffset += furMsgLen;
+                                        ++outPduIdx;
+                                    }
 								}
-                                outBuffPtr += furMsgLen;
 
                                 int numPDUs = outPduIdx;
 

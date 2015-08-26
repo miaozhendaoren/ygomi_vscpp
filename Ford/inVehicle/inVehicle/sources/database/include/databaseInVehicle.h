@@ -74,6 +74,8 @@ namespace ns_database
         void addFurnitureTlv(IN uint8* tlvBuff, 
                              IN uint32 buffLen);
 
+        void addFurnitureListTlv(IN uint8* tlvBuff, IN uint32 buffLen);
+
 		void reduceFurnitureTlv(IN uint8* tlvBuff, 
                                 IN uint32 buffLen);
 

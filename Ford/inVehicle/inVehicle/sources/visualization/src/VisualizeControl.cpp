@@ -71,6 +71,11 @@ void load_all_textures(void)
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/33600.bmp",31);
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/35010.bmp",32);
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/99900.bmp",33);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/20910.bmp",34);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/25400.bmp",35);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/26700.bmp",36);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/31401.bmp",37);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/00000.bmp",38);
 
 #else if((RD_LOCATION&RD_NATION_MASK) == RD_UNIT_STATES)
 

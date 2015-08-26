@@ -24,5 +24,6 @@ void readReportData(char *filename, list<list<vector<point3D_t>>> &newData);
 
 void showImage(list<vector<point3D_t>> dataInput, Scalar scalar, string winname);
 
+void saveListVec(list<vector<point3D_t>> &dataInput, char *filename);
 
 #endif

@@ -1,3 +1,0 @@
-./resource/Germany/airport/cam_20150806113420.mp4 ./resource/Germany/airport/list_20150806113420.txt
-./resource/Germany/airport/cam_20150806113920.mp4 ./resource/Germany/airport/list_20150806113920.txt
-./resource/Germany/airport/cam_20150806115920.mp4 ./resource/Germany/airport/list_20150806115920.txt

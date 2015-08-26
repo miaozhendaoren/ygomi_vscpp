@@ -22,7 +22,7 @@
 #include "messageQueueClass.h"
 #include "appInitCommon.h"
 #include "VisualizeControl.h"
-
+#include "configure.h" // 
 
 SOCKET sockServer;			// socket
 SOCKET sockClient = 0;
@@ -52,7 +52,12 @@ void databaseInit()
     roadVecGen_gp = new ns_database::CRoadVecGen();
 
     list<segAttributes_t> segConfigList;
+
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
     roadVecGen_gp->setSectionConfigPath(".\\config\\DE_Airport_manualSeg.txt", segConfigList);
+#elif (RD_LOCATION == RD_GERMAN_LEHRE)
+    roadVecGen_gp->setSectionConfigPath(".\\config\\DE_Lehre_manualSeg.txt", segConfigList);
+#endif
 
 	database_gp = new ns_database::databaseServer();
 
@@ -89,7 +94,12 @@ bool readOverViewPoint(char* fileName,eyeLookAt_t &eye)
 }
 void viewPointInit()
 {
-	bool readStatus = readOverViewPoint("./config/DE_Airport_overViewPoint.txt",serverEyeInfo[0]);
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+    bool readStatus = readOverViewPoint("./config/DE_Airport_overViewPoint.txt",serverEyeInfo[0]);
+#elif (RD_LOCATION == RD_GERMAN_LEHRE)
+    bool readStatus = readOverViewPoint("./config/DE_Lehre_overViewPoint.txt",serverEyeInfo[0]);
+#endif
+	
 	if(!readStatus)
     {
         logPrintf(logLevelError_e,"COMM","can't read the overView point!"); 

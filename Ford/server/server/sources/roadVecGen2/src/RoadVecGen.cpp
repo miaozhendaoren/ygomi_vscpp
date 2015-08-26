@@ -22,7 +22,7 @@
 #include "polynomialFit.h"
 #include "RoadVecGen.h"
 
-#ifdef VISUALIZATION_ON
+#if VISUALIZATION_ON
 #include "VisualizationApis.h"
 
 static uint32 PREVIOUS_SEGID = 0;
@@ -51,6 +51,9 @@ namespace ns_database
 #define DASH_DASH           1
 #define DASH_SOLID          2
 #define SOLID_SOLID         0
+
+    // add a control to use interpolation or polynomial fitting
+#define USE_INTERPOLATION   1
 
 const uint32 RESAMPLE_SEC_ID[] = {1, 8, 9, 10, 11, 12, 20, 21};
 
@@ -165,6 +168,36 @@ bool isResampleSec(uint32 segId)
         // section partition, input is rptData
         _extractSecObj.extractSections(_segConfigList, _stSecConfig, rptData, secData);
 
+#if SAVE_DATA_ON
+        int groupNum = 0, laneNum = 0;
+        list<reportSectionData>::iterator fsec = secData.begin();
+        while (fsec != secData.end())
+        {
+            if (!fsec->rptSecData.empty())
+            {
+                groupNum = 0;
+                list<list<list<vector<point3D_t>>>>::iterator grp = fsec->rptSecData.begin();
+                while (grp != fsec->rptSecData.end())
+                {
+                    laneNum = 0;
+                    list<list<vector<point3D_t>>>::iterator lane = grp->begin();
+                    while (lane != grp->end())
+                    {
+                        sprintf_s(IMAGE_NAME_STR, MAX_PATH - 1, "fg_%d_sec_%d_group_%d_lane_%d.txt",
+                            FG_MERGED_NUM, fsec->sectionId, groupNum, laneNum);
+                        saveListVec(*lane, IMAGE_NAME_STR);
+
+                        lane++; laneNum++;
+                    }
+
+                    grp++; groupNum++;
+                }
+            }
+
+            fsec++;
+        }
+#endif
+
         list<reportSectionData>::size_type numOfRptSecs = secData.size();
 
         segAttributes_t       configSecData;
@@ -200,7 +233,7 @@ bool isResampleSec(uint32 segId)
             }
         }
 
-#ifdef VISUALIZATION_ON
+#if VISUALIZATION_ON
         list<vector<point3D_t>> fglines;
         list<list<vector<point3D_t>>>::iterator fgItor = fgData.begin();
         list<vector<point3D_t>>::iterator fglineItor;
@@ -221,6 +254,10 @@ bool isResampleSec(uint32 segId)
         }
         sprintf_s(IMAGE_NAME_STR, "fgdatabase_%d.png", FG_MERGED_NUM++);
         showImage(fglines, Scalar(0, 0, 255), IMAGE_NAME_STR);
+
+#if SAVE_DATA_ON
+        saveListVec(fglines, "fgroup_0.txt");
+#endif
 
 #endif
 
@@ -581,7 +618,7 @@ bool isResampleSec(uint32 segId)
         while (grpItor != reportData.rptSecData.end())
         {
 
-#ifdef VISUALIZATION_ON
+#if VISUALIZATION_ON
             if (PREVIOUS_SEGID == sectionConfig.segId)
             {
                 MERGED_TIMES++;
@@ -612,7 +649,7 @@ bool isResampleSec(uint32 segId)
                 lineRotation(laneItor->front(), -theta, leftRotated); // left line
                 lineRotation(laneItor->back(), -theta, rightRotated); // right line
 
-#ifdef VISUALIZATION_ON
+#if VISUALIZATION_ON
                 list<vector<point3D_t>> rotated;
                 rotated.push_back(leftRotated);
                 rotated.push_back(rightRotated);
@@ -642,11 +679,11 @@ bool isResampleSec(uint32 segId)
                 getLinePaintInfo(rightRotated, rightSample);
 
                 // re-sample or polynomial fitting
-                if (true/*isResampleSec(sectionConfig.segId)*/)
+                if (USE_INTERPOLATION/*isResampleSec(sectionConfig.segId)*/)
                 {
                     interpolationSample(leftRotatedValid,  leftSample);
                     interpolationSample(rightRotatedValid, rightSample);
-#ifdef VISUALIZATION_ON
+#if VISUALIZATION_ON
                     list<vector<point3D_t>> intersampled;
                     intersampled.push_back(leftSample);
                     intersampled.push_back(rightSample);
@@ -659,7 +696,7 @@ bool isResampleSec(uint32 segId)
                 {
                     polynomialFitting(leftRotatedValid,  leftSample);
                     polynomialFitting(rightRotatedValid, rightSample);
-#ifdef VISUALIZATION_ON
+#if VISUALIZATION_ON
                     list<vector<point3D_t>> polysampled;
                     polysampled.push_back(leftSample);
                     polysampled.push_back(rightSample);
@@ -712,11 +749,11 @@ bool isResampleSec(uint32 segId)
                                 // left and right line
                                 for (int i = 0; i < numOfSplPnts; i++)
                                 {
-                                    bgLaneItor->front().at(i).lat = (bgLaneItor->front().at(i).lat + leftSample[i].lat) / 2;
-                                    bgLaneItor->front().at(i).paintFlag = (bgLaneItor->front().at(i).paintFlag + leftSample[i].paintFlag) / 2;
+                                    bgLaneItor->front().at(i).lat = (0.75 * bgLaneItor->front().at(i).lat + 0.25 * leftSample[i].lat);
+                                    bgLaneItor->front().at(i).paintFlag = (float)(0.75 * bgLaneItor->front().at(i).paintFlag + 0.25 * leftSample[i].paintFlag);
 
-                                    bgLaneItor->back().at(i).lat = (bgLaneItor->back().at(i).lat + rightSample[i].lat) / 2;
-                                    bgLaneItor->back().at(i).paintFlag = (bgLaneItor->back().at(i).paintFlag + rightSample[i].paintFlag) / 2;
+                                    bgLaneItor->back().at(i).lat = (0.75 * bgLaneItor->back().at(i).lat + 0.25 * rightSample[i].lat);
+                                    bgLaneItor->back().at(i).paintFlag = (float)(0.75 * bgLaneItor->back().at(i).paintFlag + 0.25 * rightSample[i].paintFlag);
                                 }
                             }
                         } // end of matched lane
@@ -726,7 +763,7 @@ bool isResampleSec(uint32 segId)
                     } // end of lane iteration
                 } // end of db not empty
 
-#ifdef VISUALIZATION_ON
+#if VISUALIZATION_ON
                 list<backgroundSectionData>::iterator bgDBItor = _bgDatabaseList.begin();
                 while (bgDBItor != _bgDatabaseList.end())
                 {
@@ -883,8 +920,16 @@ bool isResampleSec(uint32 segId)
                                 getLinePaintInfo(laneItor->back(), rightSample);
 
                                 // suppose there should be 2 lines in each lane
-                                polynomialFitting(laneItor->front(),  leftSample);
-                                polynomialFitting(laneItor->back(), rightSample);
+                                if (0/*USE_INTERPOLATION*/)
+                                {
+                                    interpolationSample(laneItor->front(), leftSample);
+                                    interpolationSample(laneItor->back(), rightSample);
+                                }
+                                else
+                                {
+                                    polynomialFitting(laneItor->front(), leftSample);
+                                    polynomialFitting(laneItor->back(), rightSample);
+                                }
 
                                 dblines.push_back(leftSample);
                                 dblines.push_back(rightSample);
@@ -894,7 +939,7 @@ bool isResampleSec(uint32 segId)
                             laneItor++;
                         }
 
-#ifdef VISUALIZATION_ON
+#if VISUALIZATION_ON
                         sprintf_s(IMAGE_NAME_STR, "fg_section_%d_polyval_sampled.png",
                                   configSecItor->segId);
                         showImage(dblines,  Scalar(0, 0, 255), IMAGE_NAME_STR);
@@ -958,7 +1003,7 @@ bool isResampleSec(uint32 segId)
                                 dOne.clear();
                                 dTwo.clear();
                             }
-#ifdef VISUALIZATION_ON
+#if VISUALIZATION_ON
                             sprintf_s(IMAGE_NAME_STR, "fg_section_%d_mergedmiddle_lines.png",
                                       configSecItor->segId);
                             showImage(midlines,  Scalar(0, 0, 255), IMAGE_NAME_STR);
@@ -982,23 +1027,21 @@ bool isResampleSec(uint32 segId)
                         {
                             // three lines
                             vector<point3D_t> rotline;
+                            vector<point3D_t> linein;
 
                             // 1st line
-                            vector<point3D_t> linest;
-
-                            list<vector<double>>::iterator distItor = distlines.begin();
-
-                            dblineItor = dblines.begin();
-                            for (uint32 i = 0; i < dblineItor->size(); i++)
+                            for (uint32 i = 0; i < dblines.front().size(); i++)
                             {
-                                curPnt.lon = dblineItor->at(i).lon;
-                                curPnt.lat = dblineItor->at(i).lat + distItor->at(i);
+                                curPnt.lon = dblines.front().at(i).lon;
+                                curPnt.lat = dblines.front().at(i).lat + distlines.front().at(i);
+                                curPnt.paintFlag = dblines.front().at(i).paintFlag;
 
-                                linest.push_back(curPnt);
+                                linein.push_back(curPnt);
                             }
-                            lineRotation(linest, theta, rotline);
+                            lineRotation(linein, theta, rotline);
                             fgSecItor->fgSectionData.push_back(rotline);
                             rotline.clear();
+                            linein.clear();
 
                             // 2nd line
                             lineRotation(midlines.front(), theta, rotline);
@@ -1006,17 +1049,18 @@ bool isResampleSec(uint32 segId)
                             rotline.clear();
 
                             // 3rd line
-                            dblineItor++; dblineItor++; dblineItor++; distItor++;
-                            for (uint32 i = 0; i < dblineItor->size(); i++)
+                            for (uint32 i = 0; i < dblines.back().size(); i++)
                             {
-                                curPnt.lon = dblineItor->at(i).lon;
-                                curPnt.lat = dblineItor->at(i).lat + distItor->at(i);
+                                curPnt.lon = dblines.back().at(i).lon;
+                                curPnt.lat = dblines.back().at(i).lat + distlines.front().at(i);
+                                curPnt.paintFlag = dblines.back().at(i).paintFlag;
 
-                                linest.push_back(curPnt);
+                                linein.push_back(curPnt);
                             }
-                            lineRotation(linest, theta, rotline);
+                            lineRotation(linein, theta, rotline);
                             fgSecItor->fgSectionData.push_back(rotline);
                             rotline.clear();
+                            linein.clear();
                         }
                         else
                         {
@@ -1028,47 +1072,66 @@ bool isResampleSec(uint32 segId)
                             vector<double> d2 = *distItor ++;
                             vector<double> d3 = *distItor ++;
                             vector<point3D_t> rotline;
+                            vector<point3D_t> linein;
 
                             // 1st line
-                            vector<point3D_t> linest;
-                            vector<point3D_t> dbfirst = dblines.front();
-                            for (uint32 i = 0; i < dbfirst.size(); i++)
+                            for (uint32 i = 0; i < dblines.front().size(); i++)
                             {
-                                curPnt.lon = dbfirst[i].lon;
-                                curPnt.lat = dbfirst[i].lat + d0[i] + d2[i];
+                                curPnt.lon = dblines.front().at(i).lon;
+                                curPnt.lat = dblines.front().at(i).lat + d0[i] + d2[i];
+                                curPnt.paintFlag = dblines.front().at(i).paintFlag;
 
-                                linest.push_back(curPnt);
+                                linein.push_back(curPnt);
                             }
-                            lineRotation(linest, theta, rotline);
+                            lineRotation(linein, theta, rotline);
                             fgSecItor->fgSectionData.push_back(rotline);
                             rotline.clear();
+                            linein.clear();
 
                             // 2nd line
-                            lineRotation(midlines.front(), theta, rotline);
+                            for (uint32 i = 0; i < midlines.front().size(); i++)
+                            {
+                                curPnt.lon = midlines.front().at(i).lon;
+                                curPnt.lat = midlines.front().at(i).lat + d2[i];
+                                curPnt.paintFlag = midlines.front().at(i).paintFlag;
+
+                                linein.push_back(curPnt);
+                            }
+                            lineRotation(linein, theta, rotline);
                             fgSecItor->fgSectionData.push_back(rotline);
                             rotline.clear();
+                            linein.clear();
 
                             // 3rd line
-                            lineRotation(midlines.back(), theta, rotline);
+                            for (uint32 i = 0; i < midlines.back().size(); i++)
+                            {
+                                curPnt.lon = midlines.back().at(i).lon;
+                                curPnt.lat = midlines.back().at(i).lat + d1[i];
+                                curPnt.paintFlag = midlines.back().at(i).paintFlag;
+
+                                linein.push_back(curPnt);
+                            }
+                            lineRotation(linein, theta, rotline);
                             fgSecItor->fgSectionData.push_back(rotline);
                             rotline.clear();
+                            linein.clear();
 
                             // 4th line
-                            vector<point3D_t> linend;
-                            vector<point3D_t> dblast = dblines.back();
-                            for (uint32 i = 0; i < dblast.size(); i++)
+                            for (uint32 i = 0; i < dblines.back().size(); i++)
                             {
-                                curPnt.lon = dblineItor->at(i).lon;
-                                curPnt.lat = dblineItor->at(i).lat + d1[i] + d3[i];
+                                curPnt.lon = dblines.back().at(i).lon;
+                                curPnt.lat = dblines.back().at(i).lat + d1[i] + d3[i];
+                                curPnt.paintFlag = dblines.back().at(i).paintFlag;
 
-                                linend.push_back(curPnt);
+                                linein.push_back(curPnt);
                             }
-                            lineRotation(linend, theta, rotline);
+                            lineRotation(linein, theta, rotline);
                             fgSecItor->fgSectionData.push_back(rotline);
                             rotline.clear();
+                            linein.clear();
                         } // 3 lanes
 
-#ifdef VISUALIZATION_ON
+#if VISUALIZATION_ON
                         sprintf_s(IMAGE_NAME_STR, "fg_section_%d_rotated_lines.png",
                             configSecItor->segId);
                         showImage(fgSecItor->fgSectionData, Scalar(0, 0, 255), IMAGE_NAME_STR);
@@ -1082,6 +1145,12 @@ bool isResampleSec(uint32 segId)
                            bgSecItor->sectionId, numOfLanes);
                 } // end of number of lanes
             } // end of merging valid section
+
+#if SAVE_DATA_ON
+            sprintf_s(IMAGE_NAME_STR, MAX_PATH - 1, "fg_section_%d_merged_%d.txt",
+                fgSecItor->sectionId, FG_MERGED_NUM);
+            saveListVec(fgSecItor->fgSectionData, IMAGE_NAME_STR);
+#endif
 
             fgSecItor++;
             bgSecItor++;
@@ -1306,7 +1375,7 @@ bool isResampleSec(uint32 segId)
         // number of blocks should be the same
         int numOfSt = dotBlkIndexSt.size();
         int numOfEd = dotBlkIndexEd.size();
-        if (numOfSt != numOfEd)
+        if ((numOfSt != numOfEd) || (numOfSt == 0) || (numOfEd == 0))
         {
             return;
         }
@@ -1379,25 +1448,28 @@ bool isResampleSec(uint32 segId)
         uint32 blkNumStEd = leftSmpSt.size();
 
         // find first none 0 blocks
-        while (0 == leftSmpSt[blkIndStEd] && 0 == leftSmpEd[blkIndStEd])
+        while ((blkIndStEd < blkNumStEd) && (0 == leftSmpSt[blkIndStEd]) && (0 == leftSmpEd[blkIndStEd]))
         {
             blkIndStEd++;
         }
 
-        for (int i = 0; i < numOfLeftPnts; i++)
+        if (blkIndStEd < blkNumStEd)
         {
-            if (leftSmpSt[blkIndStEd] <= i && leftSmpEd[blkIndStEd] >= i)
+            for (int i = 0; i < numOfLeftPnts; i++)
             {
-                bPaintedBlk = true;
-                leftline[i].paintFlag = 1;
-            }
+                if (leftSmpSt[blkIndStEd] <= i && leftSmpEd[blkIndStEd] >= i)
+                {
+                    bPaintedBlk = true;
+                    leftline[i].paintFlag = 1;
+                }
 
-            if (i > leftSmpEd[blkIndStEd] && bPaintedBlk)
-            {
-                // add block index
-                bPaintedBlk = false;
-                blkIndStEd = ((blkIndStEd + 1) >= (blkNumStEd - 1)) ? \
-                    (blkNumStEd - 1) : (blkIndStEd + 1);
+                if (i > leftSmpEd[blkIndStEd] && bPaintedBlk)
+                {
+                    // add block index
+                    bPaintedBlk = false;
+                    blkIndStEd = ((blkIndStEd + 1) >= (blkNumStEd - 1)) ? \
+                        (blkNumStEd - 1) : (blkIndStEd + 1);
+                }
             }
         }
 #else

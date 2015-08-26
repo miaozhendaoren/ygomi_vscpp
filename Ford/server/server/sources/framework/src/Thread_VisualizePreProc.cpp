@@ -34,7 +34,7 @@ int convertSignType(int type)
 {
 	int number = 0;
 
-#if(RD_SIGN_LOCATION == GERMAN)
+#if((RD_LOCATION&RD_NATION_MASK) == RD_GERMAN)
 	switch(type)
 	{
 	case 10100:
@@ -136,11 +136,23 @@ int convertSignType(int type)
 	case 99900:
 		number = 33;
 		break;
+	case 20910:
+		number = 34;
+		break;
+	case 25400:
+		number = 35;
+		break;
+	case 26700:
+		number = 36;
+		break;
+	case 31401:
+		number = 37;
+		break;
 	default:
-		number = 1;
+		number = 38;
 		break;
 	}
-#else if(RD_SIGN_LOCATION == UNITED_STATES)
+#else if((RD_LOCATION&RD_NATION_MASK) == RD_UNIT_STATES)
 
 	number = type;
 #endif
@@ -192,10 +204,9 @@ void changeDataBaseCoord(point3D_t* changePoint, point3DFloat_t* outPoint)
 }
 
 void convFurToSignInfo(list<list<furAttributesServer_t>>& furnitureList, 
-                       signInfo_t* signInfo, 
-                       int* numSign)
+                       vector<signInfo_t> &signInfo)
 {
-    int numSignLoc = 0;
+    //int numSignLoc = 0;
 
     list<list<furAttributesServer_t>>::iterator segIter = furnitureList.begin();
 
@@ -225,21 +236,19 @@ void convFurToSignInfo(list<list<furAttributesServer_t>>& furnitureList,
             int furType = convertSignType(furInfo->type);
             if(furType != 0)
             {
-                signInfo[numSignLoc].type = convertSignType(furInfo->type);
-                signInfo[numSignLoc].rotAngle = furInfo->angle * 180 / 3.14159;
-                signInfo[numSignLoc].position.x = location.x;
-                signInfo[numSignLoc].position.y = location.y;
-                signInfo[numSignLoc].position.z = location.z;
-                signInfo[numSignLoc].attribute = furInfo->reliabRating;
-                numSignLoc++;
+                signInfo_t signTemp;
+				signTemp.attribute = furInfo->reliabRating;
+				signTemp.position.x = location.x;
+				signTemp.position.y = location.y;
+				signTemp.position.z = location.z;
+				signTemp.rotAngle   = furInfo->angle * 180 / PI;
+				signTemp.type       = convertSignType(furInfo->type);
+				signInfo.push_back(signTemp);
             }
             furIter++;
         }
-
         segIter++;
     }
-
-    *numSign = numSignLoc;
 }
 
 void generateRoadSideVec(vector<point3DFloat_t> &midVec, float width, vector<point3DFloat_t> &leftVec, vector<point3DFloat_t> &rightVec)
@@ -368,119 +377,71 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 				int lineNum = (*lineInSegIter).size();
 				int lineIdx = 0;
-				bool needGen = true;
-				if(2 == lineNum)
-				{
-					needGen = false;
-				}
 
-				// For each vector
-				while(lineIter != (*lineInSegIter).end())
+				if(lineNum >= 2)
 				{
-					lineTypeEnum_t lineStyle = lineTypeEnum_dash;// Not used //(lineTypeEnum_t)(*lineAttrIter).lineStyle;
+					// For each vector
+					while(lineIter != (*lineInSegIter).end())
+					{
+						lineTypeEnum_t lineStyle = lineTypeEnum_dash;// Not used //(lineTypeEnum_t)(*lineAttrIter).lineStyle;
             
-					int numberPoint = lineIter->size();
-					point3DFloat_t tempPoint;
+						int numberPoint = lineIter->size();
+						point3DFloat_t tempPoint;
 
-					for(int pointIdx = 0; pointIdx < numberPoint; pointIdx++)
-					{
-						//coordinateChange(&standPoint,&(*lineIter)[pointIdx], &tempPoint);
-                        changeDataBaseCoord(&(*lineIter)[pointIdx], &tempPoint);
-						pointVecBuf.push_back(tempPoint);
-					}
-				    
-					if(needGen)
-					{
-						if(1 == lineIdx)
+						for(int pointIdx = 0; pointIdx < numberPoint; pointIdx++)
 						{
-#if 0
-							vector<point3DFloat_t> roadSideVec;
-							vector<point3D_t> lineR;
-							vector<point3D_t> lineL;
-							vector<double> widthVec;
-							double width;
-							widthVec.assign((*lineIter).size(), width);
-
-							for(int index = 0; index < (*lineIter).size(); index++)
-							{
-								widthVec[index] = 4.0;
-							}
-
-							roadSideVectorGen((*lineIter),widthVec, widthVec,lineR,lineL); 
-
-							baseColor_t color;
-							color.R = 0.25;
-							color.G = 0.25;
-							color.B = 0.25;
-
-							for(int index = 0; index < lineL.size(); index++)
-							{
-								coordinateChange(&standPoint,&lineL[index], &tempPoint);
-								roadSideVec.push_back(tempPoint);
-							}
-							engine3DPtr->AddOneRoadLineInfo(lineStyle,color, roadSideVec);
-							roadSideVec.clear();
-
-							for(int index = 0; index < lineR.size(); index++)
-							{
-								coordinateChange(&standPoint,&lineR[index], &tempPoint);
-								roadSideVec.push_back(tempPoint);
-							}
-							engine3DPtr->AddOneRoadLineInfo(lineStyle,color, roadSideVec);
-							roadSideVec.clear();
-#else
-							vector<point3DFloat_t> leftVec;
-							vector<point3DFloat_t> rightVec;
-
-							generateRoadSideVec(pointVecBuf, 4.5, leftVec, rightVec);
-							baseColor_t color;
-							color.R = 0.25;
-							color.G = 0.25;
-							color.B = 0.25;
-							engine3DPtr->AddOneRoadLineInfo(lineStyle,color, leftVec);
-							engine3DPtr->AddOneRoadLineInfo(lineStyle,color, rightVec);
-#endif
+							//coordinateChange(&standPoint,&(*lineIter)[pointIdx], &tempPoint);
+							changeDataBaseCoord(&(*lineIter)[pointIdx], &tempPoint);
+							pointVecBuf.push_back(tempPoint);
 						}
-					}else
-					{
+				    
 						baseColor_t color;
 						color.R = 0.25;
 						color.G = 0.25;
 						color.B = 0.25;
+						baseColor_t colorLine;
+						colorLine.R = 0.15;
+						colorLine.G = 0.44;
+						colorLine.B = 0.12;
+
+						engine3DPtr->AddOneLineInfo(lineTypeEnum_solid, colorLine, pointVecBuf);
 						engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
-					}
-
-					//draw the paint of the line
-					{
-						baseColor_t color;
-						color.R = 1.0;
-						color.G = 0.95;
-						color.B = 0.9;
-
-						quadInfo_t quadBuf;
-						quadBuf.color = color;
-						bool contiFlag = false;
-
-						for(int index = 0; index < (numberPoint-1); index++)
+						if((lineIdx != 0)&&(lineIdx != (lineNum-1)))
 						{
-							//extractQuadInfo(pointVecBuf[2*index], pointVecBuf[2*index+1], 0.2, false, &quadBuf);
-							if(((*lineIter)[index].paintFlag)&&((*lineIter)[index+1].paintFlag))
+							engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
+						}
+
+						//draw the paint of the line
+						{
+							baseColor_t color;
+							color.R = 1.0;
+							color.G = 0.95;
+							color.B = 0.9;
+
+							quadInfo_t quadBuf;
+							quadBuf.color = color;
+							bool contiFlag = false;
+
+							for(int index = 0; index < (numberPoint-1); index++)
 							{
-								extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf);
-								contiFlag = true;
-								engine3DPtr->AddQuadInfo(1,&quadBuf);
-							}else
-							{
-								contiFlag = false;
+								//extractQuadInfo(pointVecBuf[2*index], pointVecBuf[2*index+1], 0.2, false, &quadBuf);
+								if(((*lineIter)[index].paintFlag>=0.5)&&((*lineIter)[index+1].paintFlag>=0.5))
+								{
+									extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf);
+									contiFlag = true;
+									engine3DPtr->AddQuadInfo(1,&quadBuf);
+								}else
+								{
+									contiFlag = false;
+								}
 							}
 						}
+
+						pointVecBuf.clear();
+
+						lineIter++;
+						lineIdx++;
 					}
-
-					pointVecBuf.clear();
-					//computeServerEyePosition(numberPoint, pointVecBuf,serverEyeInfo);
-
-					lineIter++;
-					lineIdx++;
 				}
 
 				lineInSegIter++;
@@ -524,7 +485,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 						for(int index = 0; index < ((*newDataIter).size()-1); index++)
 						{
 							//extractQuadInfo(pointVecBuf[2*index], pointVecBuf[2*index+1], 0.2, false, &quadBuf);
-							if(((*newDataIter)[index].paintFlag)&&((*newDataIter)[index+1].paintFlag))
+							if(((*newDataIter)[index].paintFlag>=0.5)&&((*newDataIter)[index+1].paintFlag>=0.5))
 							{
 								extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf);
 								contiFlag = true;
@@ -546,16 +507,16 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 		engine3DPtr->SwapQuadBuffer();
 		{
 			//get all the furniture
-			signInfo_t signInfo[200];
-			int numSign;
+			vector<signInfo_t> signInfo;
+			//int numSign;
 
 			list<list<furAttributesServer_t>> furnitureList;
 			database_gp->getAllFurnitures(furnitureList);
 
-			convFurToSignInfo(furnitureList, signInfo, &numSign);
+			convFurToSignInfo(furnitureList, signInfo);
 			furnitureList.clear();
 
-			engine3DPtr->AddSignInfo(numSign,signInfo);
+			engine3DPtr->AddSignInfo(signInfo);
 			engine3DPtr->SwapSignBuffer(); 
 		}
 

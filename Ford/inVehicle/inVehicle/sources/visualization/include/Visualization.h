@@ -137,11 +137,12 @@ typedef struct
 	quadInfo_t buffer[MAX_BUFFER_NUMBER_DRAW_QUAD];
 }quadInfo_3D_Internal_t;
 */
-typedef struct NEWCO_STRUCTURE_PACK
-{
-	int number;
-	signInfo_t buffer[MAX_BUFFER_DEPTH_3D_ENGINE];
-}signInfo_3D_Internal_t;
+
+//typedef struct NEWCO_STRUCTURE_PACK
+//{
+//	int number;
+//	signInfo_t buffer[MAX_BUFFER_DEPTH_3D_ENGINE];
+//}signInfo_3D_Internal_t;
 
 typedef struct NEWCO_STRUCTURE_PACK
 {
@@ -170,7 +171,7 @@ public:
 	~OPENGL_3D_ENGINE();
 
 	//this function to add Sign inforation to sample 3D engine, it will copy the sign information to 3D engine's backend internal buffer.
-	GLboolean AddSignInfo(int number, signInfo_t* buffer);  //add road side Sign inforamtion 
+	GLboolean AddSignInfo(vector<signInfo_t>& buffer);  //add road side Sign inforamtion 
 
 	//this function to add one line information to sample 3D engine
 	GLboolean AddOneLineInfo(lineTypeEnum_t type, baseColor_t color, vector<point3DFloat_t>& buffer);
@@ -277,16 +278,14 @@ private:
 	int eyeLookaheadBackBufIdx;
 	int quadBackBufIdx;
 
-	signInfo_3D_Internal_t signBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
+	
 	eyeInfo_3D_Internal_t  eyeBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	eyeInfo_3D_Internal_t  eyeBufferLookahead[MAX_BUFFER_NUMBER_3D_ENGINE];
 	eyeInfo_3D_Internal_t  serverEyeBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
-	//lineInfo_3D_Internal_t lineBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
-	//lineInfo_3D_Internal_t roadLineBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
+	vector<signInfo_t> signBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	list<lineInfo_t> lineBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	list<lineInfo_t> roadLineBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	drawCharInfo_3D_Internal_t charBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
-	//quadInfo_3D_Internal_t     quadBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	vector<quadInfo_t>     quadBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	GLuint                 texturelist[MAX_BUFFER_DEPTH_2D_TXETURE];
 

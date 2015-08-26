@@ -329,7 +329,6 @@ CLEAN_ROADSCAN_BUFFER:
                 buffer->getCurrentImage(&image);
 
                 trafficSignDetector->trafficSignDetect(image.image, detectedTrafficSign); // detect traffic signs
-
                 {
                     //cout << "detected sign number: "<< detectedTrafficSign.totalNumber << endl;
 
@@ -530,7 +529,6 @@ CLEAN_ROADSCAN_BUFFER:
             }
             laneInfoList.clear();
         }
-
         //ReleaseSemaphore(g_readySema_DiffDet, 1 ,NULL);
     }//end while(1)
     //fclose(fd);
@@ -883,6 +881,10 @@ void filterFurToReport(point3D_t currentGps,list<statisticsFurInfo_t>* furnListI
                             ++furnListInBuffIdx;
                             furnListInBuffPtr->erase(idxTmp);
                     
+                        }
+                        else
+                        {
+                            ++furnListInBuffIdx;
                         }
                     }        
                     else

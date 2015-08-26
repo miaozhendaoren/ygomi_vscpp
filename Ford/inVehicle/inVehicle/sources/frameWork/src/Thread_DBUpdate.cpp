@@ -154,7 +154,7 @@ RESTART_LABEL:
                                 database_gp->addFurnitureTlv(recvHeader->payload + recvHeader->payloadHeader.pduHeader[pduIdx].pduOffset,pduLen);
                                 break;
                             case ADD_ALL_FURNITURE:
-                                database_gp->addFurnitureTlv(recvHeader->payload + recvHeader->payloadHeader.pduHeader[pduIdx].pduOffset,pduLen);
+                                database_gp->addFurnitureListTlv(recvHeader->payload + recvHeader->payloadHeader.pduHeader[pduIdx].pduOffset,pduLen);
                                 break;
                             case ADD_ALL_VECTORLIST:
                                 // add a vector list for specified segment.

@@ -16,7 +16,7 @@ void main()
     // road new reported data from file
     readReportData(".\\config\\pathlist.txt", newDataVec);
 
-#ifdef VISUALIZATION_ON
+#if VISUALIZATION_ON
     char winname[MAX_PATH];
     uint32 grpNum = 1;
     list<list<vector<point3D_t>>>::iterator grpItor = newDataVec.begin();
@@ -30,6 +30,19 @@ void main()
 #endif
 
     g_RoadVecGen.roadSectionsGen(newDataVec, fgData);
+
+#if SAVE_DATA_ON
+    char fgname[MAX_PATH];
+    uint32 fgNum = 1;
+    list<list<vector<point3D_t>>>::iterator fgItor = fgData.begin();
+    while (fgItor != fgData.end())
+    {
+        sprintf_s(fgname, MAX_PATH - 1, "fgroup_%d.txt", fgNum++);
+        saveListVec(*fgItor, fgname);
+
+        fgItor++;
+    }
+#endif
 
     return;
 }

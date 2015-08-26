@@ -5,10 +5,16 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server", "server\server.vcx
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		DE_Airport_Release|Win32 = DE_Airport_Release|Win32
+		DE_Lehre_Video_Release|Win32 = DE_Lehre_Video_Release|Win32
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8365FCE9-010F-4D4D-B3B3-1E8C01AFD581}.DE_Airport_Release|Win32.ActiveCfg = DE_Airport_Release|Win32
+		{8365FCE9-010F-4D4D-B3B3-1E8C01AFD581}.DE_Airport_Release|Win32.Build.0 = DE_Airport_Release|Win32
+		{8365FCE9-010F-4D4D-B3B3-1E8C01AFD581}.DE_Lehre_Video_Release|Win32.ActiveCfg = DE_Lehre_Video_Release|Win32
+		{8365FCE9-010F-4D4D-B3B3-1E8C01AFD581}.DE_Lehre_Video_Release|Win32.Build.0 = DE_Lehre_Video_Release|Win32
 		{8365FCE9-010F-4D4D-B3B3-1E8C01AFD581}.Debug|Win32.ActiveCfg = Debug|Win32
 		{8365FCE9-010F-4D4D-B3B3-1E8C01AFD581}.Debug|Win32.Build.0 = Debug|Win32
 		{8365FCE9-010F-4D4D-B3B3-1E8C01AFD581}.Release|Win32.ActiveCfg = Release|Win32

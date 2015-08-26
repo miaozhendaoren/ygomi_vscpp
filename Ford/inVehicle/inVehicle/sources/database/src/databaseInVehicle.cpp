@@ -613,6 +613,27 @@ namespace ns_database
         logPrintf(logLevelInfo_e, "DB_UPDATE", furTypeString, FOREGROUND_GREEN);
     }
 
+    void databaseInVehicle::addFurnitureListTlv(IN uint8* tlvBuff, IN uint32 buffLen)
+    {
+        void*  inputLoc = tlvBuff;
+        void** input = &inputLoc;
+
+        _mEndPosition = tlvBuff + buffLen;
+
+        // Add all furnitures in the tlv buffer
+        while(inputLoc < _mEndPosition)
+        {
+            furAttributesInVehicle_t furAttr;
+
+            readTlvToFurniture(input, memory_e, &furAttr);
+
+            addFurniture(&furAttr);
+        }
+
+        string furTypeString = "Furniture List";
+        logPrintf(logLevelInfo_e, "DB_UPDATE", furTypeString, FOREGROUND_GREEN);
+    }
+
     void databaseInVehicle::addFurniture(IN furAttributesInVehicle_t* furnitureIn)
     {        
         if(0 == furnitureIn->segId_used)

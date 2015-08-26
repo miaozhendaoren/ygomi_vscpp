@@ -43,7 +43,7 @@ OPENGL_3D_ENGINE::OPENGL_3D_ENGINE()
 	quadBackBufIdx = 0;
 	CarShowList = 0;
 
-	signBuffer[0].number = 0;
+	//signBuffer[0].number = 0;
 	//lineBuffer[0].number = 0;
 	//roadLineBuffer[0].number = 0;
 	charBuffer[0].number = 0;
@@ -55,7 +55,7 @@ OPENGL_3D_ENGINE::OPENGL_3D_ENGINE()
 	eyeBufferLookahead[0].index = 0;
 	//quadBuffer[0].number = 0;
 
-	signBuffer[1].number = 0;
+	//signBuffer[1].number = 0;
 	//roadLineBuffer[1].number = 0;
 	//lineBuffer[1].number = 0;
 	charBuffer[1].number = 0;
@@ -105,20 +105,12 @@ OPENGL_3D_ENGINE::~OPENGL_3D_ENGINE()
 
 //copy the Sign information 
 GLboolean OPENGL_3D_ENGINE::AddSignInfo(
-	int number, 
-	signInfo_t* buffer)
+	vector<signInfo_t>& buffer)
 {
-	//check if the sign info is larger than internal buffer
-	if((signBuffer[signBackbufIdx].number+number) > MAX_BUFFER_DEPTH_3D_ENGINE)
+	for(int index = 0; index < buffer.size(); index++)
 	{
-		return GL_FALSE;
+		signBuffer[signBackbufIdx].push_back(buffer[index]);
 	}
-
-	//copy the content of signInfo_t information
-	memcpy((void*)&signBuffer[signBackbufIdx].buffer[signBuffer[signBackbufIdx].number], (void*)buffer,number*sizeof(signInfo_t));
-
-	//update the number
-	signBuffer[signBackbufIdx].number += number;
 	return GL_TRUE;
 }
 
@@ -236,11 +228,12 @@ GLboolean OPENGL_3D_ENGINE::Swap3DBuffers(void)
 	roadLineBackBufIdx ^= 1;
 	signBackbufIdx ^= 1;
 	quadBackBufIdx ^= 1;
-	signBuffer[signBackbufIdx].number = 0;
+	//signBuffer[signBackbufIdx].number = 0;
 	charBuffer[charBackBufIdx].number = 0;
 	//lineBuffer[lineBackBufIdx].number = 0;
 	//roadLineBuffer[roadLineBackBufIdx].number = 0;
 	//quadBuffer[quadBackBufIdx].number = 0;
+	signBuffer[signBackbufIdx].clear();
 	lineBuffer[lineBackBufIdx].clear();
 	roadLineBuffer[roadLineBackBufIdx].clear();
 	quadBuffer[quadBackBufIdx].clear();
@@ -263,7 +256,8 @@ GLboolean OPENGL_3D_ENGINE::SwapSignBuffer(void)
 {
 	WaitForSingleObject(hMutex,INFINITE); 
 	signBackbufIdx ^= 1;
-	signBuffer[signBackbufIdx].number = 0;
+	//signBuffer[signBackbufIdx].number = 0;
+	signBuffer[signBackbufIdx].clear();
 	ReleaseMutex(hMutex);
 	return GL_TRUE;
 }
@@ -434,9 +428,9 @@ void OPENGL_3D_ENGINE::DrawFrontBufferClient()
 	int quadFrontBufIdx = quadBackBufIdx^1;
 
 	//draw all the sign
-	for(signIdx = 0; signIdx < signBuffer[signFrontBufIdx].number; signIdx++)
+	for(signIdx = 0; signIdx < signBuffer[signFrontBufIdx].size(); signIdx++)
 	{
-		DrawSignClient(signBuffer[signFrontBufIdx].buffer[signIdx]);
+		DrawSignClient(signBuffer[signFrontBufIdx][signIdx]);
 	}
 
 
@@ -475,9 +469,9 @@ void OPENGL_3D_ENGINE::DrawFrontBufferServer()
 	int quadFrontBufIdx = quadBackBufIdx^1;
 
 	//draw all the sign
-	for(signIdx = 0; signIdx < signBuffer[signFrontBufIdx].number; signIdx++)
+	for(signIdx = 0; signIdx < signBuffer[signFrontBufIdx].size(); signIdx++)
 	{
-		DrawSignServer(signBuffer[signFrontBufIdx].buffer[signIdx]);
+		DrawSignServer(signBuffer[signFrontBufIdx][signIdx]);
 	}
 
 		//draw road
@@ -1121,7 +1115,7 @@ void OPENGL_3D_ENGINE::DrawLine(lineInfo_t *line,mode3DEngineEnum_t type)
 		glColor3f(line->color.R, line->color.G, line->color.B);
 		for(index = 0; index < line->position.size(); index++)
 		{
-			glVertex3f(line->position[index].x, line->position[index].y+0.01, line->position[index].z);
+			glVertex3f(line->position[index].x, line->position[index].y, line->position[index].z);
 		}
 		glEnd();
 	}

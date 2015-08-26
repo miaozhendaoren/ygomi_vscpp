@@ -116,7 +116,7 @@ int Detector_colored::contoursSelect(vector<vector<Point>> &contours,int *validI
         double area = contourArea( contours[idx]); 
         double length = arcLength( contours[idx],true); 
         bool insideFlag = false;
-		if ((length*length <= area*double(ratioT)) && ( (area > 15*15))) // && (area < 150*150)
+		if ((length*length <= area*double(ratioT)) && ( (area > 25*25))) // && (area < 150*150)
 		{
             // test one road sign whether insides other road sign.
             Rect rect = boundingRect(contours[idx]);
@@ -635,6 +635,10 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
             // shape detection
             shape = ShapeDetect(approx,curve); 
 
+   //         if(unknown != shape)
+			//{
+			//	polylines(image,approx,1,Scalar(0,255,255),2);
+			//}
 #if WRITE_IMAGE != 1
             //drawLine(image,approx,color);
 #endif
@@ -714,13 +718,14 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
                      minMaxLoc(y_hist, &minVal, &maxVal, &minIdx, &maxIdx);
 
                      double ratio = (float)r.width /(float)r.height;
-                     if(maxIdx == Point(0,20) && (ratio > 0.85) && (ratio < 1.15))
+                     if(maxIdx == Point(0,20) && (ratio > 0.9) && (ratio < 1.1))
                      {
                         TS_Structure::TS_element detectSign;
                         detectSign.type = 30600;
                         detectSign.area = area;
                         detectSign.rect = r;
-                        detectSign.center = center;         
+                        detectSign.center = center;    
+                        rectangle(image, r , Scalar(0,255,0), 2, 8, 0);
                         target.trafficSign.push_back(detectSign);
                         k++;
                      }

@@ -650,6 +650,15 @@ namespace ns_database
         ReleaseMutex(_hMutexMemory);
     }
 
+    void databaseServer::getSegNumOfFurniture(OUT int32 *numSegOfFur)
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+
+        *numSegOfFur = _furnitureList.size();
+
+        ReleaseMutex(_hMutexMemory);
+    }
+
     void databaseServer::resetFurniture()
     {
         WaitForSingleObject(_hMutexMemory,INFINITE);
@@ -661,7 +670,11 @@ namespace ns_database
         logPrintf(logLevelInfo_e, "DB_UPDATE", "Reseting furnitures", FOREGROUND_BLUE | FOREGROUND_GREEN);
     }
 
-    void databaseServer::syncFurnitureToVehicle(uint8 *furnitureListP, int32 *msgLen, int32 *pduNum, int32 maxPayloadLen)
+    void databaseServer::getFurnitureTlvInSeg(IN  int32 segIdIn,
+                                              IN  int32 maxPayloadLen,
+                                              OUT uint8 *furnitureListP, 
+                                              OUT int32 *msgLenOut, 
+                                              OUT int32 *furNumOut)
     {
         WaitForSingleObject(_hMutexMemory,INFINITE);
 
@@ -678,32 +691,40 @@ namespace ns_database
         {
             furIter = (*segIter).begin();
 
-            while (furIter != (*segIter).end())
-            {                
-                void*  outputLoc = furnitureListP + payloadLen;
-                void** output = &outputLoc;
+            // report furnitures with specified segment ID
+            if ((furIter != (*segIter).end()) && 
+                (furIter->segId_used == 1) && 
+                (furIter->segId == segIdIn))
+            {
+                while (furIter != (*segIter).end())
+                {                
+                    void*  outputLoc = furnitureListP + payloadLen;
+                    void** output = &outputLoc;
+                    int32 msgLen;
 
-                if(payloadLen >= maxPayloadLen)
-                {
-                    logPrintf(logLevelError_e, "DB_SYNC", "Payload buffer overflow", FOREGROUND_RED);
-                    break;
+                    if(payloadLen >= maxPayloadLen)
+                    {
+                        logPrintf(logLevelError_e, "DB_SYNC", "Payload buffer overflow", FOREGROUND_RED);
+                        break;
+                    }
+                    furAttri = *furIter;
+                    convFurnitureToTlv(&furAttri, memory_e, output, &msgLen);
+                    payloadLen += msgLen;
+                    furNum++;
+
+                    furIter++;
                 }
-                furAttri = *furIter;
-                convFurnitureToTlv(&furAttri, memory_e, output, (int32 *)msgLen);
-                payloadLen += (*msgLen);
-                furNum++;
-
-                furIter++;
             }
             segIter++;
+
+            string furTypeString = "Synchronize furnitures in segment ID ";  furTypeString += segIdIn;
+            logPrintf(logLevelInfo_e, "DB_SYNC", furTypeString, FOREGROUND_BLUE | FOREGROUND_GREEN);
         }
         
-        *msgLen = payloadLen;
-        *pduNum = furNum;
+        *msgLenOut = payloadLen;
+        *furNumOut = furNum;
 
         ReleaseMutex(_hMutexMemory);
-
-        logPrintf(logLevelInfo_e, "DB_SYNC", "Synchronize furnitures", FOREGROUND_BLUE | FOREGROUND_GREEN);
     }
 
 	uint32 databaseServer::getFurnitureVersion()

@@ -77,6 +77,8 @@ namespace ns_database
 
         void getAllFurnitures(OUT std::list<std::list<furAttributesServer_t>>& furnitureListOut);
 
+        void getSegNumOfFurniture(OUT int32 *numSegOfFur);
+
         void calcFurnitureHeight(IN point3D_t *locIn, IN uint8 sideFlagIn, OUT double *altOut);
 
         void addFurniture(IN furAttributes_t* furnitureIn,
@@ -102,10 +104,14 @@ namespace ns_database
         void resetFurniture();
 
 		uint32 getFurnitureVersion();
-			
-        void syncFurnitureToVehicle(uint8 *furnitureListP, int32 *msgLen, int32 *pduNum, int32 maxPayloadLen);
 
         void getNewDataVec(std::list<std::vector<point3D_t>> &newDataVec);
+
+        void getFurnitureTlvInSeg(IN  int32 segIdIn,
+                                  IN  int32 maxPayloadLen,
+                                  OUT uint8 *furnitureListP, 
+                                  OUT int32 *msgLenOut, 
+                                  OUT int32 *furNumOut);
 
         void setNewDataVec(std::list<std::vector<point3D_t>> &newDataVec);
 
