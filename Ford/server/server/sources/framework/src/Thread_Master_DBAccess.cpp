@@ -48,7 +48,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 {
 #if SERVER_PLAY_BACK_MODE==1
     std::stringstream fileName;
-    fileName << "log/messages -1500 frames-3.bin";
+    fileName << "log/messages.bin";
     FILE *fpMsg = fopen(fileName.str().c_str(), "rb");
 #endif
 

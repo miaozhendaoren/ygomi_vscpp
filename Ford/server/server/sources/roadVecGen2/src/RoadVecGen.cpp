@@ -22,7 +22,7 @@
 #include "polynomialFit.h"
 #include "RoadVecGen.h"
 
-#if VISUALIZATION_ON
+#if 1 // VISUALIZATION_ON || DATA_SAVE_ON
 #include "VisualizationApis.h"
 
 static uint32 PREVIOUS_SEGID = 0;
@@ -51,6 +51,7 @@ namespace ns_database
 #define DASH_DASH           1
 #define DASH_SOLID          2
 #define SOLID_SOLID         0
+#define DIST_DIFF           2.5
 
     // add a control to use interpolation or polynomial fitting
 #define USE_INTERPOLATION   1
@@ -233,7 +234,7 @@ bool isResampleSec(uint32 segId)
             }
         }
 
-#if VISUALIZATION_ON
+#if 1 //VISUALIZATION_ON || SAVE_DATA_ON
         list<vector<point3D_t>> fglines;
         list<list<vector<point3D_t>>>::iterator fgItor = fgData.begin();
         list<vector<point3D_t>>::iterator fglineItor;
@@ -253,12 +254,12 @@ bool isResampleSec(uint32 segId)
             fgItor++;
         }
         sprintf_s(IMAGE_NAME_STR, "fgdatabase_%d.png", FG_MERGED_NUM++);
+#if 1 // VISUALIZATION_ON
         showImage(fglines, Scalar(0, 0, 255), IMAGE_NAME_STR);
-
-#if SAVE_DATA_ON
+#endif
+#if 1 // SAVE_DATA_ON
         saveListVec(fglines, "fgroup_0.txt");
 #endif
-
 #endif
 
         return true;
@@ -470,17 +471,17 @@ bool isResampleSec(uint32 segId)
 
         if (X0[0] < X0[2])
         {
-            xLimitation.push_back(min(X0[0], X0[1]));
-            xLimitation.push_back(max(X0[2], X0[3]));
-            xLimitation.push_back(min(X0[4], X0[5]));
-            xLimitation.push_back(max(X0[6], X0[7]));
+            xLimitation.push_back(ceil(min(X0[0], X0[1])));
+            xLimitation.push_back(ceil(max(X0[2], X0[3])));
+            xLimitation.push_back(ceil(min(X0[4], X0[5])));
+            xLimitation.push_back(ceil(max(X0[6], X0[7])));
         }
         else
         {
-            xLimitation.push_back(max(X0[0], X0[1]));
-            xLimitation.push_back(min(X0[2], X0[3]));
-            xLimitation.push_back(max(X0[4], X0[5]));
-            xLimitation.push_back(min(X0[6], X0[7]));
+            xLimitation.push_back(ceil(max(X0[0], X0[1])));
+            xLimitation.push_back(ceil(min(X0[2], X0[3])));
+            xLimitation.push_back(ceil(max(X0[4], X0[5])));
+            xLimitation.push_back(ceil(min(X0[6], X0[7])));
         }
     }
 
@@ -507,7 +508,8 @@ bool isResampleSec(uint32 segId)
             pointZ.lon       = realZ;
             pointZ.lat       = imagZ;
             pointZ.alt       = 0;
-            pointZ.paintFlag = sourceLine[i].paintFlag;
+            pointZ.paintFlag = (sourceLine[i].paintFlag >= 0) ? \
+                                sourceLine[i].paintFlag : 0;
             pointZ.count     = 1;
 
             rotatedLine.push_back(pointZ);
@@ -1004,9 +1006,14 @@ bool isResampleSec(uint32 segId)
                                 dTwo.clear();
                             }
 #if VISUALIZATION_ON
-                            sprintf_s(IMAGE_NAME_STR, "fg_section_%d_mergedmiddle_lines.png",
-                                      configSecItor->segId);
+                            sprintf_s(IMAGE_NAME_STR, "fg_%d_section_%d_mergedmiddle_lines.png",
+                                      FG_MERGED_NUM, configSecItor->segId);
                             showImage(midlines,  Scalar(0, 0, 255), IMAGE_NAME_STR);
+#endif
+#if SAVE_DATA_ON
+                            sprintf_s(IMAGE_NAME_STR, "fg_%d_section_%d_mergedmiddle_lines.txt",
+                                      FG_MERGED_NUM, configSecItor->segId);
+                            saveListVec(midlines, IMAGE_NAME_STR);
 #endif
                         }
 
@@ -1052,7 +1059,7 @@ bool isResampleSec(uint32 segId)
                             for (uint32 i = 0; i < dblines.back().size(); i++)
                             {
                                 curPnt.lon = dblines.back().at(i).lon;
-                                curPnt.lat = dblines.back().at(i).lat + distlines.front().at(i);
+                                curPnt.lat = dblines.back().at(i).lat + distlines.back().at(i);
                                 curPnt.paintFlag = dblines.back().at(i).paintFlag;
 
                                 linein.push_back(curPnt);
@@ -1208,38 +1215,79 @@ bool isResampleSec(uint32 segId)
     {
         // number of points in input line
         int numOfPoints = lineData.size();
-
-        int blkIndex = 1;
-        bool bChange = false;
-
-        // iterate each point
-        for (int i = 0; i < numOfPoints; i++)
+        if (0 >= numOfPoints)
         {
-            float value = lineData[i].paintFlag;
-            if (value == 1.0)
-            {
-                if (bChange == false)
-                {
-                    dotBlkIndexSt.push_back(i);
-                }
-                bChange = true;
-            }
-            else
-                if (bChange == true)
-                {
-                    dotBlkIndexEd.push_back(i-1);
-                    if (DASH_CONT_POINTS_TH < (dotBlkIndexEd[blkIndex - 1] -
-                                               dotBlkIndexSt[blkIndex - 1]))
-                    {
-                        blkIndex += 1;
-                    }
-                    bChange = false;
-                }
+            dotBlkIndexSt.clear();
+            dotBlkIndexEd.clear();
+            return;
         }
 
-        if ((true == bChange) && (dotBlkIndexSt.size() != dotBlkIndexEd.size()))
+        // extract x, y, and paint value
+        vector<double> dx, dy, dp, dd;
+        vector<int> index0, index1;
+        for (int i = 1; i < numOfPoints; i++)
         {
+            dx.push_back(lineData[i].lon - lineData[i - 1].lon);
+            dy.push_back(lineData[i].lat - lineData[i - 1].lat);
+
+            dd.push_back(dx[i - 1] + dy[i - 1]);
+            if (DIST_DIFF < dd[i - 1])
+            {
+                index1.push_back(i - 1);
+            }
+
+            dp.push_back(lineData[i].paintFlag - lineData[i - 1].paintFlag);
+            if (0 != dp[i - 1])
+            {
+                index0.push_back(i - 1);
+            }
+        }
+
+        // dash line painting start and stop
+        if (index0.empty())
+        {
+            dotBlkIndexSt.push_back(0);
             dotBlkIndexEd.push_back(numOfPoints - 1);
+        }
+        else
+        {
+            for (uint32 ii = 0; ii < index0.size(); ii++)
+            {
+                if (1.0 == dp[index0[ii]])
+                {
+                    // start of dash painting
+                    dotBlkIndexSt.push_back(index0[ii] + 1);
+                    if ((index0.size() - 1) == ii)
+                    {
+                        dotBlkIndexEd.push_back(numOfPoints - 1);
+                    }
+                }
+                else
+                {
+                    // end of dash painting
+                    dotBlkIndexEd.push_back(index0[ii]);
+                    if (dotBlkIndexSt.empty())
+                    {
+                        dotBlkIndexSt.push_back(0);
+                    }
+                }
+            }
+        }
+
+        // merge block
+        int ind = 0;
+        for (uint32 jj = 0; jj < index1.size(); jj++)
+        {
+            ind = index1[jj] + 1;
+
+            for (uint32 ii = 0; ii < dotBlkIndexSt.size(); ii++)
+            {
+                if ((dotBlkIndexSt[ii] < ind) && (dotBlkIndexEd[ii] >= ind))
+                {
+                    dotBlkIndexSt.insert(dotBlkIndexSt.begin() + ii + 1, ind);
+                    dotBlkIndexEd.insert(dotBlkIndexEd.begin() + ii, ind - 1);
+                }
+            }
         }
     }
 
@@ -1250,31 +1298,19 @@ bool isResampleSec(uint32 segId)
         int stBlkSz = dotBlkIndexSt.size();
         int edBlkSz = dotBlkIndexEd.size();
 
-        if (0 == stBlkSz || 0 == edBlkSz)
+        if (0 == stBlkSz || 0 == edBlkSz || stBlkSz != edBlkSz)
         {
             return;
         }
 
         // iterate each block
-        for (int i = 0; i < stBlkSz - 1; i++)
+        for (int i = 1; i < stBlkSz; i++)
         {
-            if (i < stBlkSz - 1)
+            if (MINDIST >= abs(dotBlkIndexSt[i] - dotBlkIndexEd[i - 1]))
             {
-                Point lastLine = Point(dotBlkIndexSt[i],   dotBlkIndexEd[i]);
-                Point nextLine = Point(dotBlkIndexSt[i+1], dotBlkIndexEd[i+1]);
-
-                if (abs(nextLine.x - lastLine.y) < MINDIST)
-                {
-                    dotBlkIndexEd[i] = nextLine.y;
-                    for (int j = i + 1; j < stBlkSz - 1;j++)
-                    {
-                        dotBlkIndexSt[j] = dotBlkIndexSt[j + 1];
-                        dotBlkIndexEd[j] = dotBlkIndexEd[j + 1];
-                    }
-                    dotBlkIndexSt[stBlkSz - 1] = 0;
-                    dotBlkIndexEd[stBlkSz - 1] = 0;
-                    stBlkSz -= 1;
-                }
+                dotBlkIndexEd.erase(dotBlkIndexEd.begin() + i - 1);
+                dotBlkIndexSt.erase(dotBlkIndexSt.begin() + i);
+                stBlkSz -= 1;
             }
         }
     }
@@ -1371,6 +1407,7 @@ bool isResampleSec(uint32 segId)
         // dash line block start/end index of input line
         vector<int> dotBlkIndexSt, dotBlkIndexEd;
         dotLineBlockIndex(sourceline, dotBlkIndexSt, dotBlkIndexEd);
+        blockCombine(dotBlkIndexSt, dotBlkIndexEd);
 
         // number of blocks should be the same
         int numOfSt = dotBlkIndexSt.size();
