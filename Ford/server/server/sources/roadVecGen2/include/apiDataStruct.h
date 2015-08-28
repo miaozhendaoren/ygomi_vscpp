@@ -58,7 +58,6 @@ struct Offset
 typedef struct _reportSectionData
 {
     uint32                              sectionId;    // segment ID
-    bool                                revDirFlag;   // 0: not reverse direction, 1: reverse direction
     list<list<list<vector<point3D_t>>>> rptSecData;   // reported new lane data
                                                       // multiple reported data
                                                       // of lanes with lines

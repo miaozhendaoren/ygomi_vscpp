@@ -26,7 +26,6 @@ namespace ns_database
 #define  STARTSECID    1
 #define  MINPOINTNUM   500
 #define  SECTIONDEBUG  11
-#define  ROADCIRCLE    0
     enum ISTATUS
     {
         I_SUCCESS = 0,

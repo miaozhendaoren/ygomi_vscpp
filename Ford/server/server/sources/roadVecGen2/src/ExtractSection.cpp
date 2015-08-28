@@ -201,36 +201,23 @@ namespace ns_database
 
 
             //3 .extract matched section from report data
-            if (ROADCIRCLE == 0)
+            if (segClosestSection_start.segId <= segSecondClosestLoc_end.segId-1)
             {
-                
-                uint32 uiStartId = segClosestSection_start.segId<segClosestSection_end.segId?segClosestSection_start.segId:segClosestSection_end.segId;
-                uint32 uiEndId   = segClosestSection_start.segId>segClosestSection_end.segId?segClosestSection_start.segId:segClosestSection_end.segId;
-                iStatus = matchSections(ltSectionDataScale,uiStartId,uiEndId,ltSectionCentrePoint,vRawLeftLineData,vRawRightLineData,ltMatchSections);
+                iStatus = matchSections(ltSectionDataScale,segClosestSection_start.segId,segClosestSection_end.segId,ltSectionCentrePoint,vRawLeftLineData,vRawRightLineData,ltMatchSections);
                 if (iStatus!= I_SUCCESS)
                     return iStatus;
-            }
+            } 
             else
             {
-                if (segClosestSection_start.segId <= segSecondClosestLoc_end.segId-1)
-                {
-                    iStatus = matchSections(ltSectionDataScale,segClosestSection_start.segId,segClosestSection_end.segId,ltSectionCentrePoint,vRawLeftLineData,vRawRightLineData,ltMatchSections);
-                    if (iStatus!= I_SUCCESS)
-                        return iStatus;
-                } 
-                else
-                {
-                    iStatus = matchSections(ltSectionDataScale,segClosestSection_start.segId,CONJOINTSECID,ltSectionCentrePoint,vRawLeftLineData,vRawRightLineData,ltMatchSections);
-                    if (iStatus!= I_SUCCESS)
-                        return iStatus;
-                    iStatus = matchSections(ltSectionDataScale,STARTSECID,segClosestSection_end.segId,ltSectionCentrePoint,vRawLeftLineData,vRawRightLineData,ltMatchSections);
-                    if (iStatus!= I_SUCCESS)
-                        return iStatus;
+                iStatus = matchSections(ltSectionDataScale,segClosestSection_start.segId,CONJOINTSECID,ltSectionCentrePoint,vRawLeftLineData,vRawRightLineData,ltMatchSections);
+                if (iStatus!= I_SUCCESS)
+                    return iStatus;
+                iStatus = matchSections(ltSectionDataScale,STARTSECID,segClosestSection_end.segId,ltSectionCentrePoint,vRawLeftLineData,vRawRightLineData,ltMatchSections);
+                if (iStatus!= I_SUCCESS)
+                    return iStatus;
 
-                }
 
             }
-           
         }
         return iStatus;
     }
@@ -528,36 +515,14 @@ namespace ns_database
                     }
 
                     // get one section data
-                    bool revDirFlag;
-                    if (uiSectionFrontLoc > uiSectionBackLoc)
-                    // reverse
+                    for (unsigned int m = uiSectionFrontLoc;m<=uiSectionBackLoc;m++)
                     {
-                        revDirFlag = true;
-
-                        for (int idx = uiSectionFrontLoc; idx>=uiSectionBackLoc; idx--)
-                        {
-                            vSectionLeftLine.push_back(vRawLeftLineData[idx]);
-                            vSectionRightLine.push_back(vRawRightLineData[idx]);
-                        }
-
-                        ltSectionData.push_back(vSectionRightLine);
-                        ltSectionData.push_back(vSectionLeftLine);
-                    }else
-                    // normal
-                    {
-                        revDirFlag = false;
-
-                        for (int idx = uiSectionFrontLoc; idx<=uiSectionBackLoc; idx++)
-                        {
-                            vSectionLeftLine.push_back(vRawLeftLineData[idx]);
-                            vSectionRightLine.push_back(vRawRightLineData[idx]);
-                        }
-
-                        ltSectionData.push_back(vSectionLeftLine);
-                        ltSectionData.push_back(vSectionRightLine);
+                        vSectionLeftLine.push_back(vRawLeftLineData[m]);
+                        vSectionRightLine.push_back(vRawRightLineData[m]);
                     }
 
-
+                    ltSectionData.push_back(vSectionLeftLine);
+                    ltSectionData.push_back(vSectionRightLine);
 
                     ltLaneSectionData.push_back(ltSectionData);
 
@@ -573,7 +538,6 @@ namespace ns_database
                         if (i==(*iter).sectionId)
                         {
                             (*iter).rptSecData.push_back(ltLaneSectionData);
-                            (*iter).revDirFlag = revDirFlag;
                             ltLaneSectionData.clear();
                             break;
                         }                 
@@ -581,7 +545,6 @@ namespace ns_database
                     if (!ltLaneSectionData.empty())
                     {
                         rptSecionsData.sectionId = i;
-                        rptSecionsData.revDirFlag = revDirFlag;
                         rptSecionsData.rptSecData.push_back(ltLaneSectionData);
                         ltMatchSections.push_back(rptSecionsData);
                         ltLaneSectionData.clear();
