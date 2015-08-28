@@ -147,7 +147,7 @@ int detectorInit()
     }else
     {
 #if(RD_SIGN_DETECT == RD_SIGN_DETECT_COLOR)
-        trafficSignDetector = new ns_detection::Detector_colored(0.5,inParam.distancePerPixel,300);
+        trafficSignDetector = new ns_detection::Detector_colored(0.2,inParam.distancePerPixel,300);
 #elif(RD_SIGN_DETECT == RD_SIGN_DETECT_WHITE_BLACK)
         trafficSignDetector = new ns_detection::Detector_blackWhite(0.5,inParam.distancePerPixel,250);
 #elif(RD_SIGN_DETECT == RD_SIGN_DETECT_OFF)

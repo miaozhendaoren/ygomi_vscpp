@@ -987,7 +987,7 @@ void calThread(Mat &Inimg, int &hisTH, Mat&dstImage)
 		float binValue = dstHist.at<float>(i);
 		numWidthPlus +=binValue;
 		widthPer = numWidthPlus/(sum);
-		if (widthPer>0.85)
+		if (widthPer>0.9)
 		{
 			//			cout<<i<<endl;
 			hisTH = i;//=i for Ford
@@ -1052,7 +1052,7 @@ int calRidgePar(Mat &Inimg)
 					maxWidth = paintWidth[i2];
 				}
 
-				if (maxWidth<30&&maxWidth>8)
+				if (maxWidth<30&&maxWidth>4)
 				{
 					s[maxWidth]+=1;
 					numWidth++;
@@ -1076,7 +1076,7 @@ int calRidgePar(Mat &Inimg)
 		//		imshow("rowHist",rowHist);
 		//		waitKey(1);
 		//			cout<<maxWidth<<";"<<i<<endl;
-		i -= 50;
+		i -= 20;
 	}
 //	cout<<numWidth<<" ,"<<numSupperWidth<<endl;
 
@@ -1106,7 +1106,7 @@ int calRidgePar(Mat &Inimg)
 		
 		if (Inimg.rows<500&&numSupperWidth>numWidth)
 		{
-			if (widthPer>0.87)
+			if (widthPer>0.80)
 			{
 				//	cout<<i<<endl;
 				ridgePra = i;
@@ -1124,7 +1124,7 @@ int calRidgePar(Mat &Inimg)
 		}
 		if (Inimg.rows>=100)
 		{
-			if (widthPer>0.87)
+			if (widthPer>0.80)
 			{
 				//	cout<<i<<endl;
 				ridgePra = i;
@@ -2278,7 +2278,7 @@ bool judgeShadow(Mat &src)
 //	waitKey(20);
 	if (widthPer>0.30)
 	{
-		cout<<"shadowper="<<widthPer<<endl;
+//		cout<<"shadowper="<<widthPer<<endl;
 		return true;
 		
 	}
@@ -2351,7 +2351,7 @@ void linkInterval(Mat &src, Mat &dst)
 	{
 		for(int j=i+1;j<vecSlineinfo.size()-1;j++)
 		{
-			if (vecSlineinfo[i].upoint.y-vecSlineinfo[j].dpoint.y<40)
+			if (abs(vecSlineinfo[i].upoint.y-vecSlineinfo[j].dpoint.y)<40&&abs(vecSlineinfo[i].upoint.x-vecSlineinfo[j].dpoint.x)<10)
 			{
 				double dist = sqrt(double((vecSlineinfo[i].upoint.x-vecSlineinfo[j].dpoint.x)*(vecSlineinfo[i].upoint.x-vecSlineinfo[j].dpoint.x)
 					+(vecSlineinfo[i].upoint.y-vecSlineinfo[j].dpoint.y)*(vecSlineinfo[i].upoint.y-vecSlineinfo[j].dpoint.y)));
@@ -2377,8 +2377,8 @@ void blockCalRidge(Mat &longLane_cut, Parameters& inParam, Mat &allUnitKapa,Mat 
 
 #ifdef ROAD_SCAN_UT
          double startT = static_cast<double>(cv::getTickCount());
-#endif
          cout<<unitNum<<","<<uniti<<endl;
+#endif
          Mat unit;
          if (uniti==unitNum)
              unit = longLane_cut(Rect(0,(uniti-1)*unitH,longLane_cut.cols,longLane_cut.rows-(uniti-1)*unitH));
@@ -2551,7 +2551,7 @@ void blockCalRidge(Mat &longLane_cut, Parameters& inParam, Mat &allUnitKapa,Mat 
              {
                  continue;
              }
-             if (!isShadow)
+//             if (!isShadow)
              {
                  unithisLeftTh  = 0;
                  unithisRightTh = 0;
@@ -2651,7 +2651,8 @@ void linkPaintLine(Mat allUnitContous,vector<laneMarker> &lanemarker,Mat &Tline_
         {
             for(int j=0;j<lanemarker.size();j++)
             {
-                if (sline.WeiPoint.x>lanemarker[j].lPoint.x&&sline.WeiPoint.x<lanemarker[j].rPoint.x)
+                if (sline.WeiPoint.x>lanemarker[j].lPoint.x&&sline.WeiPoint.x<lanemarker[j].rPoint.x
+                    &&sline.WeiPoint.y<lanemarker[j].dPoint.y&&sline.WeiPoint.y>lanemarker[j].uPoint.y)
                 {
                     isdelete = true;
                     break;
@@ -2660,6 +2661,7 @@ void linkPaintLine(Mat allUnitContous,vector<laneMarker> &lanemarker,Mat &Tline_
             }
             if (isdelete==true)
             {
+                isdelete = false;
                 continue;
             }		
         }
@@ -2669,16 +2671,16 @@ void linkPaintLine(Mat allUnitContous,vector<laneMarker> &lanemarker,Mat &Tline_
         {
             drawContours(TSline, contours, i, Scalar(255), 1, 8, hierarchy, 0);
             drawContours(TSlinMark, contours, i, Scalar(255,255,255), 1, 8, hierarchy, 0);
-            vecSlineinfo.push_back(sline);
             circle(TSlinMark,sline.WeiPoint,0,Scalar(255,0,0),4);
             circle(TSlinMark,sline.upoint,0,Scalar(0,255,0),4);
             circle(TSlinMark,sline.dpoint,0,Scalar(0,0,255),4);
+            vecSlineinfo.push_back(sline);
+           
         }
     }
 
 #ifdef DEBUG_ROAD_SCAN
     imwrite( "TSlinMark.png", TSlinMark );
-    imwrite( "TSline.png", TSline );
 #endif
 
 
@@ -2713,7 +2715,7 @@ void linkPaintLine(Mat allUnitContous,vector<laneMarker> &lanemarker,Mat &Tline_
             double tanangle = atan(abs(diffw.y/(diffw.x+0.0000000001)))*180/PI;
 
             //if (abs(dsty)>1500||tanangle<75||cosvalue<0.8||abs(dstx)>20||dsty<0)//Threshold condition
-            if (abs(dsty)>allUnitContous.rows/5||cosvalue3<0.98||cosvalue2<0.98||cosvalue<0.98||dsty<0||abs(dstx)>allUnitContous.cols/3)
+            if (abs(dsty)>2000||cosvalue3<0.95||cosvalue2<0.95||cosvalue<0.95||dsty<0||abs(dstx)>allUnitContous.cols/3)
             {
                 continue;
             }
@@ -2725,10 +2727,16 @@ void linkPaintLine(Mat allUnitContous,vector<laneMarker> &lanemarker,Mat &Tline_
             str_pairpoints.down = vecSlineinfo[j].dpoint;
             str_pairpoints.objindex =j;//object line index£»
             str_pairpoints.srcindex =i;//source line index£»
+            circle(TSlinMark,vecSlineinfo[i].WeiPoint,0,Scalar(255,0,0),4);
+            circle(TSlinMark,vecSlineinfo[i].upoint,0,Scalar(0,255,0),4);
+            circle(TSlinMark,vecSlineinfo[i].dpoint,0,Scalar(0,0,255),4);
             vecPairPoints.push_back(str_pairpoints);
 
         }
     }
+#ifdef DEBUG_ROAD_SCAN
+    imwrite("TSlinMark.png",TSlinMark);
+#endif
     //if more than one up points link to the same down point
     for (int i = 0;i<vecSlineinfo.size();i++)
     {
@@ -2858,7 +2866,9 @@ void linkPaintLine(Mat allUnitContous,vector<laneMarker> &lanemarker,Mat &Tline_
 
     Tline_link_out = Mat::zeros(allUnitContous.size(), CV_8UC1);
     threshold( TSline, TSline, 20, 255,0 );
-
+#ifdef DEBUG_ROAD_SCAN
+    imwrite("TSline.png",TSline);
+#endif
     vector<vector<Point>> contours4;
     vector<Vec4i> hierarchy4;
 

@@ -145,35 +145,79 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 								{
 									//get the server's databaseVersion and compared with vehicle's,if different, send the different elements to vehicle.
 									int16 version = database_gp->getFurnitureVersion();
-									/*if(value != version)
+									if(value != version)
 									{
-										//get the all furniture TLV and send to vehicle's;
-										uint32 vehicleId;
-										
-										currentMsg.getVehicleIDInMsg((uint32*)&currentMsg,&vehicleId);
+                                        int32 totalBufLen = MAX_PAYLOAD_BYTE_NUM + MAX_ROAD_POINT_BYTES;
+                                        uint8 *payloadFromDb = new uint8[totalBufLen];
+                                        if(payloadFromDb == NULL)
+                                        {
+                                            break;
+                                        }
+
+                                        uint8 *outBuffPtr = payloadFromDb;
+                                        int32 outBuffOffset = 0;
+                                        int32 outPduIdx = 0;
+
+										// Get updated road vector from database
+										uint8* bufferAddr = outBuffPtr;
+										int32 outBuffLen;
+										database_gp->getAllVectorsTlv(  memory_e, 
+																		(void**)&bufferAddr, 
+																		&outBuffLen);
+
+										if (outBuffLen > MAX_ROAD_POINT_BYTES)
+										{
+											logPrintf(logLevelCrit_e, "DBAccess", "Buffer overflow!", FOREGROUND_RED);
+										}
+
+										updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
+										updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = vectorList_e;
+										updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
+
+										outBuffPtr += outBuffLen;
+										outBuffOffset += outBuffLen;
+
+										++outPduIdx;
+                                        
+										// Convert all furniture to TLVs
+										int32 segNumOfFur;
+										database_gp->getSegNumOfFurniture(&segNumOfFur);
+
+										for(int segIndex = 0; segIndex < segNumOfFur; ++segIndex)
+										{
+											uint8* bufferAddr = outBuffPtr;
+											int32 furMsgLen;
+											int32 furNum;
+
+											database_gp->getFurnitureTlvInSeg(segIndex,
+																			  totalBufLen - outBuffOffset,
+																			  bufferAddr, 
+																			  &furMsgLen, 
+																			  &furNum);
+
+											if(furNum > 0)
+											{
+												updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
+												updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureList_e;
+												updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
+
+												outBuffPtr += furMsgLen;
+												outBuffOffset += furMsgLen;
+												++outPduIdx;
+											}
+										}
+
+										int numPDUs = outPduIdx;
+
+										updateMsgPtr->msgHeader.numPDUs = numPDUs;
+										updateMsgPtr->msgHeader.headerLen = sizeof(updateMsgPtr->msgHeader) + numPDUs*sizeof(updateMsgPtr->payloadHeader.pduHeader[0]);
 										updateMsgPtr->msgHeader.msgTypeID = UPDATE_REQ_MSG;
 										updateMsgPtr->msgHeader.priority = highLevel_e;
-										updateMsgPtr->msgHeader.vehicleID = vehicleId;
-                                    
-										updateMsgPtr->payload = new uint8[MAX_PAYLOAD_BYTE_NUM];
-										//get the payload memory address and pdu info.
-                                        int32 msgLen, numPdu;
-										database_gp->syncFurnitureToVehicle(updateMsgPtr->payload , &msgLen, &numPdu, MAX_PAYLOAD_BYTE_NUM);
-										updateMsgPtr->msgHeader.payloadLen = msgLen;
-                                        updateMsgPtr->msgHeader.numPDUs = numPdu;
-
-										int updatePduOffset = 0;
-										for(int updatePduIdx=0; updatePduIdx<updateMsgPtr->msgHeader.numPDUs; updatePduIdx++)
-										{
-											updateMsgPtr->payloadHeader.pduHeader[updatePduIdx].operate = addDatabase_e;
-											updateMsgPtr->payloadHeader.pduHeader[updatePduIdx].pduType = furnitureList_e;
-											updateMsgPtr->payloadHeader.pduHeader[updatePduIdx].pduOffset = updatePduOffset;
-											updatePduOffset += (updateMsgPtr->msgHeader.payloadLen) / (updateMsgPtr->msgHeader.numPDUs);
-										}
-										updateMsgPtr->msgHeader.headerLen = sizeof(diffMsgHeader_t) + updateMsgPtr->msgHeader.numPDUs * sizeof(updateMsgPtr->payloadHeader.pduHeader[0]);
+										updateMsgPtr->msgHeader.payloadLen = outBuffOffset;
+										updateMsgPtr->payload = payloadFromDb;
 										databaseQueue_gp->push(&sendMsg);
 										ReleaseSemaphore(g_readySema_readDb,1,NULL);
-									}*/
+									}
 								}
 								break;  
 							}

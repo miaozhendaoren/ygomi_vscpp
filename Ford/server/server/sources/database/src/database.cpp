@@ -117,7 +117,7 @@ namespace ns_database
         _distThreshFarFar = 40.0;// 40m
         _distThreshFar  = 25.0;
         _distThreshMid  = 25.0;
-        _distThreshNear = 8.0;
+        _distThreshNear = 12.0;
 
         _angleThresh = PI;// FIXME: PI means not filter on angle
     }

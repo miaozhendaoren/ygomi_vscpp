@@ -29,10 +29,10 @@ int main(void)
 {
 	//ifstream readParam("England.txt",ios::_Nocreate);
 	//ifstream readParam("VW.txt",ios::_Nocreate);
-	//ifstream readParam("HD.txt",ios::_Nocreate);
-	//ifstream readParam("US.txt",ios::_Nocreate);
+	//ifstream readParam("HD.txt",ios::_Nocreate);DE_Airport2
+	//ifstream readParam("US.txt",ios::_Nocreate);US_Detroit
 	Parameters inParam;
-	bool readStatus = readParamRoadScan("../../../../Ford/inVehicle/inVehicle/config/US_Detroit.txt", inParam);
+	bool readStatus = readParamRoadScan("../../../../Ford/inVehicle/inVehicle/config/DE_Airport2.txt", inParam);
     ns_roadScan::calHAndInvertH(inParam, H, invertH);
 	if(!readStatus)
 	{
@@ -40,7 +40,7 @@ int main(void)
 		return -1;
 	}
 
-	int ChooseVideo = Ford;
+	int ChooseVideo = Airport2;
 
 	int videoIndex = 0;
 	
@@ -52,7 +52,7 @@ int main(void)
 	int locNum[2], holeNum[2];
 
 //	for(int kk = 0; kk<20; kk++)	//VW
-	for(int kk = 0; kk<4; kk++)	//US
+	for(int kk = 0; kk<19; kk++)	//US
 //	for(int kk = 0; kk<3; kk++)	//Honda
 //	for(int kk = 0; kk<11; kk++)//Airport2
 //	for(int kk = 0; kk<3; kk++)
@@ -301,39 +301,122 @@ int main(void)
 		}
 		else if(ChooseVideo==Ford)
 		{
-			if (videoIndex%4 == 0)
+			if (videoIndex%19 == 0)
 				{
-				//	capture.open("F:/roadDB/Ford/NewcoData/MKS360_20130722_003_Uncompressed.avi");
-				//	gpsFile = fopen("F:/roadDB/Ford/NewcoData/gps_003.txt","r");
-					capture.open("F:/carvideo/MKS360_20130722_003_Uncompressed.avi");
-					gpsFile = fopen("F:/carvideo/gps_003.txt","r");
+					capture.open("F:/carvideo/MKS360_20130722_001_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_001.txt","r");
 					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
 
 				}
-				else if (videoIndex%4 == 1)
+				else if (videoIndex%19 == 1)
 				{
-					/*capture.open("F:/roadDB/Ford/NewcoData/MKS360_20130722_004_Uncompressed.avi");
-					gpsFile = fopen("F:/roadDB/Ford/NewcoData/gps_004.txt","r");*/
+					capture.open("F:/carvideo/MKS360_20130722_002_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_002.txt","r");
+					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+				}
+				else if (videoIndex%19 == 2)
+				{
+					capture.open("F:/carvideo/MKS360_20130722_003_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_003.txt","r");
+					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+				}
+				else if (videoIndex%19 == 3)
+				{
 					capture.open("F:/carvideo/MKS360_20130722_004_Uncompressed.avi");
 					gpsFile = fopen("F:/carvideo/gps_004.txt","r");
 					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
 				}
-				else if (videoIndex%4 == 2)
+                else if (videoIndex%19 == 4)
 				{
-					/*capture.open("F:/roadDB/Ford/NewcoData/MKS360_20130722_005_Uncompressed.avi");
-					gpsFile = fopen("F:/roadDB/Ford/NewcoData/gps_005.txt","r");*/
 					capture.open("F:/carvideo/MKS360_20130722_005_Uncompressed.avi");
 					gpsFile = fopen("F:/carvideo/gps_005.txt","r");
 					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
 				}
-				else if (videoIndex%4 == 3)
+                else if (videoIndex%19 == 5)
 				{
-					/*capture.open("F:/roadDB/Ford/NewcoData/MKS360_20130722_006_Uncompressed.avi");
-					gpsFile = fopen("F:/roadDB/Ford/NewcoData/gps_006.txt","r");*/
 					capture.open("F:/carvideo/MKS360_20130722_006_Uncompressed.avi");
 					gpsFile = fopen("F:/carvideo/gps_006.txt","r");
 					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
 				}
+                else if (videoIndex%19 == 6)
+				{
+					capture.open("F:/carvideo/MKS360_20130722_007_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_007.txt","r");
+					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+				}
+                else if (videoIndex%19 == 7)
+				{
+					capture.open("F:/carvideo/MKS360_20130722_008_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_008.txt","r");
+					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+				}
+                else if (videoIndex%19 == 8)
+				{
+					capture.open("F:/carvideo/MKS360_20130722_009_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_009.txt","r");
+					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+				}
+                else if (videoIndex%19 == 9)
+				{
+					capture.open("F:/carvideo/MKS360_20130722_0010_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_0010.txt","r");
+					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+				}
+                else if (videoIndex%19 == 10)
+				{
+					capture.open("F:/carvideo/MKS360_20130722_011_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_011.txt","r");
+					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+				}
+
+                else if (videoIndex%19 == 11)
+                {
+                    continue;
+                }
+
+                 else if (videoIndex%19 == 12)
+				{
+					capture.open("F:/carvideo/MKS360_20130722_013_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_013.txt","r");
+					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+				} 
+                 else if (videoIndex%19 == 13)
+				{
+					capture.open("F:/carvideo/MKS360_20130722_014_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_014.txt","r");
+					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+				} 
+                 else if (videoIndex%19 == 14)
+				{
+					capture.open("F:/carvideo/MKS360_20130722_015_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_015.txt","r");
+					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+				} 
+                 else if (videoIndex%19 == 15)
+				{
+					capture.open("F:/carvideo/MKS360_20130722_016_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_016.txt","r");
+					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+				} 
+                 else if (videoIndex%19 == 16)
+				{
+					capture.open("F:/carvideo/MKS360_20130722_017_Uncompressed.avi");
+					gpsFile = fopen("F:/carvideo/gps_017.txt","r");
+					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+				}
+                 else if (videoIndex%19 == 17)
+                 {
+                     capture.open("F:/carvideo/MKS360_20130722_018_Uncompressed.avi");
+                     gpsFile = fopen("F:/carvideo/gps_018.txt","r");
+                     capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+                 }
+                 else if (videoIndex%19 == 18)
+                 {
+                     capture.open("F:/carvideo/MKS360_20130722_019_Uncompressed.avi");
+                     gpsFile = fopen("F:/carvideo/gps_019.txt","r");
+                     capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+                 }
+
 		}
 		else if(ChooseVideo == Honda)
 		{
@@ -524,7 +607,7 @@ int main(void)
         gpsInformationAndInterval gpsAndInterval;
 		Mat image;
 		int intrtmp=0;
-		int frames = 200;
+		int frames = 350;
 		vector<Point2d> gps_points;
 		
 		while(!feof(gpsFile))
@@ -536,10 +619,10 @@ int main(void)
 	//	number_of_frames=1300;
 
 	
-		for (int n=0;n<150;n++)
+		for (int n=20;n<150;n++)
 		{
-			/*cout<<"video="<<videoIndex<<","<<gpsname<<","<<videoname<<endl;*/
-			cout<<"video="<<videoIndex<<endl;
+
+            cout<<"video="<<videoIndex<<endl;
 			cout<<"interval="<<n<<endl;
 			if (n*frames+1>number_of_frames)
 			{

@@ -18,8 +18,8 @@
 #include <string.h>
 #include "typeDefine.h"
 #define MAX_PDU_NUM							300
-#define MAX_PAYLOAD_BYTE_NUM				(1024*500)  //500K
-#define MAX_ROAD_POINT_BYTES				(1024*100000) //100000K
+#define MAX_PAYLOAD_BYTE_NUM				(1024*5000)  //5000K
+#define MAX_ROAD_POINT_BYTES				(1024*100000) //100M
 //message ID
 #define STATUS_UPDATE_RPT_MSG				0x0000
 #define STATUS_UPDATE_RSP_MSG				0x1000

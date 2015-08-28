@@ -21,7 +21,7 @@ distanceOfRight:
 220
 
 ridgeThreshold:
-20
+10
 
 stretchRate:
 2

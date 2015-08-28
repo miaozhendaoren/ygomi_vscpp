@@ -220,6 +220,13 @@ unsigned int __stdcall startSocket(void *data)
 		clientInfo.client = server;
 		clientInfo.sockClient = sockClient;
 		clientList.push_back(clientInfo);
+		printf("Accept IP: %d.%d.%d.%d, Port:%d\n",
+						server.sin_addr.S_un.S_un_b.s_b1,
+						server.sin_addr.S_un.S_un_b.s_b2,
+						server.sin_addr.S_un.S_un_b.s_b3,
+						server.sin_addr.S_un.S_un_b.s_b4,
+						server.sin_port
+						);
 
 	}
 	return 0;

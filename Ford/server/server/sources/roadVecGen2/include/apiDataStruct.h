@@ -34,7 +34,7 @@ using namespace ns_database;
 using namespace cv;
 using namespace std;
 
-// use this macro to control image show or saving
+// use this macro to control image show or saving for debug purpose
 #define VISUALIZATION_ON     0
 #define SAVE_DATA_ON         0
 
@@ -58,6 +58,7 @@ struct Offset
 typedef struct _reportSectionData
 {
     uint32                              sectionId;    // segment ID
+    bool                                revDirFlag;   // 0: not reverse direction, 1: reverse direction
     list<list<list<vector<point3D_t>>>> rptSecData;   // reported new lane data
                                                       // multiple reported data
                                                       // of lanes with lines

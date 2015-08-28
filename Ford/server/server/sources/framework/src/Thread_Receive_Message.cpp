@@ -89,6 +89,14 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 						{
 							int errorCode = WSAGetLastError();
 							logPrintf(logLevelError_e,"RECEIVE_MSG","Receive message header length failed!");
+							//shutdown(clientListIdx->sockClient,2);
+							
+							//close socket file
+							struct linger so_linger;
+							so_linger.l_onoff = 1;
+							so_linger.l_linger = 300;
+							setsockopt(clientListIdx->sockClient,SOL_SOCKET,SO_LINGER,(char*)&so_linger,sizeof(so_linger));
+							closesocket(clientListIdx->sockClient);
 							clientList.erase(clientListIdx++);
 							goto RESTART_LABEL;
 						}
@@ -112,6 +120,11 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 							int errorCode = WSAGetLastError();
 							logPrintf(logLevelError_e,"RECEIVE_MSG","Receive message header failed!"); 
 							
+							struct linger so_linger;
+							so_linger.l_onoff = 1;
+							so_linger.l_linger = 300;
+							setsockopt(clientListIdx->sockClient,SOL_SOCKET,SO_LINGER,(char*)&so_linger,sizeof(so_linger));
+							closesocket(clientListIdx->sockClient);
 							clientList.erase(clientListIdx++);
 							goto RESTART_LABEL;
 						}
@@ -148,6 +161,11 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 								delete recvDiffMsg->payload;
 								recvDiffMsg->payload = NULL;
 								
+								struct linger so_linger;
+								so_linger.l_onoff = 1;
+								so_linger.l_linger = 300;
+								setsockopt(clientListIdx->sockClient,SOL_SOCKET,SO_LINGER,(char*)&so_linger,sizeof(so_linger));
+								closesocket(clientListIdx->sockClient);
 								clientList.erase(clientListIdx++);
 								goto RESTART_LABEL;
 							}

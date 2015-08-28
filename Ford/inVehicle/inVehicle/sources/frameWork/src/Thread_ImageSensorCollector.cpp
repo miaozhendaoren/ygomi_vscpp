@@ -289,7 +289,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 				preGps.lon = gGpsInfo.dLongitude;
 				continue;
 			}
-			cv::namedWindow("image");
+			cv::namedWindow("image",CV_WINDOW_NORMAL);
 			cv::imshow("image",(*imageTempVec->begin()).image);
 			cv::waitKey(1);
 
@@ -611,7 +611,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 		imageBuffer.addImage(image,currentGps,preGps,speed,direction);
 
 		preGps = currentGps;
-		cv::namedWindow("image");
+		cv::namedWindow("image",CV_WINDOW_NORMAL);
 		cv::imshow("image",image);
 		cv::waitKey(1);
 	}

@@ -664,7 +664,7 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
                     }
                 }//end for    
 
-                if(flag ==1) // remove 28300 && 28600
+                if((flag ==1)  && (type != 31400))// remove 28300 && 28600
                 {
                     TS_Structure::TS_element detectSign;
                     detectSign.type = type;

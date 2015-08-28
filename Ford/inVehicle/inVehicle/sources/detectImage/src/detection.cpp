@@ -140,7 +140,7 @@ void Detector::drawLine(cv::Mat image,std::vector<cv::Point> &approx,Scalar colo
 }
 
 Detector::Detector(float highStep,double dist_per_piexl,int horizon_line):_DIST_PER_PIEXL(dist_per_piexl),_HORIZON_LINE_PIEXL(horizon_line),
-													_PI_DIV_180(0.01745329251994329576923690768489), _PI(3.1415926535897932384626433832795), _OFFSET_NUMBER(60)
+													_PI_DIV_180(0.01745329251994329576923690768489), _PI(3.1415926535897932384626433832795), _OFFSET_NUMBER(100)
 {
     //float stepSize[] = {0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5, 15, 15.5, 16, 16.5, 17, 17.5, 18, 18.5, 19, 19.5, 20, 20.5, 21, 21.5, 22, 22.5, 23, 23.5, 24, 24.5, 25, 25.5, 26, 26.5, 27, 27.5, 28, 28.5, 29, 29.5, 30};
     
@@ -197,7 +197,7 @@ void Detector::positionMeasure(Parameters &inParam, Point2d &GPS_current, Point2
             int yPixel = (int)((target.trafficSign[idx].center.y + target.trafficSign[idx].rect.height * 0.5 + signHeight) * inParam.imageScaleHeight + 0.5); // the first 0.5 means the half height of traffic sign.
             Point buttomPixel = Point(xPixel,yPixel);
 
-            //circle(imageOut,buttomPixel,2,Scalar(0,0,255),1);
+            circle(imageOut,buttomPixel,2,Scalar(0,0,255),1);
 
             // if the pixel is out of the image, stop process
             if(yPixel > imageWidthTemp)
@@ -216,58 +216,23 @@ void Detector::positionMeasure(Parameters &inParam, Point2d &GPS_current, Point2
             // change the image to bird view 
             determineBirdViewLocation(invertH, buttomPixel, pixelLocationBirdView);
 
-            //birdViewPoints.push_back(pixelLocationBirdView);
-
             // change the bird view pixel to relative location.
             getRefGPSLocationOfEveryPixelInRoadScanImage(imageOut, inParam.stretchRate, GPS_current, GPS_next, GPS_reference, pixelLocationBirdView, _DIST_PER_PIEXL, refGPSOriginalImage);
-
-            //cout<<refGPSOriginalImage.x<<" "<<refGPSOriginalImage.y<<endl;
 
             //cal absolute GPS of original image pixel from refGPS and GPS_reference, if need
             ns_database::point3D_t refGPSOriginalImage3d;
 
             refGPSOriginalImage3d.lat = refGPSOriginalImage.x;
             refGPSOriginalImage3d.lon = refGPSOriginalImage.y;
-            //calActualGPSFromRef(refGPSOriginalImage, GPS_reference, absoluteGPSOriginalImage);
+
             target.trafficSign[idx].position.push_back(refGPSOriginalImage3d);
             target.trafficSign[idx].offset.push_back(stepSize);
         }
 
-          /*Mat birdView;
-          getBirdView(imageOut, birdView);
+        namedWindow("imagePositon");
+        imshow("iamgePositoin",imageOut);
 
-          for(int index = 0; index<birdViewPoints.size(); index++)
-          {
-              if((birdViewPoints[index].x >= 0)&&(birdViewPoints[index].x < birdView.cols))
-              {
-                  if((birdViewPoints[index].y >= 0)&&(birdViewPoints[index].y < birdView.rows))
-                  {
-                      circle(birdView, birdViewPoints[index], 2, Scalar(255, 0, 0), 2);
-                  }
-              }
-          }
-            
-          namedWindow("birdView");
-          imshow("birdView", birdView);
-
-
-          char fileName[100];
-          static int ID = 0;
-
-          sprintf_s(fileName,100,"birdView%d.png",ID++);
-
-          imwrite(fileName, birdView);
-            
-          waitKey(30);
-*/
-            //namedWindow("imagePositon");
-            //imshow("iamgePositoin",imageOut);
-
-            //char fileName[100];
-            //static int ID = 0;
-
-            //sprintf_s(fileName,100,"birdView%d.png",ID++);
-            //imwrite(fileName, imageOut);
+        waitKey(30);
     }
 }
 

@@ -287,6 +287,21 @@ namespace ns_database
         void getLinePaintInfo(IN  vector<point3D_t> &sourceline,
                               OUT vector<point3D_t> &destline);
 
+        /*
+        * @FUNC
+        *     Get foreground database line data according to input and rotation
+        *     angle.
+        *
+        * @PARAMS
+        *     bgline   - background database line data.
+        *     theta    - section rotation angle
+        *     fgline   - normalized paint information foreground base line
+        *
+        */
+        void getFGLine(IN  vector<point3D_t> &bgline,
+                       double                 theta,
+                       OUT vector<point3D_t> &fgline);
+
     };
 
 }

@@ -261,7 +261,7 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 		Mat allKappBin;
 
         blockCalRidge(longLane_cut,inParam,allUnitKapa,allUnitContous,allKappBin);
-		
+
 		linkInterval(allUnitContous,allUnitContous);
 		threshold( allUnitContous, allUnitContous,5, 255,0 );
 
@@ -271,6 +271,10 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
        
         Mat lineLinkOut;
 		linkPaintLine(allUnitContous,lanemarker,lineLinkOut);
+
+
+
+
 
 		//step3: find the left and right lane.
 		int w1 = allUnitContous.cols;
@@ -488,7 +492,7 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 			middleRoadPaintData[i].Left_Paint_Edge[1] = Point2d(0.0, 0.0);
 			middleRoadPaintData[i].Left_Area_Pixel_Mean = -1.0;
 
-			middleRoadPaintData[i].Middle_RelGPS = Point2d(0.0, 0.0);
+//			middleRoadPaintData[i].Middle_RelGPS = Point2d(0.0, 0.0);
 			middleRoadPaintData[i].Middle_Area_Pixel_Mean = -1.0;
 
 			middleRoadPaintData[i].rightPoint = Point(-1, -1);

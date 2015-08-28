@@ -862,7 +862,7 @@ void filterFurToReport(point3D_t currentGps,list<statisticsFurInfo_t>* furnListI
                                 if((minVar > varTemp/counter) && (counter > VAR_ACC_TIME))
                                 {
                                     minVar = varTemp/counter;
-                                    gpsReport = meanLoc[offsetIdx];
+                                    gpsReport = positionVector[offsetIdx];
                                     minOffset = offsetVector[offsetIdx]; 
                                 }
                                 //cout << "var time:" << counter << endl;
