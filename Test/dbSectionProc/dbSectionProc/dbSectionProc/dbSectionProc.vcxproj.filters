@@ -42,6 +42,9 @@
     <ClCompile Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\src\VisualizationApis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\src\RoadVecGen2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\database\include\databaseDef.h">
@@ -69,6 +72,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\include\VisualizationApis.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\include\RoadVecGen2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

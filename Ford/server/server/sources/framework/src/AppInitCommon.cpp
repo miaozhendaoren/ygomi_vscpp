@@ -17,6 +17,7 @@
 #include "database.h"   // database
 #include "databaseServer.h" // databaseServer
 #include "RoadVecGen.h" // CRoadVecGen
+#include "RoadVecGen2.h" // CRoadVecGen2
 #include "appInitCommon.h"
 #include "LogInfo.h"
 #include "messageQueueClass.h"
@@ -37,6 +38,7 @@ HANDLE g_readySema_msgQueue;
 
 ns_database::databaseServer* database_gp;
 ns_database::CRoadVecGen *roadVecGen_gp;
+ns_database::CRoadVecGen2 *roadVecGen2_gp;
 messageQueueClass* messageQueue_gp;
 messageQueueClass* databaseQueue_gp;
 
@@ -49,14 +51,26 @@ void appInitEvents(void)
 }
 void databaseInit()
 {
-    roadVecGen_gp = new ns_database::CRoadVecGen();
-
     list<segAttributes_t> segConfigList;
+
+#if RD_MERGING_ALGO_VER==2
+    roadVecGen2_gp = new ns_database::CRoadVecGen2();
+
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+    roadVecGen2_gp->setSectionConfigPath(".\\config\\DE_Airport_manualSeg.txt", segConfigList);
+#elif (RD_LOCATION == RD_GERMAN_LEHRE)
+    roadVecGen2_gp->setSectionConfigPath(".\\config\\DE_Lehre_manualSeg.txt", segConfigList);
+#endif
+
+#else
+    roadVecGen_gp = new ns_database::CRoadVecGen();
 
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
     roadVecGen_gp->setSectionConfigPath(".\\config\\DE_Airport_manualSeg.txt", segConfigList);
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
     roadVecGen_gp->setSectionConfigPath(".\\config\\DE_Lehre_manualSeg.txt", segConfigList);
+#endif
+
 #endif
 
 	database_gp = new ns_database::databaseServer();

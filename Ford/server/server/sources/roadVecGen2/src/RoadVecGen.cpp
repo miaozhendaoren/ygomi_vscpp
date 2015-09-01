@@ -22,7 +22,7 @@
 #include "polynomialFit.h"
 #include "RoadVecGen.h"
 
-#if VISUALIZATION_ON || DATA_SAVE_ON
+#if VISUALIZATION_ON || SAVE_DATA_ON
 #include "VisualizationApis.h"
 
 static uint32 PREVIOUS_SEGID = 0;

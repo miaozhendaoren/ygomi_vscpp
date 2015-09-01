@@ -19,7 +19,9 @@
 #include "appInitCommon.h"
 #include "laneQueueClass.h"
 #include "RoadVecGen.h" // CRoadVecGen
+#include "RoadVecGen2.h" // CRoadVecGen2
 #include "LogInfo.h"  // logPrintf
+#include "configure.h"
 
 #pragma comment(lib,"winmm.lib")
 
@@ -455,7 +457,13 @@ bool processLaneBuffer()
         laneQueueBuff.getAllVectors(newDataList);
 
         list<list<vector<point3D_t>>> fgData;
-        bool flag = roadVecGen_gp->roadSectionsGen(newDataList, fgData);
+
+        bool flag = false;
+#if RD_MERGING_ALGO_VER==2
+        flag = roadVecGen2_gp->roadSectionsGen(newDataList, fgData);
+#else
+        flag = roadVecGen_gp->roadSectionsGen(newDataList, fgData);
+#endif
 
         if (flag == false)
         {

@@ -1,12 +1,12 @@
 #include "apiDataStruct.h"
-#include "RoadVecGen.h"
+#include "RoadVecGen2.h"
 #include "VisualizationApis.h"
 
 list<list<vector<point3D_t>>>       newDataVec;
 list<list<vector<point3D_t>>>       fgData;
 list<segAttributes_t>               segConfigList;
 
-CRoadVecGen g_RoadVecGen;
+CRoadVecGen2 g_RoadVecGen;
 
 void main()
 {

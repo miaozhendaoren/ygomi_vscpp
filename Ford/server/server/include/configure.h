@@ -29,6 +29,9 @@
 #define RD_SIGN_DETECT_WHITE_BLACK    1
 #define RD_SIGN_DETECT_COLOR          2
 
+// Road lane merge algorithm version, 1 or 2
+#define RD_MERGING_ALGO_VER           2
+
 #if defined(_FRANKFORT_CAMERA)
 #define RD_USE_CAMERA          ON
 #define RD_IMAGE_BUFFER_FILE   ON

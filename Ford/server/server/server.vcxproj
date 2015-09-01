@@ -209,6 +209,7 @@ copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib
     <ClCompile Include="sources\roadVecGen2\src\ExtractSection.cpp" />
     <ClCompile Include="sources\roadVecGen2\src\polynomialFit.cpp" />
     <ClCompile Include="sources\roadVecGen2\src\RoadVecGen.cpp" />
+    <ClCompile Include="sources\roadVecGen2\src\RoadVecGen2.cpp" />
     <ClCompile Include="sources\roadVecGen2\src\VisualizationApis.cpp" />
     <ClCompile Include="sources\visualization\src\Loader3DS.cpp" />
     <ClCompile Include="sources\visualization\src\Visualization.cpp" />

@@ -79,12 +79,13 @@ typedef struct _foregroundSectionData
 
 typedef struct _sectionConfigure
 {
-    double dbWidth;                                     //section Width
-    double dbOverlap;                                   //section Overlap
-    double dbMinLength;                                 //section Minimum Length
-    double dbMaxLength;                                 //section Maximum Length
-    double dbPaintV;                                    //Value for weigh paint  
-    uint32 uiStepSize;                                //windows size to calculate lane length
+    double dbWidth;                                   // section Width
+    double dbOverlap;                                 // section Overlap
+    double dbMinLength;                               // section Minimum Length
+    double dbMaxLength;                               // section Maximum Length
+    double dbPaintV;                                  // value for weigh paint
+    uint32 uiStepSize;                                // windows size to calculate lane length
+    uint32 uiSecNum;                                  // number of sections
 }sectionCon;
 
 

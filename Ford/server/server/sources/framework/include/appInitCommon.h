@@ -20,6 +20,7 @@
 #include "database.h"
 #include "databaseServer.h"
 #include "RoadVecGen.h"
+#include "RoadVecGen2.h"
 #include "messageProcessClass.h"
 #include "messageQueueClass.h"
 
@@ -53,6 +54,7 @@ extern messageQueueClass* messageQueue_gp;
 extern messageQueueClass* databaseQueue_gp;
 extern ns_database::databaseServer* database_gp;
 extern ns_database::CRoadVecGen *roadVecGen_gp;
+extern ns_database::CRoadVecGen2 *roadVecGen2_gp;
 
 extern SOCKET sockServer;			// socket
 extern SOCKET sockClient;

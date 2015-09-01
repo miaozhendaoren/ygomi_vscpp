@@ -78,6 +78,7 @@
     <ClCompile Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\src\ExtractSection.cpp" />
     <ClCompile Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\src\polynomialFit.cpp" />
     <ClCompile Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\src\RoadVecGen.cpp" />
+    <ClCompile Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\src\RoadVecGen2.cpp" />
     <ClCompile Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\src\VisualizationApis.cpp" />
     <ClCompile Include="dbSectionProc_main.cpp" />
   </ItemGroup>
@@ -90,6 +91,7 @@
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\include\ExtractSection.h" />
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\include\polynomialFit.h" />
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\include\RoadVecGen.h" />
+    <ClInclude Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\include\RoadVecGen2.h" />
     <ClInclude Include="..\..\..\..\Ford\server\server\sources\roadVecGen2\include\VisualizationApis.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
