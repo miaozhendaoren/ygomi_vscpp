@@ -563,7 +563,7 @@ namespace ns_database
                         byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
 
                         tlvCfgP = &_tlvCfg_dataPoint_a[data_pointPaintFlag_e - data_pointBase_e];
-                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, pointTmp.paintFlag);
+                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, *(uint32*)(&pointTmp.paintFlag));
                         byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
                     }
 
@@ -1607,7 +1607,7 @@ namespace ns_database
                         *numByteInBuff += 8;
                     }else if(typeId == data_pointPaintFlag_e)
                     {
-                        pointElement.paintFlag = (char)tlvTmp.value;
+                        pointElement.paintFlag = *(float*)&tlvTmp.value;
                     }else
                     // disX, disY, disZ, attributes
                     {

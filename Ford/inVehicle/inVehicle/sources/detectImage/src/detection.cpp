@@ -200,7 +200,7 @@ void Detector::positionMeasure(Parameters &inParam, Point2d &GPS_current, Point2
             circle(imageOut,buttomPixel,2,Scalar(0,0,255),1);
 
             // if the pixel is out of the image, stop process
-            if(yPixel > imageWidthTemp)
+            if(yPixel > imageHeightTemp)
             {
                 break;
             }
@@ -231,8 +231,14 @@ void Detector::positionMeasure(Parameters &inParam, Point2d &GPS_current, Point2
 
         namedWindow("imagePositon");
         imshow("iamgePositoin",imageOut);
+#ifdef TRAFFIC_SIGN_TEST
+        static int ID = 0;
+        char fileName[100];
+        sprintf_s( fileName,100, "D:/Newco/airport_Code/Demo/Ford/inVehicle/Release/%05d.jpg",ID++);
 
+        imwrite(fileName,imageOut);
         waitKey(30);
+#endif
     }
 }
 

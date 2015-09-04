@@ -21,7 +21,7 @@
 namespace ns_database
 {
     /***************************************************************************************************
-    IN list<segAttributes_t> sectionConfig        each section configure :section ID section boundary points
+    IN list<segAttributes_t> &sectionConfig        each section configure :section ID section boundary points
     IN list<list<vector<point3D_t>>> &reportData   more than once report data
     OUT reportSectionData &rptSectionData          extract multi sections from report data 
     ***************************************************************************************************/
@@ -63,10 +63,22 @@ namespace ns_database
                         vector<point3D_t> vLeftLine = ltNoChangeLaneData.front();
                         if (vLeftLine.size() > MINPOINTNUM)  // avoid handle few points which means short length about report data
                         {
-                            iStatus = getReportHeadandTailOverlapLocation(ltNoChangeLaneData,stsectionConfig,ltEffectiveLaneData,ltMainEffectiveLaneData,uiStartLoc,uiEndLoc,dbLength);
+                            iStatus = getReportHeadandTailOverlapLocation(ltNoChangeLaneData,
+                                                                           stsectionConfig,
+                                                                           ltEffectiveLaneData,
+                                                                           ltMainEffectiveLaneData,
+                                                                           uiStartLoc,
+                                                                           uiEndLoc,
+                                                                           dbLength);
                             if (iStatus == I_SUCCESS)
                             {
-                                iStatus = getMatchSections(ltSectionDataScale,stsectionConfig,ltNoChangeLaneData,ltEffectiveLaneData,uiStartLoc,uiEndLoc,ltRptSectionData);
+                                iStatus = getMatchSections(ltSectionDataScale,
+                                                           stsectionConfig,
+                                                           ltNoChangeLaneData,
+                                                           ltEffectiveLaneData,
+                                                           uiStartLoc,
+                                                           uiEndLoc,
+                                                           ltRptSectionData);
                                 ltEffectiveLaneData.clear();
                                 ltMainEffectiveLaneData.clear();
                             }
@@ -95,8 +107,8 @@ namespace ns_database
             IN sectionCon               &stSectionConfig,
             IN list<vector<point3D_t>>  &ltRawData,
             IN list<vector<point3D_t>>  &ltEffectiveLaneData,
-            IN uint32                    uiStartLoc,
-            IN uint32                    uiEndLoc,
+            IN uint32                    &uiStartLoc,
+            IN uint32                    &uiEndLoc,
             OUT list<reportSectionData> &ltMatchSections)
     {
         vector<segAttributes_t> ltSectionCentrePoint;
@@ -139,17 +151,17 @@ namespace ns_database
         //1.get section boundary centre and  centre point between left line and right line of lane
         for (list<segAttributes_t>::iterator iter = ltSectionDataScale.begin(); iter!=ltSectionDataScale.end();++iter)
         {
-            segSectionCentre.ports[0].lon = ((*iter).ports[0].lon + (*iter).ports[1].lon)/2;  
-            segSectionCentre.ports[0].lat = ((*iter).ports[0].lat + (*iter).ports[1].lat)/2;
+            segSectionCentre.ports[0].lon = (*iter).ports[0].lon;
+            segSectionCentre.ports[0].lat = (*iter).ports[0].lat;
 
-            segSectionCentre.ports[1].lon = ((*iter).ports[2].lon + (*iter).ports[3].lon)/2;  
-            segSectionCentre.ports[1].lat = ((*iter).ports[2].lat + (*iter).ports[3].lat)/2;
+            segSectionCentre.ports[1].lon = (*iter).ports[1].lon;
+            segSectionCentre.ports[1].lat = (*iter).ports[1].lat;
 
-            segSectionCentre.ports[2].lon = ((*iter).ports[4].lon + (*iter).ports[5].lon)/2;  
-            segSectionCentre.ports[2].lat = ((*iter).ports[4].lat + (*iter).ports[5].lat)/2;
+            segSectionCentre.ports[2].lon = (*iter).ports[2].lon;
+            segSectionCentre.ports[2].lat = (*iter).ports[2].lat;
 
-            segSectionCentre.ports[3].lon = ((*iter).ports[6].lon + (*iter).ports[7].lon)/2;  
-            segSectionCentre.ports[3].lat = ((*iter).ports[6].lat + (*iter).ports[7].lat)/2;
+            segSectionCentre.ports[3].lon = (*iter).ports[3].lon;
+            segSectionCentre.ports[3].lat = (*iter).ports[3].lat;
 
             segSectionCentre.segId_used = (*iter).segId_used;
             segSectionCentre.segId = (*iter).segId;
@@ -176,13 +188,19 @@ namespace ns_database
         }
         //2.locate matched start and end section of report data
 
-        iStatus = locateCandidateSectionBoundary(vEffectiveLaneCentreData[uiStartLoc],ltSectionCentrePoint,segClosestLoc_start,segSecondClosestLoc_start);
+        iStatus = locateCandidateSectionBoundary(vEffectiveLaneCentreData[uiStartLoc],
+                                                ltSectionCentrePoint,
+                                                segClosestLoc_start,
+                                                segSecondClosestLoc_start);
 
         if (iStatus!=I_SUCCESS)
         {
             return iStatus;
         }
-        iStatus = locateCandidateSectionBoundary(vEffectiveLaneCentreData[uiEndLoc],ltSectionCentrePoint,segClosestLoc_end,segSecondClosestLoc_end);
+        iStatus = locateCandidateSectionBoundary(vEffectiveLaneCentreData[uiEndLoc],
+                                                 ltSectionCentrePoint,
+                                                 segClosestLoc_end,
+                                                 segSecondClosestLoc_end);
 
         if (iStatus!=I_SUCCESS)
         {
@@ -196,28 +214,68 @@ namespace ns_database
         } 
         else
         {
-            iStatus = filterCandidateSectionBoundary(vEffectiveLaneCentreData[uiStartLoc],vEffectiveLaneCentreData[uiStartLoc+10], segClosestLoc_start,segSecondClosestLoc_start,segClosestSection_start);
-            iStatus = filterCandidateSectionBoundary(vEffectiveLaneCentreData[uiEndLoc],vEffectiveLaneCentreData[uiEndLoc-10], segClosestLoc_end,segSecondClosestLoc_end,segClosestSection_end);
+            iStatus = filterCandidateSectionBoundary(vEffectiveLaneCentreData[uiStartLoc],
+                                                     vEffectiveLaneCentreData[uiStartLoc+10], 
+                                                     segClosestLoc_start,
+                                                     segSecondClosestLoc_start,
+                                                     segClosestSection_start);
+
+            iStatus = filterCandidateSectionBoundary(vEffectiveLaneCentreData[uiEndLoc],
+                                                     vEffectiveLaneCentreData[uiEndLoc-10],
+                                                     segClosestLoc_end,
+                                                     segSecondClosestLoc_end,
+                                                     segClosestSection_end);
 
 
             //3 .extract matched section from report data
-            if (segClosestSection_start.segId <= segSecondClosestLoc_end.segId-1)
+            if (ROADCIRCLE == 0)
             {
-                iStatus = matchSections(ltSectionDataScale,segClosestSection_start.segId,segClosestSection_end.segId,ltSectionCentrePoint,vRawLeftLineData,vRawRightLineData,ltMatchSections);
+                
+                uint32 uiStartId = segClosestSection_start.segId<segClosestSection_end.segId?segClosestSection_start.segId:segClosestSection_end.segId;
+                uint32 uiEndId   = segClosestSection_start.segId>segClosestSection_end.segId?segClosestSection_start.segId:segClosestSection_end.segId;
+                iStatus = matchSections(ltSectionDataScale,uiStartId,uiEndId,ltSectionCentrePoint,vRawLeftLineData,vRawRightLineData,ltMatchSections);
                 if (iStatus!= I_SUCCESS)
                     return iStatus;
-            } 
+            }
             else
             {
-                iStatus = matchSections(ltSectionDataScale,segClosestSection_start.segId,CONJOINTSECID,ltSectionCentrePoint,vRawLeftLineData,vRawRightLineData,ltMatchSections);
-                if (iStatus!= I_SUCCESS)
-                    return iStatus;
-                iStatus = matchSections(ltSectionDataScale,STARTSECID,segClosestSection_end.segId,ltSectionCentrePoint,vRawLeftLineData,vRawRightLineData,ltMatchSections);
-                if (iStatus!= I_SUCCESS)
-                    return iStatus;
+                if (segClosestSection_start.segId <= segSecondClosestLoc_end.segId-1)
+                {
+                iStatus = matchSections(ltSectionDataScale,
+                                       segClosestSection_start.segId,
+                                       segClosestSection_end.segId,
+                                       ltSectionCentrePoint,
+                                       vRawLeftLineData,
+                                       vRawRightLineData,
+                                       ltMatchSections);
+                    if (iStatus!= I_SUCCESS)
+                        return iStatus;
+                } 
+                else
+                {
+                iStatus = matchSections(ltSectionDataScale,
+                                        segClosestSection_start.segId,
+                                        CONJOINTSECID,
+                                        ltSectionCentrePoint,
+                                        vRawLeftLineData,
+                                        vRawRightLineData,
+                                        ltMatchSections);
+                    if (iStatus!= I_SUCCESS)
+                        return iStatus;
+                iStatus = matchSections(ltSectionDataScale,
+                                        STARTSECID,
+                                        segClosestSection_end.segId,
+                                        ltSectionCentrePoint,
+                                        vRawLeftLineData,
+                                        vRawRightLineData,
+                                        ltMatchSections);
+                    if (iStatus!= I_SUCCESS)
+                        return iStatus;
 
+                }
 
             }
+           
         }
         return iStatus;
     }
@@ -225,10 +283,10 @@ namespace ns_database
 
     /****filter the correct section from two candinate sections *****/
     ISTATUS CExtractSection::filterCandidateSectionBoundary(
-        IN point3D_t         point3DRefOne,
-        IN point3D_t         point3DRefTwo,
-        IN segAttributes_t   segCandidateOne,
-        IN segAttributes_t   segCandidateTwo,
+        IN point3D_t         &point3DRefOne,
+        IN point3D_t         &point3DRefTwo,
+        IN segAttributes_t   &segCandidateOne,
+        IN segAttributes_t   &segCandidateTwo,
         OUT segAttributes_t &segClosestSection)
     {
         double dlDisA = ((point3DRefOne.lon - segCandidateOne.ports[0].lon)* (point3DRefOne.lon - segCandidateOne.ports[0].lon)+
@@ -258,34 +316,57 @@ namespace ns_database
 
     /*********locate the closest and second closest section boundary that distance from given point***********/
     ISTATUS CExtractSection::locateCandidateSectionBoundary(
-        IN point3D_t                point3D,
+        IN point3D_t               &point3D,
         IN vector<segAttributes_t> &vSectionCentrePoint,
         OUT segAttributes_t        &segFirstCandidate,
         OUT segAttributes_t        &segSecondCandidate)
     {
-        double  dlLength  = 0, dlMinLength = 0;
-        ISTATUS   iStatus = I_SUCCESS;
-        unsigned int   uiClosestLoc=0,
-            uiSecondClosetLoc = 0;
+        double        dlLength  = 0,
+                      dlLength_two = 0,
+                      dlLength_three = 0,
+                      dlShorestLength = 0,
+                      dlShorerLength  = 0;
+        ISTATUS       iStatus = I_SUCCESS;
+        unsigned int  uiClosestLoc=0,
+                      uiSecondClosetLoc = 1;
+        // step 1 get the closest boundary
         if (vSectionCentrePoint.empty())
             return I_FAIL;
-        dlMinLength = sqrt((point3D.lon - vSectionCentrePoint[0].ports[0].lon)*(point3D.lon - vSectionCentrePoint[0].ports[0].lon)+
-                       (point3D.lat - vSectionCentrePoint[0].ports[0].lat)*(point3D.lat - vSectionCentrePoint[0].ports[0].lat));
-
-    
+        dlShorestLength = sqrt((point3D.lon - vSectionCentrePoint[0].ports[0].lon)*(point3D.lon - vSectionCentrePoint[0].ports[0].lon)+
+            (point3D.lat - vSectionCentrePoint[0].ports[0].lat)*(point3D.lat - vSectionCentrePoint[0].ports[0].lat));
+        dlShorerLength = dlShorestLength;
         for (unsigned int i = 1; i<vSectionCentrePoint.size(); i++)
         {
             dlLength = sqrt((point3D.lon - vSectionCentrePoint[i].ports[0].lon)*(point3D.lon - vSectionCentrePoint[i].ports[0].lon)+
                 (point3D.lat - vSectionCentrePoint[i].ports[0].lat)*(point3D.lat - vSectionCentrePoint[i].ports[0].lat));
 
-            if (dlLength < dlMinLength)
+            if (dlLength < dlShorestLength)
             {
-                //uiSecondClosetLoc = uiClosestLoc;
-                dlMinLength = dlLength;
+                dlShorerLength = dlShorestLength;
+                dlShorestLength = dlLength;
                 uiClosestLoc = i;
-                uiSecondClosetLoc = uiClosestLoc - 1;
             }
         }
+        // step 2 get the second closest boundary     
+        if (uiClosestLoc>0 && uiClosestLoc< vSectionCentrePoint.size()-1)
+        {
+
+            dlLength_two = sqrt((point3D.lon - vSectionCentrePoint[uiClosestLoc -1].ports[0].lon)*(point3D.lon - vSectionCentrePoint[uiClosestLoc -1].ports[0].lon)+
+                (point3D.lat - vSectionCentrePoint[uiClosestLoc -1].ports[0].lat)*(point3D.lat - vSectionCentrePoint[uiClosestLoc -1].ports[0].lat));
+
+            dlLength_three = sqrt((point3D.lon - vSectionCentrePoint[uiClosestLoc + 1].ports[0].lon)*(point3D.lon - vSectionCentrePoint[uiClosestLoc +1].ports[0].lon)+
+                (point3D.lat - vSectionCentrePoint[uiClosestLoc +1].ports[0].lat)*(point3D.lat - vSectionCentrePoint[uiClosestLoc +1].ports[0].lat));
+
+            if (dlLength_two <= dlLength_three)
+                uiSecondClosetLoc = uiClosestLoc - 1;
+            else
+                uiSecondClosetLoc = uiClosestLoc + 1;
+        } else if (uiClosestLoc == 0)
+            uiSecondClosetLoc = uiClosestLoc + 1;
+        else 
+            uiSecondClosetLoc = uiClosestLoc - 1;
+
+
         segFirstCandidate = vSectionCentrePoint[uiClosestLoc];
         segSecondCandidate = vSectionCentrePoint[uiSecondClosetLoc];
         return I_SUCCESS;
@@ -344,7 +425,7 @@ namespace ns_database
         OUT uint32                  &uiEndLoc,
         OUT double                  &dbLength)
     {
-        //1.extract effective point which flag not -1
+        //step 1.extract effective point which flag not -1
         vector<point3D_t> vRawLineData_L,
             vRawLineData_R,
             vEffectiveLineData_L,
@@ -384,7 +465,7 @@ namespace ns_database
             vRawLineData_L.clear();
             vRawLineData_R.clear();
 
-            //2.calculate lane length and get effective lane data head and tail overlap 
+            //step 2.calculate lane length and get effective lane data head and tail overlap 
             dbLength=calcLaneLength(ltEffectiveLaneData);
 
             if (dbLength <= stSectionCon.dbMinLength + 2*stSectionCon.dbOverlap)  // length of report data must more than section minimum Length plus double overlap length
@@ -413,7 +494,7 @@ namespace ns_database
     }
 
     /*calculate lane length ltLaneData should u not contain change lane data*/
-    double CExtractSection::calcLaneLength(IN list<vector<point3D_t>> ltLaneData)
+    double CExtractSection::calcLaneLength(IN list<vector<point3D_t>> &ltLaneData)
     {
         double  dbLength = 0;
         vector<point3D_t> vLine = ltLaneData.front(); // get one line of lane to calculate lane length
@@ -433,7 +514,7 @@ namespace ns_database
         OUT uint32                  &uiStartLoc,
         OUT uint32                  &uiEndLoc)
     {
-        //1.just operate Left Line to calculate location
+        //step 1.just operate Left Line to calculate location
         vector<point3D_t> vLeftLine;
         double dbLength = 0;
         vLeftLine = LaneData.front();
@@ -479,6 +560,7 @@ namespace ns_database
         list<list<list<vector<point3D_t>>>> ltSecionsData;
 
         reportSectionData rptSecionsData;
+        
 
         for (uint32 i = uiStartSecionID;i<uiEndSecionID;i++) 
         {
@@ -495,6 +577,7 @@ namespace ns_database
 
                     for (unsigned int k = 1;k < vRawLeftLineData.size(); k++) // traverse left line to search the closest point
                     {
+                        
                         dlTempLength = sqrt((ltSectionCentrePoint[j].ports[2].lon - vRawLeftLineData[k].lon)*(ltSectionCentrePoint[j].ports[2].lon - vRawLeftLineData[k].lon)+
                             (ltSectionCentrePoint[j].ports[2].lat - vRawLeftLineData[k].lat)*(ltSectionCentrePoint[j].ports[2].lat - vRawLeftLineData[k].lat));
 
@@ -514,7 +597,7 @@ namespace ns_database
 
                     }
 
-                    // get one section data
+                    // step 1.get one section data
                     for (unsigned int m = uiSectionFrontLoc;m<=uiSectionBackLoc;m++)
                     {
                         vSectionLeftLine.push_back(vRawLeftLineData[m]);
@@ -531,7 +614,7 @@ namespace ns_database
                     ltSectionData.clear();
 
 
-                    // store section into whole data
+                    // step 2.store section into whole data
                     list<reportSectionData>::iterator iter = ltMatchSections.begin();
                     for(;iter!=ltMatchSections.end(); ++iter)
                     {

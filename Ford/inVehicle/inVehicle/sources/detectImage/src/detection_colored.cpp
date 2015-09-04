@@ -116,7 +116,7 @@ int Detector_colored::contoursSelect(vector<vector<Point>> &contours,int *validI
         double area = contourArea( contours[idx]); 
         double length = arcLength( contours[idx],true); 
         bool insideFlag = false;
-		if ((length*length <= area*double(ratioT)) && ( (area > 25*25))) // && (area < 150*150)
+		if ((length*length <= area*double(ratioT)) && ( (area > 29*29))) // && (area < 150*150)
 		{
             // test one road sign whether insides other road sign.
             Rect rect = boundingRect(contours[idx]);

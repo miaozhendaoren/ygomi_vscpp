@@ -813,6 +813,10 @@ void getInformationOfEveryLine(gpsInformationAndInterval &GPSAndInterval,Mat &ro
 	coordinateChange(GPSAndInterval.GPS_now,inParam.GPSref,GPS_1);
 	coordinateChange(GPSAndInterval.GPS_next,inParam.GPSref,GPS_2);
 
+    //middle
+    Point2d Pixel = Point2d(0.0, lineNum-startPoint);
+    getGPSLocationOfEveryPixelInRoadScanImage(GPS_1,GPS_2,Pixel,GPSAndInterval.intervalOfInterception,rowData.Middle_RelGPS,inParam.distancePerPixel);
+
 	//left
 	if(rowData.leftPoint.x!=-1)
 	{
@@ -832,10 +836,12 @@ void getInformationOfEveryLine(gpsInformationAndInterval &GPSAndInterval,Mat &ro
 		}
 
 	}
+    else
+    {
+        rowData.Left_Middle_RelGPS = rowData.Middle_RelGPS;
+    }
 
-	//middle
-	Point2d Pixel = Point2d(0.0, lineNum-startPoint);
-	getGPSLocationOfEveryPixelInRoadScanImage(GPS_1,GPS_2,Pixel,GPSAndInterval.intervalOfInterception,rowData.Middle_RelGPS,inParam.distancePerPixel);
+	
 
 	//right
 	if(rowData.rightPoint.x!=-1)
@@ -856,6 +862,10 @@ void getInformationOfEveryLine(gpsInformationAndInterval &GPSAndInterval,Mat &ro
 		}
 
 	}
+    else
+    {
+        rowData.Right_Middle_RelGPS = rowData.Middle_RelGPS;
+    }
 
 	//brightness
 	int interval = 20;
@@ -2009,7 +2019,7 @@ void laneMarkerDetection(Mat &Inimage,vector<laneMarker> &lanemarker,int histThr
 				int result = arrowClassify(roi);
 
 #ifdef ROAD_SCAN_UT
-				cout<<"result£º"<<result<<endl;
+//				cout<<"result£º"<<result<<endl;
 #endif							
 
 				if (result !=-1&&result!=0)
@@ -2551,6 +2561,7 @@ void blockCalRidge(Mat &longLane_cut, Parameters& inParam, Mat &allUnitKapa,Mat 
              {
                  continue;
              }
+            
 //             if (!isShadow)
              {
                  unithisLeftTh  = 0;
@@ -2715,7 +2726,7 @@ void linkPaintLine(Mat allUnitContous,vector<laneMarker> &lanemarker,Mat &Tline_
             double tanangle = atan(abs(diffw.y/(diffw.x+0.0000000001)))*180/PI;
 
             //if (abs(dsty)>1500||tanangle<75||cosvalue<0.8||abs(dstx)>20||dsty<0)//Threshold condition
-            if (abs(dsty)>2000||cosvalue3<0.95||cosvalue2<0.95||cosvalue<0.95||dsty<0||abs(dstx)>allUnitContous.cols/3)
+            if (abs(dsty)>2000||cosvalue3<0.985||cosvalue2<0.985||cosvalue<0.985||dsty<0||abs(dstx)>allUnitContous.cols/3)
             {
                 continue;
             }
@@ -2766,6 +2777,9 @@ void linkPaintLine(Mat allUnitContous,vector<laneMarker> &lanemarker,Mat &Tline_
             {	
                 double dx = vecPairPoints[index[i2]].up.x-vecPairPoints[index[i2]].down.x;
                 double dy = vecPairPoints[index[i2]].up.y-vecPairPoints[index[i2]].down.y;
+                double dxx = dx/sqrt(dx*dx+dy*dy);
+                double dyy = dy/sqrt(dx*dx+dy*dy);
+                double cosvalue0 = vecSlineinfo[i].vx*dxx + vecSlineinfo[i].vy*dyy;
                 double cosvalue = abs(vecSlineinfo[i].vx*dx + vecSlineinfo[i].vy*dy)/
                     sqrt((dx*dx+dy*dy)*(vecSlineinfo[i].vx*vecSlineinfo[i].vx+vecSlineinfo[i].vy*vecSlineinfo[i].vy));
                 double tanangle = atan(abs(dy/(dx+0.0000000001)))*180/PI;
@@ -2890,8 +2904,14 @@ void linkPaintLine(Mat allUnitContous,vector<laneMarker> &lanemarker,Mat &Tline_
             }
         }
         int dst = abs(dpoint.y - upoint.y);
+
+        if (abs(upoint.x-dpoint.x)<50&&abs((upoint.x+dpoint.x)/2-Tline_link_out.cols/2)<50)
+        {
+            continue;
+        }
+
         if (dst>600)//delete the hight less than 300
-        {				
+        {	
             drawContours(Tline_link_out, contours4, i, Scalar(255), 1, 8, hierarchy4, 0);
         }
     }

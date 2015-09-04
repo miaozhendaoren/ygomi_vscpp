@@ -456,6 +456,8 @@ bool processLaneBuffer()
         list<list<vector<point3D_t>>> newDataList;
         laneQueueBuff.getAllVectors(newDataList);
 
+        database_gp->setNewDataVec(*(newDataList.begin()));
+
         list<list<vector<point3D_t>>> fgData;
 
         bool flag = false;

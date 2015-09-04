@@ -19,6 +19,7 @@
 #define __EXTRACT_SECTION_H__
 
 #include "apiDataStruct.h"
+#include "configure.h"
 
 namespace ns_database
 {
@@ -26,6 +27,13 @@ namespace ns_database
 #define  STARTSECID    1
 #define  MINPOINTNUM   500
 #define  SECTIONDEBUG  11
+
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+    #define  ROADCIRCLE    1
+#elif (RD_LOCATION == RD_GERMAN_LEHRE)
+    #define  ROADCIRCLE    0
+#endif
+
     enum ISTATUS
     {
         I_SUCCESS = 0,
@@ -68,7 +76,7 @@ namespace ns_database
         * 
         */
 
-        double calcLaneLength(IN list<vector<point3D_t>> ltLaneData);
+        double calcLaneLength(IN list<vector<point3D_t>> &ltLaneData);
 
         /*
         *@FUNC
@@ -151,7 +159,7 @@ namespace ns_database
         *
         */
 
-        ISTATUS locateCandidateSectionBoundary(IN point3D_t                point3D,
+        ISTATUS locateCandidateSectionBoundary(IN point3D_t                &point3D,
                                                IN vector<segAttributes_t> &vSectionCentrePoint,
                                                OUT segAttributes_t        &segClosestLoc,
                                                OUT segAttributes_t        &segSecondClosetLoc);
@@ -169,10 +177,10 @@ namespace ns_database
         *
         */
 
-        ISTATUS filterCandidateSectionBoundary(IN point3D_t         point3DRefOne,
-                                               IN point3D_t         point3DRefTwo,
-                                               IN segAttributes_t   segCandidateOne,
-                                               IN segAttributes_t   segCandidateTwo,
+        ISTATUS filterCandidateSectionBoundary(IN point3D_t         &point3DRefOne,
+                                               IN point3D_t         &point3DRefTwo,
+                                               IN segAttributes_t   &segCandidateOne,
+                                               IN segAttributes_t   &segCandidateTwo,
                                                OUT segAttributes_t &segClosestSection);
 
         /*
@@ -194,8 +202,8 @@ namespace ns_database
                                  IN sectionCon               &stSectionConfig,
                                  IN list<vector<point3D_t>>  &ltRawData,
                                  IN list<vector<point3D_t>>  &ltEffectiveLaneData,
-                                 IN uint32                    uiStartLoc,
-                                 IN uint32                    uiEndLoc,
+                                 IN uint32                    &uiStartLoc,
+                                 IN uint32                    &uiEndLoc,
                                  OUT list<reportSectionData> &ltMatchSections);
 
         ISTATUS matchSections(IN list<segAttributes_t>    &ltSectionDataScale,

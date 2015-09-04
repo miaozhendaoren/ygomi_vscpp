@@ -398,6 +398,10 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 
 	}
 
+
+
+
+
 	//change line
 #if 1
 	sort(changeLP.begin(),changeLP.end());

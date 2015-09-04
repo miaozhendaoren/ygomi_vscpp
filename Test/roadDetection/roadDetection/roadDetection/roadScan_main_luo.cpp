@@ -28,7 +28,7 @@ cv::Mat H, invertH;
 int main(void)
 {
 	//ifstream readParam("England.txt",ios::_Nocreate);
-	//ifstream readParam("VW.txt",ios::_Nocreate);
+	//ifstream readParam("VW.txt",ios::_Nocreate);DE_Lehre
 	//ifstream readParam("HD.txt",ios::_Nocreate);DE_Airport2
 	//ifstream readParam("US.txt",ios::_Nocreate);US_Detroit
 	Parameters inParam;
@@ -42,7 +42,7 @@ int main(void)
 
 	int ChooseVideo = Airport2;
 
-	int videoIndex = 0;
+	int videoIndex = 3;
 	
 	/*string gpsname;
 	string videoname;
@@ -52,9 +52,9 @@ int main(void)
 	int locNum[2], holeNum[2];
 
 //	for(int kk = 0; kk<20; kk++)	//VW
-	for(int kk = 0; kk<19; kk++)	//US
+//	for(int kk = 0; kk<19; kk++)	//US
 //	for(int kk = 0; kk<3; kk++)	//Honda
-//	for(int kk = 0; kk<11; kk++)//Airport2
+	for(int kk = 0; kk<11; kk++)//Airport2
 //	for(int kk = 0; kk<3; kk++)
 	
 	{
@@ -172,7 +172,32 @@ int main(void)
 
 		else if (ChooseVideo==VW)
 		{
-			if (videoIndex%20 == 0)
+            if (videoIndex%20 == 0)
+            {
+                capture.open("F:/VW_Data_Selected/statler/statler-7200-8821.mp4");
+                gpsFile = fopen("F:/VW_Data_Selected/statler/statler-7200-8821.txt","r");
+                capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+            }
+            else if (videoIndex%20 == 14)
+            {
+                capture.open("F:/VW_Data_Selected/Wanda/part5/5.mp4");
+                gpsFile = fopen("F:/VW_Data_Selected/Wanda/part5/gps5.txt","r");
+                capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+            }
+            else if (videoIndex%20 == 19)
+            {
+                capture.open("F:/VW_Data_Selected/wayne/wayne-10546-11861.mp4");
+                gpsFile = fopen("F:/VW_Data_Selected/wayne/wayne-10546-11861.txt","r");
+                capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+            }
+            else if (videoIndex%20 == 10)
+            {
+                capture.open("F:/VW_Data_Selected/Wanda/part1/1.mp4");
+                gpsFile = fopen("F:/VW_Data_Selected/Wanda/part1/gps1.txt","r");
+                capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+            }
+
+			/*if (videoIndex%20 == 0)
 				{
 					capture.open("F:/VW_Data_Selected/statler/statler-7200-8821.mp4");
 					gpsFile = fopen("F:/VW_Data_Selected/statler/statler-7200-8821.txt","r");
@@ -297,7 +322,7 @@ int main(void)
 					capture.open("F:/VW_Data_Selected/wayne/wayne-10546-11861.mp4");
 					gpsFile = fopen("F:/VW_Data_Selected/wayne/wayne-10546-11861.txt","r");
 					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
+				}*/
 		}
 		else if(ChooseVideo==Ford)
 		{
@@ -619,7 +644,7 @@ int main(void)
 	//	number_of_frames=1300;
 
 	
-		for (int n=20;n<150;n++)
+		for (int n=14;n<150;n++)
 		{
 
             cout<<"video="<<videoIndex<<endl;

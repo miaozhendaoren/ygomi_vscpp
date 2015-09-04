@@ -39,7 +39,7 @@ namespace ns_roadScan
 //#define DEBUG_ROAD_SCAN
 #endif
 
-#define SCALE 10
+#define SCALE 20
 #define HH  28
 #define BIRDVIEWROW    (10)
 #define CUT 32765.0

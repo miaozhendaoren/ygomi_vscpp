@@ -85,6 +85,16 @@ namespace ns_database
         */
         void getShitDist(OUT vector<double> &dist);
 
+        /*
+        * @FUNC
+        *     Reset database. Release all background and foreground database data.
+        *
+        * @PARAMS
+        *     No input/output parameters.
+        *
+        */
+        void resetDatabase();
+
     protected:
         CExtractSection               _extractSecObj;
 
@@ -102,6 +112,8 @@ namespace ns_database
         list<segAttributes_t>         _segConfigList;  // section configurations
         list<backgroundSectionData>   _bgDatabaseList; // background database
         list<foregroundSectionData>   _fgDatabaseList; // foreground database
+
+        HANDLE                        _hMutexMerging;  // mutex handle for reset
 
         /*
         * @FUNC
@@ -289,7 +301,7 @@ namespace ns_database
         *     Estimate lane number of two input lines. Mean and standard
         *     derivation of dash line length(start/end) are used to decide
         *     line type. The correlation between left and right line is also
-        *     used to judgy lane type.
+        *     used to judge lane type.
         *
         * @PARANS
         *     leftline     - left line of input lane data, X is re-sampled
@@ -300,6 +312,17 @@ namespace ns_database
         void laneNumberEst(IN  vector<point3D_t> &leftline,
                            IN  vector<point3D_t> &rightline,
                            OUT int               &matchedLane);
+
+        /*
+        * @FUNC
+        *     Remove foreground database section overlap and output lines.
+        *
+        * @PARAMS
+        *     fgData - output line data of foreground database without overlap.
+        *
+        */
+        void removeOverlap(OUT list<list<vector<point3D_t>>> &fgData);
+
     };
 
 }

@@ -149,6 +149,10 @@ void smoothLaneId(INOUT vector<int> &lineIdxVec)
     }
 }
 
+//#define TRAFFIC_SIGN_TEST 1
+#ifdef TRAFFIC_SIGN_TEST
+FILE *fd;
+#endif
 unsigned int __stdcall Thread_DiffDetRpt(void *data)
 {
     //open the camera device.
@@ -159,13 +163,13 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
     vector<dataEveryRow> roadPaintData;
     vector<gpsInformationAndInterval> GPSAndInterval;
     gpsInformationAndInterval gpsAndInterval;
-
- //   FILE *fd = fopen("D:/Newco/airport_Code/Demo/Ford/inVehicle/Release/gpsInfo.txt","a+");
-	//if (fd == NULL)
-	//{
-	//	cout<< "open file failed!" << endl;
-	//}
-
+#ifdef TRAFFIC_SIGN_TEST
+    fd = fopen("D:/Newco/airport_Code/Demo/Ford/inVehicle/Release/gpsInfo.txt","a");
+	if (fd == NULL)
+	{
+		cout<< "open file failed!" << endl;
+	}
+#endif
     while(1)
     {
         ImageBuffer *buffer;
@@ -321,7 +325,7 @@ CLEAN_ROADSCAN_BUFFER:
 
             list<statisticsFurInfo_t> furnListInBuff;
 
-            for(int index = 0; index < number; index+=2) // +=2: skip one frame and process one frame
+            for(int index = 0; index < number; index+= 2) // +=2: skip one frame and process one frame
             {
                 TS_Structure detectedTrafficSign;
 
@@ -350,15 +354,23 @@ CLEAN_ROADSCAN_BUFFER:
 
                         trafficSignDetector->positionMeasure(inParam, GPS_abs, GPS_next, image.image, detectedTrafficSign);
                         convertImageToFurniture(image.image.size(), detectedTrafficSign,&image.gpsInfo,&image.gpsInfoPre,&refGps,&furInfoListInDet);
-                        //for (int jj = 0; jj < detectedTrafficSign.trafficSign.size();++jj)
-                        //{
-                        //    fprintf(fd,"A_%d  = [",detectedTrafficSign.trafficSign[0].type);	
-                        //    for(int idx = 0;idx < detectedTrafficSign.trafficSign[0].position.size();++idx)
-                        //    {
-                        //        fprintf(fd,"%.14f %.14f;",detectedTrafficSign.trafficSign[0].position[idx].lon,detectedTrafficSign.trafficSign[0].position[idx].lat);	
-                        //    }
-                        //     fprintf(fd,"]; \n");	
-                        //}
+#ifdef TRAFFIC_SIGN_TEST
+                        list<furWithPosition_t>::iterator testIdx = furInfoListInDet.begin();
+
+                        while(testIdx != furInfoListInDet.end())
+                        {
+                            if(testIdx->furAttri.type != 0)
+                            {
+                                fprintf(fd,"A_%d_%d  = [",testIdx->furAttri.type,testIdx->furAttri.sideFlag);	
+                                for(int idx = 0;idx < testIdx->position.size();++idx)
+                                {
+                                    fprintf(fd,"%.14f %.14f;",testIdx->position[idx].lon,testIdx->position[idx].lat);	
+                                }
+                                 fprintf(fd,"]; \n");	
+                            }
+                            ++testIdx;
+                        }
+#endif
                     }
                     
                     //filter the image
@@ -369,13 +381,12 @@ CLEAN_ROADSCAN_BUFFER:
                         list<furAttributesInVehicle_t>::iterator furListTempIdx;
                         for(furListTempIdx = furListTemp.begin();furListTempIdx != furListTemp.end(); ++furListTempIdx)
                         {
-                            
-                            //int alt = 0;
-                            //fclose(fd);
-                            //fprintf(fd,"**********************************************************************************");	
-
-                            //cout << "Traffic Sign Type = " << furListTempIdx->type << " latitude = " << furListTempIdx->location.lat << " longtitude = " << furListTempIdx->location.lon << endl;
-
+#ifdef TRAFFIC_SIGN_TEST                           
+                            fprintf(fd,"====================================================================\n");	
+                            fprintf(fd,"report_%d_%d = ",furListTempIdx->type,furListTempIdx->sideFlag);
+                            fprintf(fd,"%.14f %.14f;\n",furListTempIdx->location.lon,furListTempIdx->location.lat);	
+                            fprintf(fd,"***********************************************************************\n");
+#endif
                             list<furAttributesInVehicle_t> furInfoListInDb;
 
                             //get the furniture info according to the GPS.
@@ -531,7 +542,9 @@ CLEAN_ROADSCAN_BUFFER:
         }
         //ReleaseSemaphore(g_readySema_DiffDet, 1 ,NULL);
     }//end while(1)
-    //fclose(fd);
+#ifdef TRAFFIC_SIGN_TEST
+    fclose(fd);
+#endif
     return 0;
 }
 
@@ -539,8 +552,8 @@ void convertImageToFurniture(Size imageSize, TS_Structure &targetPtr,point3D_t* 
 {
     int idx;
 
-    int SCREEN_WIDTH_LEFT_THRESHOLD = (imageSize.width/4);
-    int SCREEN_WIDTH_RIGHT_THRESHOLD = (3*imageSize.width/4);
+    int SCREEN_WIDTH_LEFT_THRESHOLD = (imageSize.width/3);
+    int SCREEN_WIDTH_RIGHT_THRESHOLD = (2*imageSize.width/3);
 
     TS_Structure tempTarget = targetPtr;
 
@@ -566,9 +579,16 @@ void convertImageToFurniture(Size imageSize, TS_Structure &targetPtr,point3D_t* 
             if(side == sideNext)
             {
                 if(maxArea > tempTarget.trafficSign[idx+1].area)
-                { targetPtr.trafficSign[idx+1].type = 0; }
+                { 
+                    targetPtr.trafficSign[idx+1].type = 0;
+                    targetPtr.trafficSign[idx+1].position.clear();
+                }
                 else
-                {targetPtr.trafficSign[idx].type = 0; maxArea = targetPtr.trafficSign[idx+1].type;}
+                {
+                    targetPtr.trafficSign[idx].type = 0;
+                    maxArea = targetPtr.trafficSign[idx+1].area;
+                    targetPtr.trafficSign[idx].position.clear();
+                }
             }
         }
         else
@@ -584,6 +604,7 @@ void convertImageToFurniture(Size imageSize, TS_Structure &targetPtr,point3D_t* 
         if ((x_centre > SCREEN_WIDTH_LEFT_THRESHOLD) && (x_centre < SCREEN_WIDTH_RIGHT_THRESHOLD))
         {
             targetPtr.trafficSign[idx].type = 0;
+            targetPtr.trafficSign[idx].position.clear();
         }
     }
 
@@ -765,7 +786,6 @@ void filterFurToReport(point3D_t currentGps,list<statisticsFurInfo_t>* furnListI
                 {  
                     if(VAR_ALG == 1)
                     {
-
                     // calculate the GPS infomation according to different offset.  
                         int stepIdx;
                         int offsetIdx;
@@ -796,23 +816,42 @@ void filterFurToReport(point3D_t currentGps,list<statisticsFurInfo_t>* furnListI
                            
                                         while(offsetIdx2 < stepNum2)
                                         {
-                                            if(offsetVector2[offsetIdx2] == stepSize)
+                                            if(offsetVector2[offsetIdx2] - stepSize < 0.01)
                                             {  break; }
                                             else
                                             {   offsetIdx2++; }
                                         }
-                            
-                                        if(offsetIdx2 < stepNum2)
+ 
+
+                                        // calculate furniture's position in the two frames in same step;
+                                        if(offsetIdx2 < stepNum2) 
                                         {
-                                            meanLocTemp.lat += positionVector2[offsetIdx2].lat;
-                                            meanLocTemp.lon += positionVector2[offsetIdx2].lon;
-                                            counter ++;
+                                            // calculate the distance between the two frames;
+                                            double distX = (positionVector2[offsetIdx2].lat - positionVector[offsetIdx].lat) * (positionVector2[offsetIdx2].lat - positionVector[offsetIdx].lat);
+                                            double distY = (positionVector2[offsetIdx2].lon - positionVector[offsetIdx].lon) * (positionVector2[offsetIdx2].lon - positionVector[offsetIdx].lon);
+                                            double distXY = sqrt(distX + distY); 
+
+                                            //  distance < 50
+                                            if(distXY < DIST_METER)
+                                            {
+                                                meanLocTemp.lat += positionVector2[offsetIdx2].lat;
+                                                meanLocTemp.lon += positionVector2[offsetIdx2].lon;
+                                                counter ++;
+                                            }
                                         }
                                 }
-
-                                meanLocTemp.lat = meanLocTemp.lat / counter;
-                                meanLocTemp.lon = meanLocTemp.lon / counter;
-                                meanLoc.push_back(meanLocTemp);
+                                if(counter != 1)
+                                {
+                                    meanLocTemp.lat = meanLocTemp.lat / counter;
+                                    meanLocTemp.lon = meanLocTemp.lon / counter;
+                                    meanLoc.push_back(meanLocTemp);
+                                }
+                                else // counter == 1, only one frame position data is valid, do not to calculate the mean position.
+                                {
+                                    meanLocTemp.lat = 9e+100;
+                                    meanLocTemp.lon = 9e+100;
+                                    meanLoc.push_back(meanLocTemp);
+                                }
                             }      
                         }
 
@@ -850,7 +889,7 @@ void filterFurToReport(point3D_t currentGps,list<statisticsFurInfo_t>* furnListI
                                         {   offsetIdx2++; }
                                     }
                             
-                                    if(offsetIdx2 < stepNum2)
+                                    if((offsetIdx2 < stepNum2) && (meanLoc[offsetIdx].lat != 9e+100) && (meanLoc[offsetIdx].lon != 9e+100))
                                     {
                                         locTemp.lat = positionVector2[offsetIdx2].lat - meanLoc[offsetIdx].lat;
                                         locTemp.lon = positionVector2[offsetIdx2].lon - meanLoc[offsetIdx].lon;
@@ -862,7 +901,7 @@ void filterFurToReport(point3D_t currentGps,list<statisticsFurInfo_t>* furnListI
                                 if((minVar > varTemp/counter) && (counter > VAR_ACC_TIME))
                                 {
                                     minVar = varTemp/counter;
-                                    gpsReport = positionVector[offsetIdx];
+                                    gpsReport = meanLoc[offsetIdx];
                                     minOffset = offsetVector[offsetIdx]; 
                                 }
                                 //cout << "var time:" << counter << endl;
@@ -874,28 +913,34 @@ void filterFurToReport(point3D_t currentGps,list<statisticsFurInfo_t>* furnListI
                         {
                             furAttributesInVehicle_t reportFur;
                             reportFur = furnListInBuffIdx->furAttri;
+                            switch(reportFur.type)
+                            {
+                                case 27553:
+                                    reportFur.type = 27453;
+                                    break;
+                                case 27554:
+                                    reportFur.type = 27454;
+                                    break;
+                                case 27555:
+                                    reportFur.type = 27455;
+                                    break;
+                                case 27556:
+                                    reportFur.type = 27456;
+                                    break;
+                            }
                             reportFur.location = gpsReport;
                             outListPtr->push_back(reportFur);
-
-                            idxTmp = furnListInBuffIdx;
-                            ++furnListInBuffIdx;
-                            furnListInBuffPtr->erase(idxTmp);
-                    
-                        }
-                        else
-                        {
-                            ++furnListInBuffIdx;
                         }
                     }        
                     else
                     {
-                        // find the intersection point to measure the position
+
                         Mat slopeMatrix(furnListInBuffIdx->position.size(),2,CV_64FC1);
                         Mat constMatrix(furnListInBuffIdx->position.size(),1,CV_64FC1);
-                        // Ax=b, construct the A matrix and b matrix)
-                        for(int stepIdx = 0; stepIdx < furnListInBuffIdx->position.size(); ++stepIdx)
+                        
+                        for(int stepIdx1 = 0;stepIdx1 < furnListInBuffIdx->position.size(); ++stepIdx1)
                         {
-                            vector<point3D_t> positionVector = furnListInBuffIdx->position[stepIdx];
+                            vector<point3D_t> positionVector = furnListInBuffIdx->position[stepIdx1];
                             vector<Point2f> positionVec2d;
                             // 3d point transform to 2d.
                             for(int numIdx = 0; numIdx < positionVector.size();++numIdx)
@@ -905,44 +950,84 @@ void filterFurToReport(point3D_t currentGps,list<statisticsFurInfo_t>* furnListI
                                 point.y = positionVector[numIdx].lon;
                                 positionVec2d.push_back(point);
                             }
-
+                            // line fitting
                             Vec4f     lineFit;
-                            fitLine(positionVec2d,lineFit,CV_DIST_L2,1,0.01,0.01);// line fitting
-
-                            slopeMatrix.at<double>(stepIdx,0) = lineFit[1]/lineFit[0];
-                            slopeMatrix.at<double>(stepIdx,1) = -1.0;
-                            constMatrix.at<double>(stepIdx) = lineFit[1]/lineFit[0] * lineFit[2] - lineFit[3];
-
-                            //slopeMatrix.at<double>(stepIdx,0) = (positionVector[1].lon - positionVector[0].lon) / (positionVector[1].lat - positionVector[0].lat);
-                            //slopeMatrix.at<double>(stepIdx,1) = -1.0;
-                            //constMatrix.at<double>(stepIdx) = slopeMatrix.at<double>(stepIdx,0) * positionVector[1].lat - positionVector[1].lon;
+                            fitLine(positionVec2d,lineFit,CV_DIST_L2,1,0.01,0.01);
+                            // Ax=b, construct the A matrix and b matrix
+                            slopeMatrix.at<double>(stepIdx1,0) = lineFit[1]/lineFit[0];
+#ifdef TRAFFIC_SIGN_TEST
+                            fprintf(fd,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+                            fprintf(fd,"%d_%d_K = %.14f;\n",furnListInBuffIdx->furAttri.type,furnListInBuffIdx->furAttri.sideFlag,atan2(lineFit[1],lineFit[0]));
+#endif
+                            slopeMatrix.at<double>(stepIdx1,1) = -1.0;
+                            constMatrix.at<double>(stepIdx1) = lineFit[1]/lineFit[0] * lineFit[2] - lineFit[3];
                         }
-                        // x = (A'A)^-1*A'*b
-                        Mat slopeMat_T =  slopeMatrix.t();
+                         //delete the parallel lines
+                        bool parallelFlag = false;
+                        for(int rowIdx1 = 0;rowIdx1 < slopeMatrix.rows; ++rowIdx1)
+                        {
+                            int times = 0;
+                            double slope1 = atan(slopeMatrix.at<double>(rowIdx1,0))*180/PI;
 
-                        Mat HermitMat = slopeMat_T*slopeMatrix;
-                        Mat HermitMat_inv = HermitMat.inv(DECOMP_SVD);
+                            for(int rowIdx2 = 0; rowIdx2 < slopeMatrix.rows; ++rowIdx2)
+                            {                           
+                                double slope2 = atan(slopeMatrix.at<double>(rowIdx2,0))*180/PI;
 
-                        Mat location = HermitMat_inv*slopeMat_T*constMatrix;
+                                double distS = abs(slope2 - slope1);
+  
+
+                                if(distS < 1.0) //FIXME: 1 degree
+                                {
+                                    times++;
+                                }
+                            }
+                            if((float)(times - 1) > slopeMatrix.rows*0.5)
+                            {
+                                 parallelFlag = true;
+                                 break;
+                            }
+                        }
+                        if(parallelFlag == false)
+                        {
+
+                            Mat slopeMat_T =  slopeMatrix.t();
+
+                            Mat HermitMat = slopeMat_T*slopeMatrix;
+                            Mat HermitMat_inv = HermitMat.inv(DECOMP_SVD);
+
+                            Mat location = HermitMat_inv*slopeMat_T*constMatrix;
                         
-                        gpsReport.lat = location.at<double>(0,0);
-                        gpsReport.lon = location.at<double>(1,0);
-                        gpsReport.alt = furnListInBuffIdx->position[0][0].alt;
+                            gpsReport.lat = location.at<double>(0,0);
+                            gpsReport.lon = location.at<double>(1,0);
+                            gpsReport.alt = furnListInBuffIdx->position[0][0].alt;
 
-                        furAttributesInVehicle_t reportFur;
-                        reportFur = furnListInBuffIdx->furAttri;
-                        reportFur.location = gpsReport;
-                        outListPtr->push_back(reportFur);
+                            furAttributesInVehicle_t reportFur;
+                            reportFur = furnListInBuffIdx->furAttri;
+                            reportFur.location = gpsReport;
 
-                        idxTmp = furnListInBuffIdx;
-                        ++furnListInBuffIdx;
-                        furnListInBuffPtr->erase(idxTmp);
+                            switch(reportFur.type)
+                            {
+                                case 27553:
+                                    reportFur.type = 27453;
+                                    break;
+                                case 27554:
+                                    reportFur.type = 27454;
+                                    break;
+                                case 27555:
+                                    reportFur.type = 27455;
+                                    break;
+                                case 27556:
+                                    reportFur.type = 27456;
+                                    break;
+                            }
+                            outListPtr->push_back(reportFur);
+                        }
                     }
                 }
-                else
-                {
-                     ++furnListInBuffIdx;
-                }
+                idxTmp = furnListInBuffIdx;
+                ++furnListInBuffIdx;
+                furnListInBuffPtr->erase(idxTmp);
+
             }
             else
             {

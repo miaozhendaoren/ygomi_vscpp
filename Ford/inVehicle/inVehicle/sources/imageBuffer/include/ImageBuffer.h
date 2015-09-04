@@ -5,8 +5,14 @@
 #include <opencv2\imgproc\imgproc.hpp>
 #include "database.h"
 #include "databaseDef.h"
+#include "configure.h"
 
-#define IMAGE_BUFFER_DEPTH          1500
+#if (RD_LOCATION == RD_GERMAN_LEHRE)
+    #define IMAGE_BUFFER_DEPTH          2000
+#else
+    #define IMAGE_BUFFER_DEPTH          1500
+#endif
+
 #define IMAGE_BUFFER_NUM            2
 
 using namespace ns_database;

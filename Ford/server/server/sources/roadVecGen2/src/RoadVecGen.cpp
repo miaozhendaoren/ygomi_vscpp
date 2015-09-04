@@ -21,6 +21,7 @@
 #include "apiDataStruct.h"
 #include "polynomialFit.h"
 #include "RoadVecGen.h"
+#include "configure.h"
 
 #if VISUALIZATION_ON || SAVE_DATA_ON
 #include "VisualizationApis.h"
@@ -36,6 +37,9 @@ using namespace std;
 
 namespace ns_database
 {
+// number of section configuration points
+#define SEG_CFG_PNT_NUM     4
+
 #define DASH_CONT_POINTS_TH 10
 #define MINDIST             10
 #define LINE_TYPE_TH        50
@@ -330,16 +334,11 @@ bool isResampleSec(uint32 segId)
             segmentElement.segId      = sectionID;
             segmentElement.uiLaneNum_used = 1;
             segmentElement.uiLaneNum      = laneNum;
-            fscanf_s(fp, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,\n",
+            fscanf_s(fp, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,\n",
                 &segmentElement.ports[0].lon, &segmentElement.ports[0].lat,
                 &segmentElement.ports[1].lon, &segmentElement.ports[1].lat,
                 &segmentElement.ports[2].lon, &segmentElement.ports[2].lat,
-                &segmentElement.ports[3].lon, &segmentElement.ports[3].lat,
-                &segmentElement.ports[4].lon, &segmentElement.ports[4].lat,
-                &segmentElement.ports[5].lon, &segmentElement.ports[5].lat,
-                &segmentElement.ports[6].lon, &segmentElement.ports[6].lat,
-                &segmentElement.ports[7].lon, &segmentElement.ports[7].lat);
-
+                &segmentElement.ports[3].lon, &segmentElement.ports[3].lat);
             _segConfigList.push_back(segmentElement);
         }
 
@@ -448,41 +447,23 @@ bool isResampleSec(uint32 segId)
                                         OUT double          &theta,
                                         OUT vector<double>  &xLimitation)
     {
-        double X0[MAX_NUM_PORT];
-        memset((uint32 *)X0, 0, sizeof(double) * MAX_NUM_PORT);
+        double x0 = sectionConfig.ports[2].lon;
+        double x1 = sectionConfig.ports[3].lon;
 
-        double x0 = (sectionConfig.ports[0].lon + sectionConfig.ports[1].lon) / 2;
-        double x1 = (sectionConfig.ports[2].lon + sectionConfig.ports[3].lon) / 2;
-
-        double y0 = (sectionConfig.ports[0].lat + sectionConfig.ports[1].lat) / 2;
-        double y1 = (sectionConfig.ports[2].lat + sectionConfig.ports[3].lat) / 2;
+        double y0 = sectionConfig.ports[2].lat;
+        double y1 = sectionConfig.ports[3].lat;
 
         theta = atan2((y0 - y1), (x0 - x1));
 
         complex<double> thetaj(0, -1 * theta);
 
         double X0Temp = 0;
-        for (int i = 0; i < MAX_NUM_PORT - 2; i++)
+        for (int i = 0; i < SEG_CFG_PNT_NUM; i++)
         {
             X0Temp = 0;
             complex<double> yi(0, sectionConfig.ports[i].lat);
             X0Temp = real((sectionConfig.ports[i].lon + yi) * exp(thetaj));
-            X0[i] = X0Temp;
-        }
-
-        if (X0[0] < X0[2])
-        {
-            xLimitation.push_back(ceil(min(X0[0], X0[1])));
-            xLimitation.push_back(ceil(max(X0[2], X0[3])));
-            xLimitation.push_back(ceil(min(X0[4], X0[5])));
-            xLimitation.push_back(ceil(max(X0[6], X0[7])));
-        }
-        else
-        {
-            xLimitation.push_back(ceil(max(X0[0], X0[1])));
-            xLimitation.push_back(ceil(min(X0[2], X0[3])));
-            xLimitation.push_back(ceil(max(X0[4], X0[5])));
-            xLimitation.push_back(ceil(min(X0[6], X0[7])));
+            xLimitation.push_back(X0Temp);
         }
     }
 
@@ -532,7 +513,14 @@ bool isResampleSec(uint32 segId)
 
         // get left and right line of input lane
         int lanetype = SOLID_SOLID;
-        double threshold = LINE_TYPE_THRESHOLD[segId];
+
+        double threshold = LINE_TYPE_TH;
+
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+        threshold = LINE_TYPE_THRESHOLD[segId];
+#elif (RD_LOCATION == RD_GERMAN_LEHRE)
+        // use default threshold
+#endif
 
         // left line of input lane
         double leftVal = getLineEstValue(sourceLane.front());
