@@ -96,8 +96,11 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 							so_linger.l_onoff = 1;
 							so_linger.l_linger = 300;
 							setsockopt(clientListIdx->sockClient,SOL_SOCKET,SO_LINGER,(char*)&so_linger,sizeof(so_linger));
-							closesocket(clientListIdx->sockClient);
+							closesocket(clientListIdx->sockClient);				
+							WaitForSingleObject(g_clientlistMutex,INFINITE);
 							clientList.erase(clientListIdx++);
+							ReleaseMutex(g_clientlistMutex);
+							
 							goto RESTART_LABEL;
 						}
 						else
@@ -125,7 +128,9 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 							so_linger.l_linger = 300;
 							setsockopt(clientListIdx->sockClient,SOL_SOCKET,SO_LINGER,(char*)&so_linger,sizeof(so_linger));
 							closesocket(clientListIdx->sockClient);
+							WaitForSingleObject(g_clientlistMutex,INFINITE);
 							clientList.erase(clientListIdx++);
+							ReleaseMutex(g_clientlistMutex);
 							goto RESTART_LABEL;
 						}
 						else
@@ -166,7 +171,9 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 								so_linger.l_linger = 300;
 								setsockopt(clientListIdx->sockClient,SOL_SOCKET,SO_LINGER,(char*)&so_linger,sizeof(so_linger));
 								closesocket(clientListIdx->sockClient);
+								WaitForSingleObject(g_clientlistMutex,INFINITE);
 								clientList.erase(clientListIdx++);
+								ReleaseMutex(g_clientlistMutex);
 								goto RESTART_LABEL;
 							}
 							else
@@ -176,7 +183,7 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 							}
 						}
 					}
-					messageQueue_gp->push(&recvMsg);
+					
 
 #if SERVER_LOG_DIFF_MSG==1
                     {
@@ -195,8 +202,11 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
                         fclose(fpOut);
                     }
 #endif
-
+#if SERVER_PLAY_BACK_MODE==0
+					messageQueue_gp->push(&recvMsg);
 					ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
+#endif
+
 				}
 
 				if(FD_ISSET(clientListIdx->sockClient, &exception_fds))

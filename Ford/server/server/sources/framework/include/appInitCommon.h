@@ -64,3 +64,4 @@ extern list<sockInfo_t> clientList;	//client address
 extern HANDLE g_readySema_readDb;
 extern HANDLE g_readySema_msgQueue;
 extern HANDLE g_readySema_Redraw;
+extern HANDLE g_clientlistMutex;

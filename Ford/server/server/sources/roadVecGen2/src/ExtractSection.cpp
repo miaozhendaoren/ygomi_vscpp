@@ -139,7 +139,7 @@ namespace ns_database
         double               dlMinLength_Front = 0,
                              dlMinLength_Back = 0;
 
-        unsigned int         uiSectionFrontLoc = 0,
+        int                  uiSectionFrontLoc = 0,
                              uiSectionBackLoc   = 0;
 
         ISTATUS iStatus = I_SUCCESS;
@@ -178,7 +178,7 @@ namespace ns_database
         } 
         else
         {
-            for (unsigned int i = 0;i<vEffectiveLeftLine.size();i++)
+            for (int i = 0;i<vEffectiveLeftLine.size();i++)
             {
                 point3D.lon = (vEffectiveLeftLine[i].lon+vEffectiveRightLine[i].lon)/2;
                 point3D.lat = (vEffectiveLeftLine[i].lat+vEffectiveRightLine[i].lat)/2; 
@@ -327,7 +327,7 @@ namespace ns_database
                       dlShorestLength = 0,
                       dlShorerLength  = 0;
         ISTATUS       iStatus = I_SUCCESS;
-        unsigned int  uiClosestLoc=0,
+        int           uiClosestLoc=0,
                       uiSecondClosetLoc = 1;
         // step 1 get the closest boundary
         if (vSectionCentrePoint.empty())
@@ -335,7 +335,7 @@ namespace ns_database
         dlShorestLength = sqrt((point3D.lon - vSectionCentrePoint[0].ports[0].lon)*(point3D.lon - vSectionCentrePoint[0].ports[0].lon)+
             (point3D.lat - vSectionCentrePoint[0].ports[0].lat)*(point3D.lat - vSectionCentrePoint[0].ports[0].lat));
         dlShorerLength = dlShorestLength;
-        for (unsigned int i = 1; i<vSectionCentrePoint.size(); i++)
+        for (int i = 1; i<vSectionCentrePoint.size(); i++)
         {
             dlLength = sqrt((point3D.lon - vSectionCentrePoint[i].ports[0].lon)*(point3D.lon - vSectionCentrePoint[i].ports[0].lon)+
                 (point3D.lat - vSectionCentrePoint[i].ports[0].lat)*(point3D.lat - vSectionCentrePoint[i].ports[0].lat));
@@ -386,7 +386,7 @@ namespace ns_database
         if (newReportData.empty())
             return I_FAIL;
 
-        for (unsigned int i = 1; i < vData_L.size(); i ++)  //first point not been considered
+        for (int i = 1; i < vData_L.size(); i ++)  //first point not been considered
         {
             if (vData_L[i].paintFlag != 2)
             {
@@ -433,7 +433,7 @@ namespace ns_database
             vMainEffectiveLineData_L,
             vMainEffectiveLineData_R;
         list<vector<point3D_t>>::iterator iter = ltLaneData.begin();
-        unsigned int k =0;
+        int k =0;
         ISTATUS iStatus = I_SUCCESS;
         if (ltLaneData.empty())
             return I_FAIL;
@@ -450,7 +450,7 @@ namespace ns_database
             }
 
 
-            for (unsigned int i = 0;i < vRawLineData_L.size(); i++)
+            for (int i = 0;i < vRawLineData_L.size(); i++)
             {
                 if (vRawLineData_L[i].lat != 0.0 && vRawLineData_L[i].lon != 0.0&&
                     vRawLineData_R[i].lat != 0.0 && vRawLineData_R[i].lon != 0.0)
@@ -477,7 +477,7 @@ namespace ns_database
             {
                 iStatus = getHeadandTailOverlapLocation(ltEffectiveLaneData,stSectionCon,uiStartLoc,uiEndLoc);
 
-                for (unsigned int i = uiStartLoc; i <= uiEndLoc; i++)
+                for (int i = uiStartLoc; i <= uiEndLoc; i++)
                 {
                     vMainEffectiveLineData_L.push_back(vEffectiveLineData_L[i]);
                     vMainEffectiveLineData_R.push_back(vEffectiveLineData_R[i]);
@@ -498,7 +498,7 @@ namespace ns_database
     {
         double  dbLength = 0;
         vector<point3D_t> vLine = ltLaneData.front(); // get one line of lane to calculate lane length
-        for (unsigned int i = 1; i < vLine.size(); i++)
+        for (int i = 1; i < vLine.size(); i++)
         {
             dbLength = dbLength + sqrt((vLine[i].lon - vLine[i-1].lon)*(vLine[i].lon - vLine[i-1].lon)+
                 (vLine[i].lat - vLine[i-1].lat)*(vLine[i].lat - vLine[i-1].lat));
@@ -518,7 +518,7 @@ namespace ns_database
         vector<point3D_t> vLeftLine;
         double dbLength = 0;
         vLeftLine = LaneData.front();
-        for (unsigned int i = 1;i<vLeftLine.size();i++)
+        for (int i = 1;i<vLeftLine.size();i++)
         {
             dbLength = dbLength + sqrt((vLeftLine[i].lon - vLeftLine[i-1].lon)*(vLeftLine[i].lon - vLeftLine[i-1].lon)+
                 (vLeftLine[i].lat - vLeftLine[i-1].lat)*(vLeftLine[i].lat - vLeftLine[i-1].lat));
@@ -529,7 +529,7 @@ namespace ns_database
             }
         }
         dbLength = 0;
-        for (unsigned int i = vLeftLine.size()-1;i>2;i--)
+        for (int i = vLeftLine.size()-1;i>2;i--)
         {
             dbLength = dbLength + sqrt((vLeftLine[i].lon - vLeftLine[i-1].lon)*(vLeftLine[i].lon - vLeftLine[i-1].lon)+
                 (vLeftLine[i].lat - vLeftLine[i-1].lat)*(vLeftLine[i].lat - vLeftLine[i-1].lat));
@@ -552,7 +552,7 @@ namespace ns_database
         OUT list<reportSectionData> &ltMatchSections)
     {
         double dlMinLength_Front(0), dlMinLength_Back(0), dlTempLength(0);
-        unsigned int uiSectionFrontLoc(0),uiSectionBackLoc(0);
+        int uiSectionFrontLoc(0),uiSectionBackLoc(0);
 
         vector<point3D_t> vSectionLeftLine, vSectionRightLine;
         list<vector<point3D_t>> ltSectionData,ltOneLaneData;
@@ -564,7 +564,7 @@ namespace ns_database
 
         for (uint32 i = uiStartSecionID;i<uiEndSecionID;i++) 
         {
-            for (unsigned int j = 0; j< ltSectionCentrePoint.size(); j++)
+            for (int j = 0; j< ltSectionCentrePoint.size(); j++)
             {
                 if ( i == ltSectionCentrePoint[j].segId)  // match section to get section area 
                 {
@@ -575,9 +575,8 @@ namespace ns_database
                         (ltSectionCentrePoint[j].ports[3].lat - vRawLeftLineData[0].lat)*(ltSectionCentrePoint[j].ports[3].lat - vRawLeftLineData[0].lat));
                     uiSectionBackLoc = 0;
 
-                    for (unsigned int k = 1;k < vRawLeftLineData.size(); k++) // traverse left line to search the closest point
+                    for (int k = 1;k < vRawLeftLineData.size(); k++) // traverse left line to search the closest point
                     {
-                        
                         dlTempLength = sqrt((ltSectionCentrePoint[j].ports[2].lon - vRawLeftLineData[k].lon)*(ltSectionCentrePoint[j].ports[2].lon - vRawLeftLineData[k].lon)+
                             (ltSectionCentrePoint[j].ports[2].lat - vRawLeftLineData[k].lat)*(ltSectionCentrePoint[j].ports[2].lat - vRawLeftLineData[k].lat));
 

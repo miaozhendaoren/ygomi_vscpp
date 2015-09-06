@@ -898,5 +898,5 @@ int LineDetect::line_Detection(cv::Mat image, KalmanFilter &LaneMarkKF, KalmanFi
     imshow("Kapa",Kapa);
 
 #endif
-    waitKey(1);
+    //waitKey(1);
 }

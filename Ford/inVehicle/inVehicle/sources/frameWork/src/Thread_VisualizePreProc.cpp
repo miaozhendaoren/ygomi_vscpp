@@ -411,7 +411,7 @@ void generateRoadSideVec(vector<point3DFloat_t> &midVec, float width, vector<poi
 	rightVec[lineIndex].y = 0;
 }
 
-void extractQuadInfo(point3DFloat_t startPoint, point3DFloat_t endPoint, float width, bool contiFlag, quadInfo_t *quadInfo)
+void extractQuadInfo(point3DFloat_t startPoint, point3DFloat_t endPoint, float width, bool contiFlag, quadInfo_t *quadInfo, float height)
 {
 	static float startX_left = 0.0;
 	static float startY_left = 0.0;
@@ -439,20 +439,20 @@ void extractQuadInfo(point3DFloat_t startPoint, point3DFloat_t endPoint, float w
 	}else
 	{
 		quadInfo->vertex[0].x = startPoint.x - shift_x;
-		quadInfo->vertex[0].y = startPoint.y + 0.01;//startPoint.y;
+		quadInfo->vertex[0].y = startPoint.y + height;//startPoint.y;
 		quadInfo->vertex[0].z = startPoint.z + shift_z;
 
 		quadInfo->vertex[1].x = startPoint.x + shift_x;
-		quadInfo->vertex[1].y = startPoint.y + 0.01;//startPoint.y;
+		quadInfo->vertex[1].y = startPoint.y + height;//startPoint.y;
 		quadInfo->vertex[1].z = startPoint.z - shift_z;
 	}
 
 	quadInfo->vertex[2].x = endPoint.x + shift_x;
-	quadInfo->vertex[2].y = endPoint.y + 0.01;//endPoint.y;
+	quadInfo->vertex[2].y = endPoint.y + height;//endPoint.y;
 	quadInfo->vertex[2].z = endPoint.z - shift_z;
 
 	quadInfo->vertex[3].x = endPoint.x - shift_x;
-	quadInfo->vertex[3].y = endPoint.y + 0.01;//endPoint.y;
+	quadInfo->vertex[3].y = endPoint.y + height;//endPoint.y;
 	quadInfo->vertex[3].z = endPoint.z + shift_z;
 
 	startX_left = quadInfo->vertex[3].x;
@@ -517,104 +517,118 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 		{
 			list<list<vector<point3D_t>>> allLines; // segment list / vector list / point list / point
 			list<list<lineAttributes_t>> lineAttr; // segment list / vector list / attributes
-			database_gp->getAllVectors(allLines, lineAttr);
+			//database_gp->getAllVectors(allLines, lineAttr);
+            bool dataAccess = database_gp->getAllVectorsAsync(allLines, lineAttr);
 
 			//point3D_t standPoint = (*(*allLines.begin()).begin())[0];
-			if(allLines.size() != 0)
-			{
-				list<list<vector<point3D_t>>>::iterator lineInSegIter = allLines.begin();
-				list<list<lineAttributes_t>>::iterator lineAttrInSegIter = lineAttr.begin();
+            if(dataAccess == true)
+            {
+			    if(allLines.size() != 0)
+			    {
+				    list<list<vector<point3D_t>>>::iterator lineInSegIter = allLines.begin();
+				    list<list<lineAttributes_t>>::iterator lineAttrInSegIter = lineAttr.begin();
 
-				// For each segment
-				while(lineInSegIter != allLines.end())
-				{
-					list<vector<point3D_t>>::iterator lineIter = (*lineInSegIter).begin();
-					list<lineAttributes_t>::iterator lineAttrIter = (*lineAttrInSegIter).begin();
+				    // For each segment
+				    while(lineInSegIter != allLines.end())
+				    {
+					    list<vector<point3D_t>>::iterator lineIter = (*lineInSegIter).begin();
+					    list<lineAttributes_t>::iterator lineAttrIter = (*lineAttrInSegIter).begin();
 
-					int lineNum = (*lineInSegIter).size();
-					int lineIdx = 0;
+					    int lineNum = (*lineInSegIter).size();
+					    int lineIdx = 0;
 
-					if(lineNum >= 2)
-					{
-					// For each vector
-					while(lineIter != (*lineInSegIter).end())
-					{
-						lineTypeEnum_t lineStyle = (lineTypeEnum_t)(*lineAttrIter).lineStyle;
+					    if(lineNum >= 2)
+					    {
+					    // For each vector
+					    while(lineIter != (*lineInSegIter).end())
+					    {
+						    lineTypeEnum_t lineStyle = (lineTypeEnum_t)(*lineAttrIter).lineStyle;
 
-						int numberPoint = (*lineAttrIter).numPoints;
-						point3DFloat_t tempPoint;
+						    int numberPoint = (*lineAttrIter).numPoints;
+						    point3DFloat_t tempPoint;
 
-						for(int pointIdx = 0; pointIdx < numberPoint; pointIdx++)
-						{
-							//coordinateChange(&standPoint,&(*lineIter)[pointIdx], &(pointVecBuf[pointIdx]));
-							//coordinateChange(&standPoint,&(*lineIter)[pointIdx], &tempPoint);
-                            changeDataBaseCoord(&(*lineIter)[pointIdx], &tempPoint);
-							pointVecBuf.push_back(tempPoint);
-						}
+						    for(int pointIdx = 0; pointIdx < numberPoint; pointIdx++)
+						    {
+							    //coordinateChange(&standPoint,&(*lineIter)[pointIdx], &(pointVecBuf[pointIdx]));
+							    //coordinateChange(&standPoint,&(*lineIter)[pointIdx], &tempPoint);
+                                changeDataBaseCoord(&(*lineIter)[pointIdx], &tempPoint);
+							    pointVecBuf.push_back(tempPoint);
+						    }
 
-						{
-							baseColor_t color;
-							color.R = 0.25;
-							color.G = 0.25;
-							color.B = 0.25;
-							baseColor_t colorLine;
-							colorLine.R = 0.15;
-							colorLine.G = 0.44;
-							colorLine.B = 0.12;
+						    {
+							    baseColor_t color;
+							    color.R = 0.25;
+							    color.G = 0.25;
+							    color.B = 0.25;
+							    baseColor_t colorLine;
+							    colorLine.R = 0;//0.15;
+							    colorLine.G = 1;//0.44;
+							    colorLine.B = 0;//0.12;
+							    quadInfo_t quadBuf;
+							    quadBuf.color = colorLine;
 
-							engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
-							engine3DPtr->AddOneLineInfo(lineTypeEnum_solid, colorLine, pointVecBuf);
-							if((lineIdx != 0)&&(lineIdx != (lineNum-1)))
-							{
-								engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
-							}
-						}
 
-						//draw the paint of the line
-						{
-							baseColor_t color;
-							color.R = 1.0;
-							color.G = 0.95;
-							color.B = 0.9;
+							    //engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
+							    engine3DPtr->AddOneLineInfo(lineTypeEnum_solid, colorLine, pointVecBuf);
 
-							quadInfo_t quadBuf;
-							quadBuf.color = color;
-							bool contiFlag = false;
+							    //for(int index = 0; index < (numberPoint-1); index++)
+							    //{
+								//    extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.03, index, &quadBuf,0.005);
+								//    engine3DPtr->AddQuadInfo(1,&quadBuf);
+							   // }
 
-							for(int index = 0; index < (numberPoint-1); index++)
-							{
-								//extractQuadInfo(pointVecBuf[2*index], pointVecBuf[2*index+1], 0.2, false, &quadBuf);
-								if(((*lineIter)[index].paintFlag>=0.5)&&((*lineIter)[index+1].paintFlag>=0.5))
-								{
-									extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf);
-									contiFlag = true;
-									engine3DPtr->AddQuadInfo(1,&quadBuf);
-								}else
-								{
-									contiFlag = false;
-								}
-							}
-						}
+							    if((lineIdx == 0)||(lineIdx == (lineNum-1)))
+							    {
+								    engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
+							    }
+						    }
 
-						pointVecBuf.clear();
+						    //draw the paint of the line
+						    {
+							    baseColor_t color;
+							    color.R = 1.0;
+							    color.G = 0.95;
+							    color.B = 0.9;
 
-						lineIter++;
-						lineAttrIter++;
-						lineIdx++;
-					}
+							    quadInfo_t quadBuf;
+							    quadBuf.color = color;
+							    bool contiFlag = false;
 
-					lineInSegIter++;
-					lineAttrInSegIter++;
-					}//end for if
-				}//end for while
+							    for(int index = 0; index < (numberPoint-1); index+=4)
+							    {
+								    //extractQuadInfo(pointVecBuf[2*index], pointVecBuf[2*index+1], 0.2, false, &quadBuf);
+								    if(((*lineIter)[index].paintFlag>=0.5)&&((*lineIter)[index+1].paintFlag>=0.5))
+								    {
+									    extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf,0.01);
+									    contiFlag = true;
+									    engine3DPtr->AddQuadInfo(1,&quadBuf);
+								    }else
+								    {
+									    contiFlag = false;
+								    }
+							    }
+						    }
 
-				database_gp->getAllVectors_clear(allLines, lineAttr);
-			}
+						    pointVecBuf.clear();
 
-			engine3DPtr->SwapLineBuffer();
-			engine3DPtr->SwapRoadLineBuffer();
-			engine3DPtr->SwapQuadBuffer();
-		}
+						    lineIter++;
+						    lineAttrIter++;
+						    lineIdx++;
+					    }
+
+					    lineInSegIter++;
+					    lineAttrInSegIter++;
+					    }//end for if
+				    }//end for while
+
+				    database_gp->getAllVectors_clear(allLines, lineAttr);
+                } // end if(allLines.size() != 0)
+
+		        engine3DPtr->SwapLineBuffer();
+		        engine3DPtr->SwapRoadLineBuffer();
+		        engine3DPtr->SwapQuadBuffer();
+			}// end if(dataAccess == true)
+        }
 
 		//For all the furnitures
 		{
@@ -623,14 +637,18 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 			list<list<furAttributesInVehicle_t>> furnitureList;
 
-			database_gp->getAllFurnitures(furnitureList);
+			//database_gp->getAllFurnitures(furnitureList);
+            bool furAccess = database_gp->getAllFurnituresAsync(furnitureList);
 
-			convFurToSignInfo(furnitureList, signInfo);
+            if(furAccess)
+            {
+			    convFurToSignInfo(furnitureList, signInfo);
 
-			furnitureList.clear();
+			    furnitureList.clear();
 
-			engine3DPtr->AddSignInfo(signInfo);
-			engine3DPtr->SwapSignBuffer();
+			    engine3DPtr->AddSignInfo(signInfo);
+			    engine3DPtr->SwapSignBuffer();
+            }
 		}
 
 		//update the car position and look ahead direction

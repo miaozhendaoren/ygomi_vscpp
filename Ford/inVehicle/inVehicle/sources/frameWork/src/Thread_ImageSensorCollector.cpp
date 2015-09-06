@@ -448,12 +448,15 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	point3D_t currentGps;
 	point3D_t preGps;
 	g_readySema_VideoReader = CreateSemaphore(NULL,0,10,"semaphore_VideoReader");
+	cv::Size showSize;
 
 	InitTimeOffsetSocket_UDP();
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
     FILE* fp = fopen("./config/DE_Airport2_aviGpsFiles.txt", "r");
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
     FILE* fp = fopen("./config/DE_Lehre_aviGpsFiles.txt", "r");
+#elif (RD_LOCATION == RD_GERMAN_LEHRE2)
+    FILE* fp = fopen("./config/DE_Lehre2_aviGpsFiles.txt", "r");
 #elif (RD_LOCATION == RD_US_DETROIT)
 	FILE* fp = fopen("./config/US_Detroit_aviGpsFiles.txt", "r"); 
 #elif (RD_LOCATION == RD_US_PALO_ALTO)
@@ -498,6 +501,8 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 
 	imageBuffer.setImageSize(capture.get(CV_CAP_PROP_FRAME_WIDTH),
 	    capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+	showSize.height = capture.get(CV_CAP_PROP_FRAME_HEIGHT)/4;
+	showSize.width = capture.get(CV_CAP_PROP_FRAME_WIDTH)/4;
 
 	timeDelay = (unsigned int)(1000/fps);
 	glutTimerFunc(timeDelay,&imageTimer,3);
@@ -612,6 +617,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 
 		preGps = currentGps;
 		cv::namedWindow("image",CV_WINDOW_NORMAL);
+		cv::resize(image,image,showSize);
 		cv::imshow("image",image);
 		cv::waitKey(1);
 	}

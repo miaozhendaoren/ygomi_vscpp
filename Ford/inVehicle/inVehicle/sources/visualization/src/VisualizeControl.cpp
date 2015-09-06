@@ -275,6 +275,10 @@ void keyboardFunc(unsigned char key, int x, int y)
 			engine3DPtr->SwapServerEyeBuffer();
 		}
 		break;
+	case 83: //turn on/off traffic sign
+	case 115:
+		engine3DPtr->setSignFlag();
+		break;
 	default:
 		break;
 	}

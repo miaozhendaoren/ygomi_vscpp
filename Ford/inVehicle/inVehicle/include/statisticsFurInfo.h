@@ -36,7 +36,7 @@ struct furWithPosition_t
 struct statisticsFurInfo_t
 {
 	int16 number;
-	point3D_t firstGps;
+	std::vector<point3D_t> firstGps;
 	furAttributesInVehicle_t  furAttri;
     std::vector<int> offsetNumPerFur;
     std::vector<std::vector<float>> offset;

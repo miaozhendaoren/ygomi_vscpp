@@ -489,10 +489,9 @@ namespace ns_database
                 furnitureServerIn.reliabRating = 1;
 
                 // Locate segment
-                /*
                 uint8 segLocated = 0;
                 segAttributes_t segAttr;
-                getSegmentByGps(&furnitureServerIn.location, &segLocated, &segAttr);
+                getSegmentIdByGps(&furnitureServerIn.location, &segLocated, &segAttr);
 
                 if (segLocated == 0)
                 // Failed to found the segment by GPS of the furniture
@@ -504,7 +503,6 @@ namespace ns_database
 
                 furnitureServerIn.segId_used = 1;
                 furnitureServerIn.segId = segAttr.segId;
-                */
 
                 // Calculate altitude from input height
                 double altOut;
@@ -717,8 +715,8 @@ namespace ns_database
             }
             segIter++;
 
-            string furTypeString = "Synchronize furnitures in segment ID ";  furTypeString += segIdIn;
-            logPrintf(logLevelInfo_e, "DB_SYNC", furTypeString, FOREGROUND_BLUE | FOREGROUND_GREEN);
+            //string furTypeString = "Synchronize furnitures in segment ID ";  furTypeString += segIdIn;
+            //logPrintf(logLevelInfo_e, "DB_SYNC", furTypeString, FOREGROUND_BLUE | FOREGROUND_GREEN);
         }
         
         *msgLenOut = payloadLen;
@@ -863,14 +861,38 @@ namespace ns_database
         ReleaseMutex(_hMutexMemory);
     }
 
-	void databaseServer::sectionProc(IN std::list<segAttributes_t> &sectionConfig, 
-			IN std::list<std::vector<point3D_t>> &newData,
-			//IN std::list<std::list<furAttributesServer_t>> &dataBaseLandmark,
-			IN std::list<std::list<std::vector<point3D_t>>> &dataBasePoint,
-			OUT std::list<std::list<std::vector<point3D_t>>> &dataBasePointMerged
-			//OUT std::list<std::list<furAttributesServer_t>> &dataBaseLandmarkMerged
-       )
-	{
-		return;
-	}
+	int databaseServer::getSegIdInFurList(int furListIndex, int *furSegId)
+    {
+		WaitForSingleObject(_hMutexMemory, INFINITE);
+
+        int returnFlag = 0;
+		*furSegId = 0;
+
+		int furListNum = _furnitureList.size();
+		if(furListIndex < furListNum)
+		{
+			list<list<furAttributesServer_t>>::iterator segIter = _furnitureList.begin();
+
+			for(int index=0; index<furListIndex; index++)
+			{
+				segIter++;
+			}
+
+            int furNum = (*segIter).size();
+            if(0 < furNum)
+            {
+                list<furAttributesServer_t>::iterator furIter = (*segIter).begin();
+
+                if((*furIter).segId_used == 1)
+                {
+                    *furSegId = (*furIter).segId;
+                    returnFlag = 1;
+                }
+            }
+		}
+
+		ReleaseMutex(_hMutexMemory);
+
+		return returnFlag;
+    }
 }

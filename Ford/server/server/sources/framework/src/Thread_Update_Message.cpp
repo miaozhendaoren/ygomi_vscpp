@@ -30,6 +30,8 @@ unsigned int __stdcall Thread_Update_Message(void *data)
 	fd_set write_fds;
 	fd_set exception_fds;
 
+	list<sockInfo_t> sendclientList;	//send client address
+
     while(1)
     {
         uint32 vehicleId;      
@@ -50,12 +52,18 @@ unsigned int __stdcall Thread_Update_Message(void *data)
         databaseQueue_gp->pop();
         updateMsgPtr =  updateMessage.getUpdateRptMsg();
         updateMessage.getVehicleIDInMsg((uint32*)&updateMessage,&vehicleId);
+		
+		//copy receive list to send list
+		sendclientList.clear();
+		WaitForSingleObject(g_clientlistMutex,INFINITE);
+		sendclientList = clientList;
+		ReleaseMutex(g_clientlistMutex);
 
-		if(clientList.size() != 0)
+		if(sendclientList.size() != 0)
 		{
-			list<sockInfo_t>::iterator clientListIdx1 = clientList.begin();
-			while(clientListIdx1 != clientList.end())
-			{
+			list<sockInfo_t>::iterator clientListIdx1 = sendclientList.begin();
+			while(clientListIdx1 != sendclientList.end())
+			{		
 				FD_SET(clientListIdx1->sockClient, &write_fds);
 				FD_SET(clientListIdx1->sockClient, &exception_fds);
 				++clientListIdx1;
@@ -63,16 +71,32 @@ unsigned int __stdcall Thread_Update_Message(void *data)
 
 			//delete updateMsgPtr->payload;
 			int ret = select(sockClient+1, NULL, &write_fds, &exception_fds,&timeout);
-			if(ret < 0)
+			if(ret <= 0)
 			{
+				if(ret < 0)
+				{
+					list<sockInfo_t>::iterator clientListIdx2 = sendclientList.begin();
+					while(clientListIdx2 != sendclientList.end())
+					{
+					if(FD_ISSET(clientListIdx2->sockClient, &exception_fds))
+					{
+						//close send 
+
+						sendclientList.erase(clientListIdx2);
+					}
+					clientListIdx2++;
+					}
+				}
 				delete updateMsgPtr->payload;
 				updateMsgPtr->payload = NULL;
 				continue;
 			}
 
-			list<sockInfo_t>::iterator clientListIdx = clientList.begin();
-			while(clientListIdx != clientList.end())
+			list<sockInfo_t>::iterator clientListIdx = sendclientList.begin();
+			while(clientListIdx != sendclientList.end())
 			{
+				
+			//Sleep(8000); //test
 			if(FD_ISSET(clientListIdx->sockClient, &write_fds))
 			{
 				int* sendInt = (int*)updateMsgPtr;

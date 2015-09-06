@@ -61,6 +61,8 @@ namespace ns_database
 
         void getAllFurnitures(OUT std::list<std::list<furAttributesInVehicle_t>>& furnitureListOut);
 
+        bool getAllFurnituresAsync(OUT std::list<std::list<furAttributesInVehicle_t>>& furnitureListOut);
+
         void getLookAheadView(IN point3D_t* gpsCurr, IN float distanceIn, OUT point3D_t* gpsAhead);
 
 		void getLookAheadFurnitures(IN point3D_t* gpsCurrP, 

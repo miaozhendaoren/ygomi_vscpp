@@ -59,7 +59,7 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
 	image.convertTo(ColorImage,CV_8UC1);
 	cvtColor(ColorImage, ColorImage, COLOR_GRAY2RGB);
     */
-    imshow("iniImage",image);			
+    //imshow("iniImage",image);
 
     int w = image.cols;
     int h = image.rows;
@@ -92,7 +92,9 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
         birdSize,
         INTER_LINEAR  | WARP_INVERSE_MAP
         );
-    Mat RImage;	
+    Mat RImage;
+
+	//imwrite("birds_image.png",birds_image);
 
     Mat birdEye;
 
@@ -159,9 +161,9 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
 
 	*intrtmp = Interval;
 
-//	(*rowIndex) = (*rowIndex)-Interval;
+	//(*rowIndex) = (*rowIndex)-Interval;
 
-	imshow( "Birds View", birdEye );
+	//imshow( "Birds View", birdEye );
 	waitKey(1);
 	return 0;
 }

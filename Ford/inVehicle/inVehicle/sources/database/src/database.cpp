@@ -599,6 +599,23 @@ namespace ns_database
         ReleaseMutex(_hMutexMemory);
     }
 
+    bool database::getAllVectorsAsync(list<list<vector<point3D_t>>>& allLines, list<list<lineAttributes_t>>& lineAttr)
+    {
+        if(WAIT_OBJECT_0 == WaitForSingleObject(_hMutexMemory,1))
+        {
+            allLines = _vectorList;
+            lineAttr = _lineAttrList;
+
+            ReleaseMutex(_hMutexMemory);
+
+            return true;
+        }else
+        {
+            // failed to get vectors
+            return false;
+        }
+    }
+
     void database::getAllVectors_clear(list<list<vector<point3D_t>>>& allLines, list<list<lineAttributes_t>>& lineAttr)
     {
         allLines.clear();

@@ -189,6 +189,9 @@ namespace ns_database
         void getAllVectors(std::list<std::list<std::vector<point3D_t>>>& allLines, 
                                      std::list<std::list<lineAttributes_t>>& lineAttr);
 
+        bool getAllVectorsAsync(std::list<std::list<std::vector<point3D_t>>>& allLines, 
+                                std::list<std::list<lineAttributes_t>>& lineAttr);
+
         void getAllVectors_clear(std::list<std::list<std::vector<point3D_t>>>& allLines, 
                                  std::list<std::list<lineAttributes_t>>& lineAttr);
 

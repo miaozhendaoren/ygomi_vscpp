@@ -630,8 +630,8 @@ namespace ns_database
             addFurniture(&furAttr);
         }
 
-        string furTypeString = "Furniture List";
-        logPrintf(logLevelInfo_e, "DB_UPDATE", furTypeString, FOREGROUND_GREEN);
+        //string furTypeString = "Furniture List";
+        //logPrintf(logLevelInfo_e, "DB_UPDATE", furTypeString, FOREGROUND_GREEN);
     }
 
     void databaseInVehicle::addFurniture(IN furAttributesInVehicle_t* furnitureIn)
@@ -864,6 +864,23 @@ namespace ns_database
 
         ReleaseMutex(_hMutexMemory);
     }
+
+    bool databaseInVehicle::getAllFurnituresAsync(OUT std::list<std::list<furAttributesInVehicle_t>>& furnitureListOut)
+    {
+        if(WAIT_OBJECT_0 == WaitForSingleObject(_hMutexMemory,1))
+        {
+            furnitureListOut = _furnitureList;
+
+            ReleaseMutex(_hMutexMemory);
+
+            return true;
+        }else
+        {
+            // faled to get furnitures
+            return false;
+        }
+    }
+
 	void databaseInVehicle::getLaneGpsTlv(IN list<laneType_t> *laneInfo,
 										  IN resource_e sourceFlag, 
 										  OUT void** output, 

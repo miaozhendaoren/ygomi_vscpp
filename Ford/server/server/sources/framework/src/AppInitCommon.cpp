@@ -35,6 +35,8 @@ list<sockInfo_t> clientList;	//client address
 HANDLE g_readySema_readDb;
 HANDLE g_readySema_Redraw;
 HANDLE g_readySema_msgQueue;
+HANDLE g_clientlistMutex;
+
 
 ns_database::databaseServer* database_gp;
 ns_database::CRoadVecGen *roadVecGen_gp;
@@ -47,8 +49,11 @@ void appInitEvents(void)
 	g_readySema_readDb = CreateSemaphore(NULL,0,10,NULL);
 	g_readySema_Redraw = CreateSemaphore(NULL,0,10,NULL);
 	g_readySema_msgQueue = CreateSemaphore(NULL,0,10,NULL);
+	g_clientlistMutex = CreateMutex(NULL,FALSE,NULL);
 
+	ReleaseMutex(g_clientlistMutex);
 }
+
 void databaseInit()
 {
     list<segAttributes_t> segConfigList;

@@ -190,22 +190,27 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 											uint8* bufferAddr = outBuffPtr;
 											int32 furMsgLen;
 											int32 furNum;
+											int segId;
+											int getFlag = database_gp->getSegIdInFurList(segIndex, &segId);
 
-											database_gp->getFurnitureTlvInSeg(segIndex,
-																			  totalBufLen - outBuffOffset,
-																			  bufferAddr, 
-																			  &furMsgLen, 
-																			  &furNum);
-
-											if(furNum > 0)
+											if(0 != getFlag)
 											{
-												updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
-												updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureList_e;
-												updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
+												database_gp->getFurnitureTlvInSeg(segId,
+																				  totalBufLen - outBuffOffset,
+																				  bufferAddr, 
+																				  &furMsgLen, 
+																				  &furNum);
 
-												outBuffPtr += furMsgLen;
-												outBuffOffset += furMsgLen;
-												++outPduIdx;
+												if(furNum > 0)
+												{
+													updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
+													updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureList_e;
+													updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
+
+													outBuffPtr += furMsgLen;
+													outBuffOffset += furMsgLen;
+													++outPduIdx;
+												}
 											}
 										}
 
@@ -377,23 +382,28 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
                                     uint8* bufferAddr = outBuffPtr;
                                     int32 furMsgLen;
                                     int32 furNum;
+									int segId;
+									int getFlag = database_gp->getSegIdInFurList(segIndex, &segId);
 
-                                    database_gp->getFurnitureTlvInSeg(segIndex,
-                                                                      totalBufLen - outBuffOffset,
-                                                                      bufferAddr, 
-                                                                      &furMsgLen, 
-                                                                      &furNum);
+									if(0 != getFlag)
+									{
+										database_gp->getFurnitureTlvInSeg(segId,
+																		  totalBufLen - outBuffOffset,
+																		  bufferAddr, 
+																		  &furMsgLen, 
+																		  &furNum);
 
-                                    if(furNum > 0)
-                                    {
-									    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
-									    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureList_e;
-									    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
+										if(furNum > 0)
+										{
+											updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
+											updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureList_e;
+											updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
 
-                                        outBuffPtr += furMsgLen;
-                                        outBuffOffset += furMsgLen;
-                                        ++outPduIdx;
-                                    }
+											outBuffPtr += furMsgLen;
+											outBuffOffset += furMsgLen;
+											++outPduIdx;
+										}
+									}
 								}
 
                                 int numPDUs = outPduIdx;

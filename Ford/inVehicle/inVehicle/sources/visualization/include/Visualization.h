@@ -231,6 +231,8 @@ public:
 	GLfloat getServerAngle(void);
 	void loadCarModle(const char* file_name);
 
+	void setSignFlag(void);
+
 private:
 	void DrawSignServer(signInfo_t sign);
 	void DrawSignClient(signInfo_t sign);
@@ -295,6 +297,8 @@ private:
 	int CarShowList;
 	int _winWidth;
 	int _winHeight;
+	GLboolean _signFlag;
+
 	HANDLE hMutex;
 	mode3DEngineEnum_t drawMode;
 	GLfloat serverHeadAngle;

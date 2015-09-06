@@ -115,13 +115,8 @@ namespace ns_database
 
         void setNewDataVec(std::list<std::vector<point3D_t>> &newDataVec);
 
-		void sectionProc(IN std::list<segAttributes_t> &sectionConfig, 
-			IN std::list<std::vector<point3D_t>> &newData,
-			//IN std::list<std::list<furAttributesServer_t>> &dataBaseLandmark,
-			IN std::list<std::list<std::vector<point3D_t>>> &dataBasePoint,
-			OUT std::list<std::list<std::vector<point3D_t>>> &dataBasePointMerged
-			//OUT std::list<std::list<furAttributesServer_t>> &dataBaseLandmarkMerged
-       );
+		int databaseServer::getSegIdInFurList(int furListIndex, int *furSegId);
+
     private:
 
         std::list<std::list<furAttributesServer_t>> _furnitureList; // segment list / furniture element

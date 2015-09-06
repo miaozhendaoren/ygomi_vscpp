@@ -27,8 +27,6 @@ void determineBirdViewLocation(Mat &invertH, Point &pixelLocationOriginalImage, 
 
 void getRefGPSLocationOfEveryPixelInRoadScanImage(Mat &imageIn, int stretchRate, Point2d GPS_current, Point2d GPS_next, Point2d GPS_reference, Point pixelLocationBirdView, double distancePerPixel, Point2d &refGPSOriginalImage);
 
-void coordinateChange(Point2d in, Point2d ref, Point2d &out);
-
 void calActualGPSFromRef(Point2d location, Point2d referenceGPS, ns_database::point3D_t &actualGPS);
 
 #endif

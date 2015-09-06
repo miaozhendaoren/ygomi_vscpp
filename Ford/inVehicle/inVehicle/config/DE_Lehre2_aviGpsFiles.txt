@@ -1,0 +1,2 @@
+./resource/Germany/Lehre2/reverse/cap_20150722102359_cut/cam_20150722102359.mp4 ./resource/Germany/Lehre2/reverse/cap_20150722102359_cut/list_20150722102359.txt
+./resource/Germany/Lehre2/reverse/cap_20150722110100_cut/cam_20150722110100.mp4 ./resource/Germany/Lehre2/reverse/cap_20150722110100_cut/list_20150722110100.txt

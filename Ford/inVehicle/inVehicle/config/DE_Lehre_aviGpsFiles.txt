@@ -1,4 +1,4 @@
-./resource/Germany/Lehre/statler/statler-7200-8821.mp4 ./resource/Germany/Lehre/statler/statler-7200-8821.gps
 ./resource/Germany/Lehre/Waldorf/5.mp4 ./resource/Germany/Lehre/Waldorf/gps5.txt
-./resource/Germany/Lehre/Wanda/1.mp4 ./resource/Germany/Lehre/Wanda/gps1.txt
+./resource/Germany/Lehre/statler/statler-7200-8821.mp4 ./resource/Germany/Lehre/statler/statler-7200-8821.gps
 ./resource/Germany/Lehre/wayne/wayne-10546-11861.mp4 ./resource/Germany/Lehre/wayne/wayne-10546-11861.gps
+./resource/Germany/Lehre/Wanda/1.mp4 ./resource/Germany/Lehre/Wanda/gps1.txt

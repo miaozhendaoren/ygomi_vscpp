@@ -287,8 +287,21 @@ namespace ns_database
     {
         WaitForSingleObject(_hMutexMerging, INFINITE);
 
-        _bgDatabaseList.clear();
-        _fgDatabaseList.clear();
+        list<backgroundSectionData>::iterator bgItor = _bgDatabaseList.begin();
+        while (bgItor != _bgDatabaseList.end())
+        {
+            bgItor->bgSectionData.clear();
+
+            bgItor++;
+        }
+
+        list<foregroundSectionData>::iterator fgItor = _fgDatabaseList.begin();
+        while (fgItor != _fgDatabaseList.end())
+        {
+            fgItor->fgSectionData.clear();
+
+            fgItor++;
+        }
 
         ReleaseMutex(_hMutexMerging);
     }

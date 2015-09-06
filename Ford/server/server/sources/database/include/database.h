@@ -205,6 +205,10 @@ namespace ns_database
                              OUT uint8*           existFlag, 
                              OUT segAttributes_t* segmentAttr);
 
+		void getSegmentIdByGps(IN  point3D_t*       gps, 
+							   OUT uint8*           existFlag, 
+							   OUT segAttributes_t* segmentAttr);
+
         void getSegmentById(IN  uint32 segmentIdIn, 
                             OUT uint8* existFlag, 
                             OUT segAttributes_t* segmentAttr);

@@ -17,6 +17,7 @@
 #define Honda2 (5)
 #define Airport (6)
 #define Airport2 (7)
+#define VW2 (8)
 
 using namespace std;
 using namespace cv;
@@ -28,7 +29,7 @@ int main(void)
 {
 	Parameters inParam;
 	//DE_Airport2--US_Detroit
-	bool readStatus = readParamRoadScan("../../../../Ford/inVehicle/inVehicle/config/US_Detroit.txt", inParam);
+	bool readStatus = readParamRoadScan("../../../../Ford/inVehicle/inVehicle/config/DE_Lehre2.txt", inParam);
 
 	// Calculate H and H inverse for road scan and traffic sign detection
 	ns_roadScan::calHAndInvertH(inParam, H, invertH);
@@ -39,7 +40,7 @@ int main(void)
 		return -1;
 	}
 
-	int ChooseVideo = Ford;
+	int ChooseVideo = VW2;
 	int videoIndex = 0;
 
 	int locNum[2], holeNum[2];
@@ -72,6 +73,15 @@ int main(void)
 			{
 				capture.open("F:/roadDB/Ford/NewcoData/MKS360_20130722_003_Uncompressed.avi");
 				gpsFile = fopen("F:/roadDB/Ford/NewcoData/gps_003 - 副本.txt","r");
+				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+			}
+		}
+		else if(ChooseVideo == VW2)
+		{
+			if (videoIndex == 0)
+			{
+				capture.open("C:/Users/ypren/Documents/newco_demo/Demo/Ford/inVehicle/inVehicle/resource/Germany/Lehre2/reverse/cap_20150722110100_cut/cam_20150722110100.mp4");
+				gpsFile = fopen("C:/Users/ypren/Documents/newco_demo/Demo/Ford/inVehicle/inVehicle/resource/Germany/Lehre2/reverse/cap_20150722110100_cut/list_20150722110100.txt","r");
 				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
 			}
 		}

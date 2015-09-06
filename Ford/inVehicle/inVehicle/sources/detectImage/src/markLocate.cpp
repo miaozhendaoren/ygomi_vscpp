@@ -1,7 +1,7 @@
 
 #include "markLocate.h"
 #include "configure.h"
-
+#include "utils.h"
 void determineBirdViewLocation(Mat &invertH, Point &pixelLocationOriginalImage, Point &pixelLocationBirdView)
 {
     double invertHArray[3][3];
@@ -109,17 +109,6 @@ void getRefGPSLocationOfEveryPixelInRoadScanImage(Mat &imageIn, int stretchRate,
 		refGPSOriginalImage.y = 0.0;
 	}
 }
-
-void coordinateChange(Point2d in, Point2d ref, Point2d &out)
-{
-	double dif_x = in.x - ref.x;
-	double dif_y = in.y - ref.y;
-	double latitude = (ref.x)*PI/180;
-
-	out.x = dif_x*COEFF_DD2METER;  //latitude
-	out.y = dif_y*(111413*cos(latitude)-94*cos(3*latitude));  //longitude
-}
-
 void calActualGPSFromRef(Point2d location, Point2d referenceGPS, ns_database::point3D_t &actualGPS)
 {
     actualGPS.lat = location.x/COEFF_DD2METER + referenceGPS.x;

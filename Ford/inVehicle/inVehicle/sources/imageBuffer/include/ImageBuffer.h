@@ -7,8 +7,8 @@
 #include "databaseDef.h"
 #include "configure.h"
 
-#if (RD_LOCATION == RD_GERMAN_LEHRE)
-    #define IMAGE_BUFFER_DEPTH          2000
+#if (RD_LOCATION == RD_GERMAN_LEHRE || RD_LOCATION == RD_GERMAN_LEHRE2)
+    #define IMAGE_BUFFER_DEPTH          4000
 #else
     #define IMAGE_BUFFER_DEPTH          1500
 #endif

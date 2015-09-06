@@ -134,6 +134,9 @@ int detectorInit()
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
     bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Lehre.txt", inParam);
 	readStatus &= readOverViewPoint("./config/DE_Lehre_overViewPoint.txt",serverEyeInfo[0]);
+#elif (RD_LOCATION == RD_GERMAN_LEHRE2)
+    bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Lehre2.txt", inParam);
+	readStatus &= readOverViewPoint("./config/DE_Lehre_overViewPoint.txt",serverEyeInfo[0]);
 #elif (RD_LOCATION == RD_US_DETROIT)
 	bool readStatus = ns_roadScan::readParamRoadScan("./config/US_Detroit.txt", inParam);
 	readStatus &= readOverViewPoint("./config/US_Detroit_overViewPoint.txt",serverEyeInfo[0]);

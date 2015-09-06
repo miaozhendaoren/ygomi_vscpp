@@ -32,6 +32,7 @@ OPENGL_3D_ENGINE::OPENGL_3D_ENGINE()
 {
 	_winWidth = 600;
 	_winHeight = 400;
+	_signFlag = true;
 	serverHeadAngle = 0;
 	lineBackBufIdx = 0;
 	roadLineBackBufIdx = 0;
@@ -427,12 +428,14 @@ void OPENGL_3D_ENGINE::DrawFrontBufferClient()
 	int roadLineFrontBufIdx = roadLineBackBufIdx^1;
 	int quadFrontBufIdx = quadBackBufIdx^1;
 
-	//draw all the sign
-	for(signIdx = 0; signIdx < signBuffer[signFrontBufIdx].size(); signIdx++)
+	if(_signFlag)
 	{
-		DrawSignClient(signBuffer[signFrontBufIdx][signIdx]);
+		//draw all the sign
+		for(signIdx = 0; signIdx < signBuffer[signFrontBufIdx].size(); signIdx++)
+		{
+			DrawSignClient(signBuffer[signFrontBufIdx][signIdx]);
+		}
 	}
-
 
 	//draw road
 	list<lineInfo_t>::iterator lineIter = roadLineBuffer[roadLineFrontBufIdx].begin();
@@ -468,10 +471,13 @@ void OPENGL_3D_ENGINE::DrawFrontBufferServer()
 	int roadLineFrontBufIdx = roadLineBackBufIdx^1;
 	int quadFrontBufIdx = quadBackBufIdx^1;
 
-	//draw all the sign
-	for(signIdx = 0; signIdx < signBuffer[signFrontBufIdx].size(); signIdx++)
+	if(_signFlag)
 	{
-		DrawSignServer(signBuffer[signFrontBufIdx][signIdx]);
+		//draw all the sign
+		for(signIdx = 0; signIdx < signBuffer[signFrontBufIdx].size(); signIdx++)
+		{
+			DrawSignServer(signBuffer[signFrontBufIdx][signIdx]);
+		}
 	}
 
 		//draw road
@@ -485,12 +491,12 @@ void OPENGL_3D_ENGINE::DrawFrontBufferServer()
 	}
 
 	//draw all the vectors
-	list<lineInfo_t>::iterator lineIter2 = lineBuffer[lineFrontBufIdx].begin();
-	while(lineIter2 != lineBuffer[lineFrontBufIdx].end())
-	{
-		DrawLine(&(*lineIter2),ServerMode_3DEngine);
-		lineIter2++;
-	}
+	//list<lineInfo_t>::iterator lineIter2 = lineBuffer[lineFrontBufIdx].begin();
+	//while(lineIter2 != lineBuffer[lineFrontBufIdx].end())
+	//{
+	//	DrawLine(&(*lineIter2),ServerMode_3DEngine);
+	//	lineIter2++;
+	//}
 
 	//draw quad sharp
 	for(quadIdx = 0; quadIdx < quadBuffer[quadFrontBufIdx].size(); quadIdx++)
@@ -757,6 +763,12 @@ void OPENGL_3D_ENGINE::setWindow(int width, int height)
 	_winWidth = width;
 	_winHeight = height;
 }
+
+void OPENGL_3D_ENGINE::setSignFlag(void)
+{
+	_signFlag = (!_signFlag);
+}
+
 
 void OPENGL_3D_ENGINE::DrawCar(point3DFloat_t position, GLfloat angle)
 {
@@ -1107,17 +1119,24 @@ void OPENGL_3D_ENGINE::DrawLine(lineInfo_t *line,mode3DEngineEnum_t type)
 		}
 	}else if(lineTypeEnum_solid == line->type)
 	{
-		glLineWidth(1.0f);
-
+		//glEnable(GL_BLEND);
+		//glEnable(GL_LINE_SMOOTH);
+		//glHint(GL_LINE_SMOOTH_HINT, GL_FASTEST);
+		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+		if(ClientMode_3DEngine == type){
+		glLineWidth(2.0f);
+		}else
+		{glLineWidth(1.0f);}
 		glBegin(GL_LINE_STRIP);
 		//set the color of line
 		//glColor3f(1.0f,0.95f,0.9f);  //white
 		glColor3f(line->color.R, line->color.G, line->color.B);
 		for(index = 0; index < line->position.size(); index++)
 		{
-			glVertex3f(line->position[index].x, line->position[index].y, line->position[index].z);
+			glVertex3f(line->position[index].x, line->position[index].y+0.005, line->position[index].z);
 		}
 		glEnd();
+		//glDisable(GL_BLEND);
 	}
 
 	glPopMatrix();

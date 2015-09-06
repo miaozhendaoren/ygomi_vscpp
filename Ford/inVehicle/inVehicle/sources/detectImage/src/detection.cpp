@@ -229,9 +229,10 @@ void Detector::positionMeasure(Parameters &inParam, Point2d &GPS_current, Point2
             target.trafficSign[idx].offset.push_back(stepSize);
         }
 
-        namedWindow("imagePositon");
-        imshow("iamgePositoin",imageOut);
+
 #ifdef TRAFFIC_SIGN_TEST
+		namedWindow("imagePositon");
+        imshow("iamgePositoin",imageOut);
         static int ID = 0;
         char fileName[100];
         sprintf_s( fileName,100, "D:/Newco/airport_Code/Demo/Ford/inVehicle/Release/%05d.jpg",ID++);

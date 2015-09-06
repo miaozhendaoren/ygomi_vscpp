@@ -704,6 +704,71 @@ namespace ns_database
         ReleaseMutex(_hMutexMemory);
     }
 
+	void database::getSegmentIdByGps(IN  point3D_t*       gps, 
+                                     OUT uint8*           existFlag, 
+                                     OUT segAttributes_t* segmentAttr)
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+		double minH = DBL_MAX;
+        *existFlag = 0;
+        list<segAttributes_t>::iterator segListIter = _segmentList.begin();
+
+        // For each segment
+        while(segListIter != _segmentList.end())
+        {
+            // TODO: locate the segment of the GPS
+            double lat1 = (*segListIter).ports[0].lat;
+            double lat2 = (*segListIter).ports[1].lat;
+
+            double lon1 = (*segListIter).ports[0].lon;
+            double lon2 = (*segListIter).ports[1].lon;
+
+			// calculate angle
+			double aPower2 = (gps->lat - lat1) * (gps->lat - lat1) + (gps->lon - lon1) * (gps->lon - lon1);
+			double bPower2 = (gps->lat - lat2) * (gps->lat - lat2) + (gps->lon - lon2) * (gps->lon - lon2);
+			double cPower2 = (lat1 - lat2) * (lat1 - lat2) + (lon1 - lon2) * (lon1 - lon2);
+			double a = sqrt(aPower2); double b = sqrt(bPower2); double c = sqrt(cPower2);
+
+			//cosA = (a^2+b^2-c^2)/2ab
+			double cosA = (aPower2 + cPower2 - bPower2);
+			double cosB = (bPower2 + cPower2 - aPower2);
+
+			if( (cosA >= 0) && (cosB >= 0) ) // acute angle
+			{
+				// S=¡Ìp(p-a)(p-b)(p-c), p = (a+b+c)/2
+				double p  = (a + b + c) / 2;
+				double S = sqrt(p*(p-a)*(p-b)*(p-c));
+
+				double h = 2 * S / c;
+
+				if(minH > h)
+				{
+					minH = h;
+
+					*existFlag = 1;
+
+					*segmentAttr = (*segListIter);
+				}
+			}
+			else
+			{
+				double minDistan = a < b ? a : b;
+                if(minH > minDistan)
+				{
+					minH = minDistan;
+
+					*existFlag = 1;
+
+					*segmentAttr = (*segListIter);
+				}
+			}
+
+            segListIter++;
+        }
+
+        ReleaseMutex(_hMutexMemory);
+    }
+
     void database::getSegmentById(IN  uint32 segmentIdIn, 
                                   OUT uint8* existFlag, 
                                   OUT segAttributes_t* segmentAttr)
