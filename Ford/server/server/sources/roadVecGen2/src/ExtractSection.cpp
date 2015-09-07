@@ -139,8 +139,8 @@ namespace ns_database
         double               dlMinLength_Front = 0,
                              dlMinLength_Back = 0;
 
-        int                  uiSectionFrontLoc = 0,
-                             uiSectionBackLoc   = 0;
+        int         uiSectionFrontLoc = 0,
+                    uiSectionBackLoc   = 0;
 
         ISTATUS iStatus = I_SUCCESS;
         reportSectionData    rptSectionData;

@@ -1279,7 +1279,7 @@ void OPENGL_3D_ENGINE::DrawRoadwithLine(lineInfo_t* line1, lineInfo_t* line2)
 	if((line1->position.size()) < (line2->position.size()))
 	{
 		glVertex3f(line1->position[stripNum-1].x,line1->position[stripNum-1].y,line1->position[stripNum-1].z);
-		for(index = (stripNum-1); index < (line1->position.size()); index++)
+		for(index = (stripNum-1); index < (line2->position.size()); index++)
 		{
 			glVertex3f(line2->position[index].x,line2->position[index].y,line2->position[index].z);
 		}

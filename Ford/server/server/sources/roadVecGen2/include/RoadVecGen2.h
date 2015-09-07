@@ -112,6 +112,7 @@ namespace ns_database
         list<segAttributes_t>         _segConfigList;  // section configurations
         list<backgroundSectionData>   _bgDatabaseList; // background database
         list<foregroundSectionData>   _fgDatabaseList; // foreground database
+        list<foregroundSectionData>   _fgOutputList;   // foreground output data
 
         HANDLE                        _hMutexMerging;  // mutex handle for reset
 
@@ -321,7 +322,9 @@ namespace ns_database
         *     fgData - output line data of foreground database without overlap.
         *
         */
-        void removeOverlap(OUT list<list<vector<point3D_t>>> &fgData);
+        void removeOverlap(/*OUT list<list<vector<point3D_t>>> &fgData*/);
+
+        void jointProcessing(OUT list<list<vector<point3D_t>>> &fgData);
 
     };
 
