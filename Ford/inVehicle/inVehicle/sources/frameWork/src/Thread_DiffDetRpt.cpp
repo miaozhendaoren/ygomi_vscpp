@@ -632,6 +632,7 @@ void convertImageToFurniture(Size imageSize, ns_detection::TS_Structure &targetP
                 side = 2;
                 furniture.furAttri.sideFlag_used = 1;
                 furniture.furAttri.sideFlag = 2;
+
             }
             else
             { 
@@ -910,7 +911,7 @@ void filterFurToReport(Point2d refGps,point3D_t currentGps,list<statisticsFurInf
                         }
                         //cout << "best multiple index: " << minOffset << endl;
                         // report
-                        if(minVar != MIN_DIST)
+                        if(minVar < MIN_DIST)
                         {
                             furAttributesInVehicle_t reportFur;
                             reportFur = furnListInBuffIdx->furAttri;
@@ -976,7 +977,7 @@ void filterFurToReport(Point2d refGps,point3D_t currentGps,list<statisticsFurInf
                                 double distS = abs(slope2 - slope1);
   
 
-                                if(distS < 1.0) //FIXME: 1 degree
+                                if(distS < PARALLEL_LINE_DEGREE)
                                 {
                                     times++;
                                 }
@@ -1001,10 +1002,6 @@ void filterFurToReport(Point2d refGps,point3D_t currentGps,list<statisticsFurInf
                             gpsReport.lon = location.at<double>(1,0);
                             gpsReport.alt = furnListInBuffIdx->position[0][0].alt;
 
-                            furAttributesInVehicle_t reportFur;
-                            reportFur = furnListInBuffIdx->furAttri;
-                            reportFur.location = gpsReport;
-
                             Point2d frameGps,relativeGps1;
                             frameGps.x = furnListInBuffIdx->firstGps.back().lat;
                             frameGps.y = furnListInBuffIdx->firstGps.back().lon;
@@ -1014,56 +1011,52 @@ void filterFurToReport(Point2d refGps,point3D_t currentGps,list<statisticsFurInf
                             double distY = relativeGps1.y - gpsReport.lon;
                             double dist = sqrt(distX*distX + distY*distY);
 #ifdef TRAFFIC_SIGN_TEST
-                            fprintf(fd,"distance  = %.14f;\n",dist);
+                            fprintf(fd,"distance_%d  = %.14f;\n",furnListInBuffIdx->furAttri.type,dist);
 #endif
-                            //Point2d frame1Gps,frame2Gps,relativeGps1,relativeGps2;
-                            //frame1Gps.x = furnListInBuffIdx->firstGps.back().lat;
-                            //frame1Gps.y = furnListInBuffIdx->firstGps.back().lon;
-
-                            //furnListInBuffIdx->firstGps.pop_back();
-
-                            //frame2Gps.x = furnListInBuffIdx->firstGps.back().lat;
-                            //frame2Gps.y = furnListInBuffIdx->firstGps.back().lon;
-
-
-                            //coordinateChange(frame1Gps,refGps,relativeGps1);// relative location of the last frame the furniture is detected in.
-                            //coordinateChange(frame2Gps,refGps,relativeGps2);// relative location of the last-1 frame the furniture is detected in.
-
-                            //double carDirection = atan2(relativeGps1.y - relativeGps2.y,relativeGps1.x -relativeGps2.x);
-                            //double furnitureDirection = atan2(gpsReport.lon - relativeGps1.y,gpsReport.lat - relativeGps1.x);
-                           
-                            //carDirection = (carDirection < 0)?(carDirection+2*PI):carDirection;// change the rang from [-pi,pi] to [0,2pi]
-                            //furnitureDirection = (furnitureDirection < 0)?(furnitureDirection+2*PI):furnitureDirection;// change the rang from [-pi,pi] to [0,2pi]
-
-                            //double furnitureMinRange = (carDirection - PI/2 < 0) ? (carDirection + 3*PI/2) : (carDirection - PI/2);//[0.2pi]
-                            //double furnitureMaxRange = (carDirection + PI/2 > 2*PI) ? (carDirection - 3*PI/2) : (carDirection + PI/2);//[0,2pi]
-
-                            //if(furnitureMaxRange < furnitureMinRange)
-                            //{
-                            //    double temp = furnitureMaxRange;
-                            //    furnitureMaxRange = furnitureMinRange;
-                            //    furnitureMinRange = temp;
-                            //}
-                            //// if the furniture locates before the vehicle , report the furniture
-                            //if((furnitureDirection >= furnitureMinRange) && (furnitureDirection <= furnitureMaxRange))
-                            if(dist < 20.0)//FIXME
+ 
+                            if(dist < DIST_THREHOLD)
                             {
-                                switch(reportFur.type)
+                                // calculate the sign's height 
+                                double minDistH = MIN_DIST;
+                                float bestMuliple = 10000;
+                                vector<point3D_t> positionVector = furnListInBuffIdx->position[0];
+                                for(int stepIdx = 0;stepIdx < positionVector.size(); ++stepIdx)
                                 {
-                                    case 27553:
-                                        reportFur.type = 27453;
-                                        break;
-                                    case 27554:
-                                        reportFur.type = 27454;
-                                        break;
-                                    case 27555:
-                                        reportFur.type = 27455;
-                                        break;
-                                    case 27556:
-                                        reportFur.type = 27456;
-                                        break;
+                                    double distX = positionVector[stepIdx].lat - gpsReport.lat;
+                                    double distY = positionVector[stepIdx].lon - gpsReport.lon;
+                                    double distH = sqrt(distX*distX + distY*distY);
+                                    if(minDistH > distH)
+                                    {
+                                        bestMuliple = furnListInBuffIdx->offset[0][stepIdx];
+                                        minDistH = distH;
+                                    }
                                 }
-                                outListPtr->push_back(reportFur);
+                                if(minDistH < MIN_DIST)
+                                {
+                                    // alt: height of traffic sign, in multiple of the height of sign surface, 
+                                    //      from ground to lower boundary of sign surface.
+                                    gpsReport.alt = bestMuliple;
+                                    furAttributesInVehicle_t reportFur;
+                                    reportFur = furnListInBuffIdx->furAttri;
+                                    reportFur.location = gpsReport;
+                                
+                                    switch(reportFur.type)
+                                    {
+                                        case 27553:
+                                            reportFur.type = 27453;
+                                            break;
+                                        case 27554:
+                                            reportFur.type = 27454;
+                                            break;
+                                        case 27555:
+                                            reportFur.type = 27455;
+                                            break;
+                                        case 27556:
+                                            reportFur.type = 27456;
+                                            break;
+                                    }
+                                    outListPtr->push_back(reportFur);
+                                }
                             }
                         }
                     }
@@ -1071,7 +1064,6 @@ void filterFurToReport(Point2d refGps,point3D_t currentGps,list<statisticsFurInf
                 idxTmp = furnListInBuffIdx;
                 ++furnListInBuffIdx;
                 furnListInBuffPtr->erase(idxTmp);
-
             }
             else
             {

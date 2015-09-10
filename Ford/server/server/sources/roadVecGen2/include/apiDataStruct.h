@@ -25,7 +25,7 @@
 #include <opencv2\opencv.hpp>
 #include "database.h"
 #include "databaseDef.h"
-#include "databaseServer.h"
+//#include "databaseServer.h"
 
 using std::list;
 using std::vector;

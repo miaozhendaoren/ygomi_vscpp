@@ -29,6 +29,7 @@
 #include "VisualizeControl.h"
 #include "saveLinePointInSafe.h"
 #include "configure.h"
+#include "getSectionID.h"
 
 using namespace ns_database;
 using namespace std;
@@ -39,6 +40,9 @@ using namespace ns_historyLine;
 vector<point3DFloat_t> pointVecBuf;
 
 //baseColor_t lineColor[5];
+
+// declararion
+//extern list<segAttributes_t> g_segCfgList;
 
 int convertSignType(int type)
 {
@@ -158,8 +162,17 @@ int convertSignType(int type)
 	case 31401:
 		number = 37;
 		break;
+    case 27600:
+        number = 38;
+        break;
+    case 44100:
+        number = 39;
+        break;
+    case 44200:
+        number = 40;
+        break;
 	default:
-		number = 38;
+		number = 41;
 		break;
 	}
 #else if((RD_LOCATION&RD_NATION_MASK) == RD_UNIT_STATES)
@@ -194,16 +207,16 @@ void computeServerEyePosition(int number, point3DFloat_t* inPoint,eyeLookAt_t* e
 
 }
 
-void coordinateChange(point3D_t* standPoint, point3D_t* changePoint, point3DFloat_t* outPoint)
+void coordinateChange2(point3D_t* standPoint, point3D_t* changePoint, point3D_t* outPoint)
 {
 	GLfloat dif_x = changePoint->lat - standPoint->lat;
 	GLfloat dif_y = changePoint->lon - standPoint->lon;
 	GLfloat dif_z = changePoint->alt - standPoint->alt;
 	float latitude = (standPoint->lat)*PI/180;
 
-	outPoint->x = dif_x*COEFF_DD2METER;  //latitude
-	outPoint->z = dif_y*(111413*cos(latitude)-94*cos(3*latitude));  //longitude
-	outPoint->y = 0;//dif_z;
+    outPoint->lat = dif_x*COEFF_DD2METER;  //latitude
+    outPoint->lon = dif_y*(111413*cos(latitude)-94*cos(3*latitude));  //longitude
+    outPoint->alt = 0;//dif_z;
 }
 
 void changeDataBaseCoord(point3D_t* changePoint, point3DFloat_t* outPoint)
@@ -353,7 +366,6 @@ void convFurToSignInfo(list<list<furAttributesInVehicle_t>>& furnitureList,
 		}
 		segIter++;
 	}
-
 }
 
 void gpsTimer(int value)
@@ -464,6 +476,29 @@ void extractQuadInfo(point3DFloat_t startPoint, point3DFloat_t endPoint, float w
 	startZ_right = quadInfo->vertex[2].z;
 }
 
+void generateRoadChar(point3DFloat_t position, int showNum, drawServerCharInfo_t &testChar)
+{
+	if(showNum > 99)
+	{
+		showNum = 99;
+	}else if(showNum < 0)
+	{
+		showNum = 0;
+	}
+    
+	testChar.position = position;
+	testChar.position.y += 0.1;
+	if(showNum < 10)
+	{
+		sprintf(&testChar.drawChar[0],"%d",showNum);
+		memset(&testChar.drawChar[1],0,1);
+	}else
+	{
+		sprintf(&testChar.drawChar[0],"%d",(showNum/10));
+		sprintf(&testChar.drawChar[1],"%d",(showNum%10));
+		memset(&testChar.drawChar[2],0,1);
+	}
+}
 unsigned int __stdcall Thread_VisualizePreProc(void *data)
 {
 	point3D_t standPoint;
@@ -476,6 +511,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 	point3D_t gpsCurrent;
 	point3DFloat_t lastPointF;
 	point3D_t gpsAheadLast;
+    point3D_t newPointD; 
 
 	gpsAheadNew.lat = 0;
 	gpsAheadNew.lon = 0;
@@ -498,6 +534,10 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 	newPointF.y = 0;
 	newPointF.z = 0;
 
+    //newPointD.lat = 0;
+	//newPointD.lon = 0;
+	//newPointD.alt = 0;
+
 	glutTimerFunc((unsigned int)(1000),&gpsTimer,2);
 
 	standPoint.lat = inParam.GPSref.x;//42.296853333333331;//gGpsInfo.dLatitude;
@@ -513,6 +553,11 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 		//wait for GPS thread to get GPS signal
 		WaitForSingleObject(g_readySema_GPS, INFINITE); 
 
+        point3D_t orgPoint;
+        orgPoint.lat = gGpsInfo.dLatitude;
+		orgPoint.alt = gGpsInfo.altitude;
+		orgPoint.lon = gGpsInfo.dLongitude;
+        coordinateChange2(&standPoint, &orgPoint, &newPointD);
 		//get all lines
 		{
 			list<list<vector<point3D_t>>> allLines; // segment list / vector list / point list / point
@@ -536,6 +581,8 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 					    int lineNum = (*lineInSegIter).size();
 					    int lineIdx = 0;
+						point3DFloat_t lastPos;
+				        int drawNum;
 
 					    if(lineNum >= 2)
 					    {
@@ -583,6 +630,28 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 							    }
 						    }
 
+						if(lineIdx == 0)
+						{
+							lastPos = pointVecBuf[0];
+							drawNum = (*lineIter)[0].count;
+						}else
+						{
+							point3DFloat_t drawPos;
+							drawPos.x = (lastPos.x + pointVecBuf[0].x)/2;
+							drawPos.y = (lastPos.y + pointVecBuf[0].y)/2;
+							drawPos.z = (lastPos.z + pointVecBuf[0].z)/2;
+
+							drawServerCharInfo_t testChar;
+
+							generateRoadChar(drawPos, drawNum, testChar);
+
+							engine3DPtr->AddOneServerCharInfo(testChar);
+							
+							lastPos = pointVecBuf[0];
+							drawNum = (*lineIter)[0].count;
+							
+						}
+
 						    //draw the paint of the line
 						    {
 							    baseColor_t color;
@@ -621,12 +690,34 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 					    }//end for if
 				    }//end for while
 
+
+
+                    //put the car to the lane.
+                    {
+                        uint32 secId;
+                        int lineId;           
+
+                        getSectionId(newPointD, g_segCfgList,secId);
+
+                        bool emptyFlag = checkLineSection(lineAttr, secId, lineId);
+                        if(emptyFlag)
+                        {
+                            list<list<vector<point3D_t>>>::iterator lineInSegIter2 = allLines.begin();
+                            for(int idx = 0; idx < lineId; idx++)
+                            {
+                                lineInSegIter2++;
+                            }
+                          fixVehicleLocationInLane(newPointD,(*lineInSegIter2), &newPointD);
+                        }
+                    }
+
 				    database_gp->getAllVectors_clear(allLines, lineAttr);
                 } // end if(allLines.size() != 0)
 
 		        engine3DPtr->SwapLineBuffer();
 		        engine3DPtr->SwapRoadLineBuffer();
 		        engine3DPtr->SwapQuadBuffer();
+				engine3DPtr->SwapServerCharBuffer();
 			}// end if(dataAccess == true)
         }
 
@@ -654,21 +745,21 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 		//update the car position and look ahead direction
 		{
 			//point3D_t oldPointD;
-			point3D_t newPointD; 
 
 			//oldPointD.lat = gGpsInfo.dLatitudePre;
 			//oldPointD.alt = gGpsInfo.altitudePre;
 			//oldPointD.lon = gGpsInfo.dLongitudePre;
 
-			newPointD.lat = gGpsInfo.dLatitude;
-			newPointD.alt = gGpsInfo.altitude;
-			newPointD.lon = gGpsInfo.dLongitude;
+
 
 			lastPointF = oldPointF;
 			oldPointF = newPointF;
 
 			//database_gp->getLookAheadView(&newPointD, 1, &gpsCurrent);
-			coordinateChange(&standPoint, &newPointD, &newPointF);
+			//coordinateChange(&standPoint, &newPointD, &newPointF);
+            newPointF.x = newPointD.lat;  //latitude
+            newPointF.z = newPointD.lon;  //latitude
+            newPointF.y = newPointD.alt;  //latitude
 
 			//use current GPS position and last GPS position to compute the direction.
 			if((oldPointF.x == newPointF.x)&&(oldPointF.z == newPointF.z))
@@ -682,8 +773,6 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 				engine3DPtr->SwapEyeBuffer();
 			}
-
-
 			//update look ahead figure. TBD
 
 		}

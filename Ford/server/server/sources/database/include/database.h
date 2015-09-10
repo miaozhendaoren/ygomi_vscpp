@@ -221,7 +221,9 @@ namespace ns_database
         void convFurnitureToTlv(IN furAttributes_t* furnitureAttr, 
                               IN resource_e sourceFlag,
                               OUT void** output, 
-                              OUT int32* length);
+                              OUT int32* length);		
+
+		void calcFurnitureRoadSideLoc(INOUT furAttributes_t* furnitureAttr);
 
         void getLookAheadView(IN point3D_t* gpsCurr, IN float distanceIn, OUT point3D_t* gpsAhead);
 
@@ -400,6 +402,12 @@ namespace ns_database
                        IN  double distanceInMeterR,
                        OUT point3D_t *gpsOutL,
                        OUT point3D_t *gpsOutR);
+		
+	bool doubleLenEqual(double f1 , double f2);
+
+	int pointInLine(const point3D_t& point, const point3D_t& pointM, const point3D_t& pointN);
+
+	bool pointInPolygon(const point3D_t& point,const std::vector<point3D_t>& polygon);
 
 }
 

@@ -39,7 +39,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;../../../../Ford\server\server\sources\database\include;../../../../Ford\server\server\include;../../../../Ford\server\server\sources\log\include;../../../../Ford\server\server\sources\roadVecGen2\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;../../../../Ford\server\server\sources\database\include;../../../../Ford\server\server\include;../../../../Ford\server\server\sources\log\include;../../../../Ford\server\server\sources\roadVecGen2\include;../../../../Ford\server\server\sources\framework\include;../../../../Ford\server\server\sources\interface\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -53,7 +53,7 @@
     </Link>
   </ItemDefinitionGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;../../../../Ford\server\server\sources\database\include;../../../../Ford\server\server\include;../../../../Ford\server\server\sources\log\include;../../../../Ford\server\server\sources\roadVecGen2\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;../../../../Ford\server\server\sources\database\include;../../../../Ford\server\server\include;../../../../Ford\server\server\sources\log\include;../../../../Ford\server\server\sources\roadVecGen2\include;../../../../Ford\server\server\sources\framework\include;../../../../Ford\server\server\sources\interface\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

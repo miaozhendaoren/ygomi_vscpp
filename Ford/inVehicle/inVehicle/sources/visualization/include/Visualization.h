@@ -163,6 +163,11 @@ typedef struct NEWCO_STRUCTURE_PACK
 	drawCharInfo_t buffer[MAX_BUFFER_DEPTH_DRAW_CHAR];
 }drawCharInfo_3D_Internal_t;
 
+typedef struct NEWCO_STRUCTURE_PACK
+{
+	point3DFloat_t position;
+	char drawChar[3];
+}drawServerCharInfo_t;
 
 class OPENGL_3D_ENGINE
 {
@@ -180,6 +185,8 @@ public:
 	GLboolean AddOneRoadLineInfo(lineTypeEnum_t type, baseColor_t color, vector<point3DFloat_t>& buffer);
 
 	GLboolean AddQuadInfo(int number, quadInfo_t* buffer);
+
+	GLboolean AddOneServerCharInfo(drawServerCharInfo_t &charInfo);
 
 	//change the backend buffer to front buffer to draw, it means add roadInfomation and Sign information finished.
 	GLboolean Swap3DBuffers(void);
@@ -205,6 +212,8 @@ public:
 	GLboolean SwapCharBuffer(void);
 
 	GLboolean SwapQuadBuffer(void);
+
+	GLboolean SwapServerCharBuffer(void);
 
 	//we don't set the head direction, default head direction is (0,1,0) ,  it will add the eyeBuffer to 3D engine's backend internal buffer.
 	GLboolean setEyeLookat(int number,           //how many frames will draw based on the following information, this function is based one road inforamtion coordinates
@@ -239,7 +248,7 @@ private:
 	void DrawPole(GLfloat height = 2.0f);
 	void DrawPoleServer(GLfloat height = 20.0f);
 	void DrawCharDynamic(drawCharInfo_t input);
-	void DrawChar(point3DFloat_t position, char *drawChar);
+	void DrawChar(point3DFloat_t position, char *drawChar, baseColor_t color);
 	void DrawCharWithOutPos(char *drawChar);
 	void DrawLine(lineInfo_t *line,mode3DEngineEnum_t type);
 	void DrawCar(point3DFloat_t position,GLfloat angle);
@@ -268,6 +277,7 @@ private:
 	void CreateSignRoadOnShowList();
 	void CreateCharaterShowList();
 	void CreateCarShowList(void);
+	void selectFont(int size,  int charset);
 	GLfloat ComputeAngle(point3DFloat_t *startPoint, point3DFloat_t *endPoint);
 
 	//int backBufIdx;         //backend buffer index
@@ -279,6 +289,7 @@ private:
 	int serverEyeBackBufIdx;
 	int eyeLookaheadBackBufIdx;
 	int quadBackBufIdx;
+	int serverCharBackBufIdx;
 
 	
 	eyeInfo_3D_Internal_t  eyeBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
@@ -290,6 +301,7 @@ private:
 	drawCharInfo_3D_Internal_t charBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	vector<quadInfo_t>     quadBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	GLuint                 texturelist[MAX_BUFFER_DEPTH_2D_TXETURE];
+	vector<drawServerCharInfo_t> serverCharBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 
 	int SignShowList_roadSide;
 	int SignShowList_roadOn;

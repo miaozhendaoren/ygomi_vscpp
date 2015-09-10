@@ -6,7 +6,9 @@ list<list<vector<point3D_t>>>       newDataVec;
 list<list<vector<point3D_t>>>       fgData;
 list<segAttributes_t>               segConfigList;
 
-CRoadVecGen2 g_RoadVecGen;
+ns_database::CRoadVecGen2 g_RoadVecGen;
+
+ns_database::CRoadVecGen2 *roadVecGen2_gp;
 
 void main()
 {

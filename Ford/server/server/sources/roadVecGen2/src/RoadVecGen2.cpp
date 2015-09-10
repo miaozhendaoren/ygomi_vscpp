@@ -54,6 +54,8 @@ namespace ns_database
 #define DASH_DASH                 1
 #define DASH_SOLID                2
 #define SOLID_SOLID               0
+#define MATCHED_LINE_FLAG         1
+#define UNMATCHED_LINE_FLAG       -1
 
 #define SAFEARR_DELETE(p) if (p) { delete [] (p); p = nullptr; }
 
@@ -217,9 +219,12 @@ namespace ns_database
         stitchSectionLanes();
 
         // remove section overlap and output data
-        removeOverlap(/*fgData*/);
-
+#if 0
+        removeOverlap(fgData);
+#else
+        removeOverlap();
         jointProcessing(fgData);
+#endif
 
 #if VISUALIZATION_ON || SAVE_DATA_ON
         list<vector<point3D_t>> fglines;
@@ -255,6 +260,22 @@ namespace ns_database
     }
 
 
+    bool CRoadVecGen2::roadSectionsGen(OUT list<list<vector<point3D_t>>> &fgData)
+    {
+        WaitForSingleObject(_hMutexMerging, INFINITE);
+
+        // generate foreground database data
+        stitchSectionLanes();
+
+        // remove section overlap and output data
+        removeOverlap();
+        jointProcessing(fgData);
+
+        ReleaseMutex(_hMutexMerging);
+        return true;
+    }
+
+
     void CRoadVecGen2::setSectionConfigPath(IN string                  filename,
                                             OUT list<segAttributes_t> &segConfigList)
     {
@@ -268,6 +289,54 @@ namespace ns_database
 
         // calculate section rotation angle and X data range
         calcRotAngleAndRange();
+    }
+
+    bool CRoadVecGen2::loadDefaultSegData(IN uint32 segId, IN string filename)
+    {
+        // load default background data for specified section
+        FILE *fp = nullptr;
+        errno_t err = fopen_s(&fp, filename.c_str(), "r");
+        if (0 == err)
+        {
+            WaitForSingleObject(_hMutexMerging, INFINITE);
+
+            backgroundSectionData *bgSegData = nullptr;
+
+            // get background database pointer
+            _curSecId = segId;
+            getDatabaseData(&bgSegData);
+            bgSegData->bgSectionData.clear();
+
+            vector<point3D_t> leftline, rightline;
+            point3D_t leftpnt = { 0 }, rightpnt = { 0 };
+
+            while (!feof(fp))
+            {
+                fscanf_s(fp, "%lf, %lf, %lf, %lf, %lf, %lf\n",
+                    &leftpnt.lon, &leftpnt.lat, &leftpnt.paintFlag,
+                    &rightpnt.lon, &rightpnt.lat, &rightpnt.paintFlag);
+
+                leftpnt.paintFlag = 1;
+                leftpnt.count = 1;
+                rightpnt.paintFlag = 1;
+                rightpnt.count = 1;
+
+                leftline.push_back(leftpnt);
+                rightline.push_back(rightpnt);
+            }
+            list<vector<point3D_t>> lane;
+            lane.push_back(leftline);
+            lane.push_back(rightline);
+
+            bgSegData->bgSectionData.push_back(lane);
+
+            ReleaseMutex(_hMutexMerging);
+            fclose(fp);
+
+            return true;
+        }
+
+        return false;
     }
 
 
@@ -308,6 +377,24 @@ namespace ns_database
         ReleaseMutex(_hMutexMerging);
     }
 
+    void CRoadVecGen2::getBgRoadVec(OUT list<backgroundSectionData> &bgVecOut)
+    {
+        WaitForSingleObject(_hMutexMerging, INFINITE);
+
+        bgVecOut = _bgDatabaseList;
+
+        ReleaseMutex(_hMutexMerging);
+    }
+
+    void CRoadVecGen2::setBgRoadVec(IN list<backgroundSectionData> &bgVecIn)
+    {
+        WaitForSingleObject(_hMutexMerging, INFINITE);
+
+        _bgDatabaseList.clear();
+        _bgDatabaseList = bgVecIn;
+
+        ReleaseMutex(_hMutexMerging);
+    }
 
     void CRoadVecGen2::readSecConfig(OUT list<segAttributes_t> &segCfgList)
     {
@@ -580,7 +667,7 @@ namespace ns_database
             pointZ.alt       = 0;
             pointZ.paintFlag = (sourceLine[i].paintFlag >= 0) ? \
                 sourceLine[i].paintFlag : 0;
-            pointZ.count     = 1;
+            pointZ.count     = sourceLine[i].count;
 
             rotatedLine.push_back(pointZ);
         }
@@ -672,6 +759,10 @@ namespace ns_database
                         {
                             if (i == matchedLane)
                             {
+                                // increase merged times, just use the first point
+                                leftSample->at(0).count++;
+                                rightSample->at(0).count++;
+
                                 list<vector<point3D_t>> lines;
                                 lines.push_back(*leftSample);
                                 lines.push_back(*rightSample);
@@ -694,6 +785,10 @@ namespace ns_database
                             {
                                 if (bgLaneItor->empty())
                                 {
+                                    // increase merged times, just use the first point
+                                    leftSample->at(0).count++;
+                                    rightSample->at(0).count++;
+
                                     list<vector<point3D_t>> lines;
                                     lines.push_back(*leftSample);
                                     lines.push_back(*rightSample);
@@ -712,6 +807,10 @@ namespace ns_database
                                         bgLaneItor->back().at(i).lat = (0.75 * bgLaneItor->back().at(i).lat + 0.25 * rightSample->at(i).lat);
                                         bgLaneItor->back().at(i).paintFlag = (float)(bgLaneItor->back().at(i).paintFlag + rightSample->at(i).paintFlag);
                                     }
+
+                                    // increase merged times, just use the first point
+                                    bgLaneItor->front().at(0).count++;
+                                    bgLaneItor->back().at(0).count++;
                                 }
                             } // end of matched lane
 
@@ -893,7 +992,9 @@ namespace ns_database
                         // number of dblines should be double of valid lanes
                         if (2 * numOfValidLanes != dblines.size())
                         {
+#if VISUALIZATION_ON
                             printf("number of lines not match with number of lanes\n");
+#endif
                             continue;
                         }
 
@@ -1089,12 +1190,10 @@ namespace ns_database
     }
 
 
-    void CRoadVecGen2::removeOverlap(/*OUT list<list<vector<point3D_t>>> &fgData*/)
+    void CRoadVecGen2::removeOverlap(OUT list<list<vector<point3D_t>>> &fgData)
     {
         if (!_fgDatabaseList.empty())
         {
-            _fgOutputList.clear();
-
             int numOfFGLines = 0, ind = 0;
             double *py11 = nullptr, *py12 = nullptr,
                    *py21 = nullptr, *py22 = nullptr;
@@ -1114,11 +1213,7 @@ namespace ns_database
 
                 if (fgSecItor->fgSectionData.empty())
                 {
-                    //fgData.push_back(fglines);
-
-                    foregroundSectionData fgSecData;
-                    fgSecData.sectionId = fgSecItor->sectionId;
-                    _fgOutputList.push_back(fgSecData);
+                    fgData.push_back(fglines);
 
                     fgSecItor++;
                     continue;
@@ -1177,11 +1272,6 @@ namespace ns_database
                     complex<double> yj2(0, c2);
                     double cox2 = real((edx + yj2) * exp(theta2));
 
-
-                    foregroundSectionData fgSecData;
-                    fgSecData.sectionId = _curSecId;
-
-
                     lItor = fgSecItor->fgSectionData.begin();
                     while (lItor != fgSecItor->fgSectionData.end() && !lItor->empty())
                     {
@@ -1217,15 +1307,10 @@ namespace ns_database
                         getFGLine(fgl, _secRotAngle[_curSecId - 1], rotline);
                         fglines.push_back(rotline);
 
-
-                        fgSecData.fgSectionData.push_back(rotline);
-
-
                         lItor++;
                     }
 
-                    //fgData.push_back(fglines);
-                    _fgOutputList.push_back(fgSecData);
+                    fgData.push_back(fglines);
 
 #if VISUALIZATION_ON
                     sprintf_s(IMAGE_NAME_STR2, "fg_section_%d_output_lines.png",
@@ -1233,6 +1318,176 @@ namespace ns_database
                     showImage(fglines, Scalar(0, 0, 255), IMAGE_NAME_STR2);
 #endif
                 }
+
+                SAFEARR_DELETE(py11);
+                SAFEARR_DELETE(py12);
+                SAFEARR_DELETE(py21);
+                SAFEARR_DELETE(py22);
+
+                fgSecItor++;
+            } // end of section iterator
+        } // end of foreground database not empty
+    }
+
+    void CRoadVecGen2::removeOverlap()
+    {
+        if (!_fgDatabaseList.empty())
+        {
+            _fgOutputList.clear();
+
+            int numOfFGLines = 0, ind = 0;
+            double *py11 = nullptr, *py12 = nullptr,
+                   *py21 = nullptr, *py22 = nullptr;
+            double step = 0.0, stx = 0.0, edx = 0.0;
+            double my1 = 0.0, my2 = 0.0, sy1 = 0.0, sy2 = 0.0;
+
+            vector<point3D_t> line1, line2, fgl, rotline;
+
+            list<vector<point3D_t>>::iterator lItor;
+            list<foregroundSectionData>::iterator fgSecItor = _fgDatabaseList.begin();
+            foregroundSectionData fgSecData;
+
+            int numOfUsedLanes = 0;
+            backgroundSectionData *bgSecData = nullptr;
+            list<list<vector<point3D_t>>>::iterator laneItor;
+
+            // remove overlap for each section
+            while (fgSecItor != _fgDatabaseList.end())
+            {
+                fgSecData.fgSectionData.clear();
+
+                // current section Id
+                _curSecId = fgSecItor->sectionId;
+                fgSecData.sectionId = _curSecId;
+
+                if (fgSecItor->fgSectionData.empty())
+                {
+                    _fgOutputList.push_back(fgSecData);
+
+                    fgSecItor++;
+                    continue;
+                }
+
+                // get background database section data, use its lane data to
+                // get foreground output line data. if there is empty lane, then
+                // push an empty line to output list.
+                getDatabaseData(&bgSecData);
+                laneItor = bgSecData->bgSectionData.begin();
+                while (laneItor->empty())
+                {
+                    vector<point3D_t> line;
+                    fgSecData.fgSectionData.push_back(line);
+
+                    numOfUsedLanes++;
+                    laneItor++;
+                }
+
+                // valid foreground line data
+                numOfFGLines = fgSecItor->fgSectionData.size();
+                py11 = new double[numOfFGLines];
+                py12 = new double[numOfFGLines];
+                py21 = new double[numOfFGLines];
+                py22 = new double[numOfFGLines];
+
+                // adjacent Y value of two body start/end points
+                if (py11 && py12 && py21 && py22)
+                {
+                    ind = 0;
+                    my1 = 0.0; my2 = 0.0; sy1 = 0.0; sy2 = 0.0;
+
+                    lItor = fgSecItor->fgSectionData.begin();
+
+                    step = lItor->at(1).lon - lItor->at(0).lon;
+                    stx  = lItor->at(_secBodyStInd[_curSecId - 1]).lon;
+                    edx  = lItor->at(_secBodyEdInd[_curSecId - 1]).lon;
+
+                    while (lItor != fgSecItor->fgSectionData.end() && !lItor->empty())
+                    {
+                        py11[ind] = lItor->at(_secBodyStInd[_curSecId - 1]).lat;
+                        py12[ind] = lItor->at(_secBodyStInd[_curSecId - 1] + 1).lat;
+                        my1 += (py11[ind] - py12[ind]);
+                        sy1 += py11[ind];
+
+                        py21[ind] = lItor->at(_secBodyEdInd[_curSecId - 1] - 1).lat;
+                        py22[ind] = lItor->at(_secBodyEdInd[_curSecId - 1]).lat;
+                        my2 += (py21[ind] - py22[ind]);
+                        sy2 += py21[ind];
+
+                        ind++;
+                        lItor++;
+                    }
+
+                    double c1 = sy1 / numOfFGLines;
+                    double c2 = sy2 / numOfFGLines;
+
+                    double angle1 = atan(my1 / (numOfFGLines * step));
+                    double angle2 = atan(my2 / (numOfFGLines * step));
+
+                    // start point
+                    complex<double> theta1(0, angle1);
+                    complex<double> yj1(0, c1);
+                    double cox1 = real((stx + yj1) * exp(theta1));
+
+                    // end point
+                    complex<double> theta2(0, angle2);
+                    complex<double> yj2(0, c2);
+                    double cox2 = real((edx + yj2) * exp(theta2));
+
+                    lItor = fgSecItor->fgSectionData.begin();
+                    while (lItor != fgSecItor->fgSectionData.end() && !lItor->empty())
+                    {
+                        line1.clear();
+                        line2.clear();
+                        fgl.clear();
+                        rotline.clear();
+
+                        lineRotation(*lItor, angle1, line1);
+                        lineRotation(*lItor, angle2, line2);
+
+                        if (step > 0)
+                        {
+                            for (uint32 i = 0; i < line1.size(); i++)
+                            {
+                                if (cox1 <= line1[i].lon && line2[i].lon <= cox2)
+                                {
+                                    fgl.push_back(lItor->at(i));
+                                }
+                            }
+                        }
+                        else
+                        {
+                            for (uint32 i = 0; i < line1.size(); i++)
+                            {
+                                if (cox2 <= line2[i].lon && line1[i].lon <= cox1)
+                                {
+                                    fgl.push_back(lItor->at(i));
+                                }
+                            }
+                        }
+
+                        getFGLine(fgl, _secRotAngle[_curSecId - 1], rotline);
+                        fgSecData.fgSectionData.push_back(rotline);
+
+                        lItor++;
+                    }
+
+#if VISUALIZATION_ON
+                    sprintf_s(IMAGE_NAME_STR2, "fg_section_%d_output_lines.png",
+                        _curSecId);
+                    showImage(fgSecData.fgSectionData, Scalar(0, 0, 255), IMAGE_NAME_STR2);
+#endif
+                }
+
+                // for last empty lanes
+                while (numOfUsedLanes + numOfFGLines - 1 < _secLaneNum[_curSecId - 1])
+                {
+                    vector<point3D_t> line;
+                    fgSecData.fgSectionData.push_back(line);
+
+                    numOfUsedLanes++;
+                }
+
+                _fgOutputList.push_back(fgSecData);
 
                 SAFEARR_DELETE(py11);
                 SAFEARR_DELETE(py12);
@@ -1260,22 +1515,29 @@ namespace ns_database
         int numOfSegs = _fgOutputList.size();
 
         // iterate each adjacent sections to join together
-        list<foregroundSectionData>::iterator fgSecItor = _fgOutputList.begin();
+        list<foregroundSectionData>::iterator prevSecItor = _fgOutputList.begin();
+        list<foregroundSectionData>::iterator currSecItor = _fgOutputList.begin();
         foregroundSectionData currData, prevData;
+
+        // background database section iterator used to get merged information
+        list<backgroundSectionData>::iterator bgSecItor = _bgDatabaseList.begin();
+        list<list<vector<point3D_t>>>::iterator laneItor;
 
         for (int i = 0; i < numOfSegs; i++)
         {
-            prevData = *fgSecItor;
-            // if current is the first section and road is circle, previous
-            // section is the first one
-            if (i == numOfSegs - 1)
+            currData = *currSecItor;
+            currSecItor++;
+
+            // if current section is the first section and circle exists, then
+            // the previous section is the last one
+            if (i == 0)
             {
-                currData = _fgOutputList.front();
+                prevData = _fgOutputList.back();
             }
             else
             {
-                fgSecItor++;
-                currData = *fgSecItor;
+                prevData = *prevSecItor;
+                prevSecItor++;
             }
 
             // current section Id
@@ -1284,12 +1546,9 @@ namespace ns_database
             // current section data is empty, push empty lines to match lane number
             if (currData.fgSectionData.empty())
             {
+                bgSecItor++;
+
                 list<vector<point3D_t>> fglines;
-                for (int i = 0; i <= _secLaneNum[_curSecId - 1]; i++)
-                {
-                    vector<point3D_t> line;
-                    fglines.push_back(line);
-                }
 
                 fgData.push_back(fglines);
                 continue;
@@ -1298,7 +1557,34 @@ namespace ns_database
             // previous section data is empty
             if (prevData.fgSectionData.empty())
             {
-                fgData.push_back(currData.fgSectionData);
+                laneItor = bgSecItor->bgSectionData.begin();
+
+                list<vector<point3D_t>> fglines;
+                list<vector<point3D_t>>::iterator lineItor = currData.fgSectionData.begin();
+                while (lineItor != currData.fgSectionData.end())
+                {
+                    // get merged information
+                    if (laneItor != bgSecItor->bgSectionData.end())
+                    {
+                        if (!laneItor->empty() && !lineItor->empty())
+                        {
+                            lineItor->at(0).count = laneItor->front().at(0).count;
+                        }
+
+                        laneItor++;
+                    }
+
+                    if (!lineItor->empty())
+                    {
+                        fglines.push_back(*lineItor);
+                    }
+
+                    lineItor++;
+                }
+
+                bgSecItor++;
+
+                fgData.push_back(fglines);
                 continue;
             }
 
@@ -1330,50 +1616,98 @@ namespace ns_database
                 }
 
                 // match to correct lines, get matched end points
-                int numOfLines = min(currlines, prevlines);
-                vector<int> index;
+                int numOfLines = max(currlines, prevlines);
+                vector<int> matchedInd;
                 vector<point3D_t> stPnts;
                 vector<point3D_t> edPnts;
 
-                for (int i = 0; i < numOfLines; i++)
+                for (int i = 0; i < currlines; i++)
                 {
-                    if (ppCurrLines[i] && ppPrevLines[i])
+                    if (i >= prevlines)
                     {
-                        index.push_back(i);
-                        stPnts.push_back(ppCurrLines[i]->front());
-                        edPnts.push_back(ppPrevLines[i]->back());
+                        matchedInd.push_back(UNMATCHED_LINE_FLAG);
+                    }
+                    else
+                    {
+                        if (!ppCurrLines[i]->empty() && !ppPrevLines[i]->empty())
+                        {
+                            matchedInd.push_back(MATCHED_LINE_FLAG);
+                            stPnts.push_back(ppCurrLines[i]->front());
+                            edPnts.push_back(ppPrevLines[i]->back());
+                        }
+                        else
+                        {
+                            matchedInd.push_back(UNMATCHED_LINE_FLAG);
+                        }
                     }
                 }
 
+                // if exist matched lines, size of stPnts and edPnts should be
+                // the same
                 if (!stPnts.empty() && !edPnts.empty())
                 {
-                    for (uint32 i = 0; i < index.size(); i++)
-                    {
-                        double dx = edPnts[i].lon - stPnts[i].lon;
-                        double dy = edPnts[i].lat - stPnts[i].lat;
+                    uint32 matchedCnt = stPnts.size();
+                    uint32 index = 0;
+                    double dx = 0.0, dy = 0.0, ddx = 0.0, ddy = 0.0;
 
-                        int numOfHalfPnts = ppCurrLines[index[i]]->size() / 2;
+                    for (uint32 i = 0; i < matchedInd.size(); i++)
+                    {
+                        if (UNMATCHED_LINE_FLAG == matchedInd[i])
+                        {
+                            int ind = (i < matchedCnt) ? 0 : (matchedCnt - 1);
+
+                            dx = edPnts[ind].lon - stPnts[ind].lon;
+                            dy = edPnts[ind].lat - stPnts[ind].lat;
+
+                        }
+                        else
+                        {
+                            dx = edPnts[index].lon - stPnts[index].lon;
+                            dy = edPnts[index].lat - stPnts[index].lat;
+                            index++;
+                        }
+
+                        int numOfHalfPnts = ppCurrLines[i]->size() / 2;
 
                         double ddx = dx / numOfHalfPnts;
-                        double ddy = dx / numOfHalfPnts;
+                        double ddy = dy / numOfHalfPnts;
 
+                        // for matched lines
                         for (int pi = 0; pi < numOfHalfPnts; pi++)
                         {
-                            ppCurrLines[index[i]]->at(pi).lon += (numOfHalfPnts - pi) * ddx;
-                            ppCurrLines[index[i]]->at(pi).lat += (numOfHalfPnts - pi) * ddy;
+                            ppCurrLines[i]->at(pi).lon += (dx - pi * ddx);
+                            ppCurrLines[i]->at(pi).lat += (dy - pi * ddy);
                         }
                     }
                 }
 
                 // push current section lines to fgData
+                laneItor = bgSecItor->bgSectionData.begin();
+
                 list<vector<point3D_t>> fglines;
                 for (int i = 0; i < currlines; i++)
                 {
-                    fglines.push_back(*(ppCurrLines[i]));
+                    // get merged information
+                    if (laneItor != bgSecItor->bgSectionData.end())
+                    {
+                        if (!laneItor->empty() && !ppCurrLines[i]->empty())
+                        {
+                            ppCurrLines[i]->at(0).count = laneItor->front().at(0).count;
+                        }
+
+                        laneItor++;
+                    }
+
+                    if (!ppCurrLines[i]->empty())
+                    {
+                        fglines.push_back(*(ppCurrLines[i]));
+                    }
                 }
 
                 fgData.push_back(fglines);
             }
+
+            bgSecItor++;
         }
     }
 

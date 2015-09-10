@@ -54,6 +54,7 @@
     <ClCompile Include="sources\interface\src\NEMA_GPGGA_Proc.cpp" />
     <ClCompile Include="sources\interface\src\saveLinePointInSafe.cpp" />
     <ClCompile Include="sources\log\src\LogInfo.cpp" />
+    <ClCompile Include="sources\visualization\src\getSectionID.cpp" />
     <ClCompile Include="sources\visualization\src\Loader3DS.cpp" />
     <ClCompile Include="sources\visualization\src\Visualization.cpp" />
     <ClCompile Include="sources\visualization\src\VisualizeControl.cpp" />
@@ -83,6 +84,7 @@
     <ClInclude Include="sources\interface\include\saveLinePointInSafe.h" />
     <ClInclude Include="sources\log\include\LogInfo.h" />
     <ClInclude Include="sources\visualization\include\3dsId.h" />
+    <ClInclude Include="sources\visualization\include\getSectionID.h" />
     <ClInclude Include="sources\visualization\include\Loader3DS.h" />
     <ClInclude Include="sources\visualization\include\Model3DS.h" />
     <ClInclude Include="sources\visualization\include\MyModel.h" />

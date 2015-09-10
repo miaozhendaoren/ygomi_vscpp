@@ -30,6 +30,7 @@
 #include "VisualizeControl.h"
 #include "configure.h"
 #include "utils.h"
+#include "getSectionID.h" // readSectionConfig
 
 HANDLE g_readySema_GPS;
 HANDLE g_readySema_DiffDet;
@@ -62,6 +63,7 @@ int g_CameraPort = 0;
 //	ns_detection::Detector_blackWhite *trafficSignDetector;
 //#endif
 ns_detection::Detector *trafficSignDetector;
+list<segAttributes_t> g_segCfgList;
 
 void trySetConnectSocket(bool flag)
 {
@@ -128,13 +130,17 @@ bool readOverViewPoint(char* fileName,eyeLookAt_t &eye)
 
 int detectorInit()
 {
+    string segFilePath;
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+    segFilePath = "./config/DE_Airport_manualSeg.txt";
     bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Airport2.txt", inParam);
 	readStatus &= readOverViewPoint("./config/DE_Airport_overViewPoint.txt",serverEyeInfo[0]);
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
+    segFilePath = "./config/DE_Lehre_manualSeg.txt";
     bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Lehre.txt", inParam);
 	readStatus &= readOverViewPoint("./config/DE_Lehre_overViewPoint.txt",serverEyeInfo[0]);
 #elif (RD_LOCATION == RD_GERMAN_LEHRE2)
+     segFilePath = "./config/DE_Lehre_manualSeg.txt";
     bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Lehre2.txt", inParam);
 	readStatus &= readOverViewPoint("./config/DE_Lehre_overViewPoint.txt",serverEyeInfo[0]);
 #elif (RD_LOCATION == RD_US_DETROIT)
@@ -144,13 +150,15 @@ int detectorInit()
 	bool readStatus = ns_roadScan::readParamRoadScan("./config/US_Palo_Alto.txt", inParam);
 	readStatus &= readOverViewPoint("./config/US_Palo_Alto_overViewPoint.txt",serverEyeInfo[0]);
 #endif
-    if(!readStatus)
+    
+    bool segInfoFlag = readSectionConfig(segFilePath,g_segCfgList);
+    if((!readStatus) || (!segInfoFlag))
     {
         return -1;
     }else
     {
 #if(RD_SIGN_DETECT == RD_SIGN_DETECT_COLOR)
-        trafficSignDetector = new ns_detection::Detector_colored(0.2,inParam.distancePerPixel,300);
+        trafficSignDetector = new ns_detection::Detector_colored(0.5,inParam.distancePerPixel,300);
 #elif(RD_SIGN_DETECT == RD_SIGN_DETECT_WHITE_BLACK)
         trafficSignDetector = new ns_detection::Detector_blackWhite(0.5,inParam.distancePerPixel,250);
 #elif(RD_SIGN_DETECT == RD_SIGN_DETECT_OFF)
@@ -291,7 +299,7 @@ unsigned int __stdcall Thread_ReconnectSocket(void *data)
 		while(SOCKET_ERROR == connect(sockClient,(struct sockaddr *)&serverAddr,sizeof(serverAddr)))
 		{
 			int errorCode = WSAGetLastError();
-			if(errorCode == 10056)
+			if(errorCode == 10056 || errorCode == 10038)
 			{
 				closesocket(sockClient);
 

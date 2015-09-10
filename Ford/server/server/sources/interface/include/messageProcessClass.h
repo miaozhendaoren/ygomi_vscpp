@@ -50,6 +50,7 @@ enum statusMsgTag_e:uint8
 	resetDatabaseFurniture_e,
 	locationAreaId_e,
 	databaseVersion_e,
+	loadSaveDatabase_e,
 };
 enum pduType_e:uint16
 {

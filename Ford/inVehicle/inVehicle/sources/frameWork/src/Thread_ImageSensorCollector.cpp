@@ -501,11 +501,14 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 
 	imageBuffer.setImageSize(capture.get(CV_CAP_PROP_FRAME_WIDTH),
 	    capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-	showSize.height = capture.get(CV_CAP_PROP_FRAME_HEIGHT)/4;
-	showSize.width = capture.get(CV_CAP_PROP_FRAME_WIDTH)/4;
+	showSize.height = capture.get(CV_CAP_PROP_FRAME_HEIGHT)/2;
+	showSize.width = capture.get(CV_CAP_PROP_FRAME_WIDTH)/2;
 
 	timeDelay = (unsigned int)(1000/fps);
 	glutTimerFunc(timeDelay,&imageTimer,3);
+
+    const int MAX_FRAME_INTERVAL = 1;
+    int frameInterval = 0;
 
 	while(1)
 	{
@@ -616,10 +619,20 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 		imageBuffer.addImage(image,currentGps,preGps,speed,direction);
 
 		preGps = currentGps;
-		cv::namedWindow("image",CV_WINDOW_NORMAL);
-		cv::resize(image,image,showSize);
-		cv::imshow("image",image);
-		cv::waitKey(1);
+        
+        // only display image in certian interval
+        if (frameInterval <= 0)
+        {
+            frameInterval = MAX_FRAME_INTERVAL;
+
+		    cv::namedWindow("image",CV_WINDOW_NORMAL);
+		    cv::resize(image,image,showSize);
+		    cv::imshow("image",image);
+		    cv::waitKey(1);
+        }else
+        {
+            frameInterval--;
+        }
 	}
 }
 #endif

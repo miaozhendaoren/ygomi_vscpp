@@ -138,7 +138,7 @@ unsigned int __stdcall Thread_ReconnectSocket(void *data)
 		while(SOCKET_ERROR == connect(sockClient,(struct sockaddr *)&serverAddr,sizeof(serverAddr)))
 		{
 			int errorCode = WSAGetLastError();
-			if(errorCode == 10056)
+			if(errorCode == 10056 || errorCode == 10038)
 			{
 				closesocket(sockClient);
 
@@ -148,7 +148,7 @@ unsigned int __stdcall Thread_ReconnectSocket(void *data)
 				}
 			}
 			printf("COMM: Connect socket failed!\n");
-			Sleep(500);
+			Sleep(2000);
 		}
 
 		ResetEvent(g_readyEvent_ConnectSocket);
@@ -248,6 +248,7 @@ unsigned int __stdcall Thread_RecvMsg(void *data)
 		if((nRet == SOCKET_ERROR)|| (nRet == 0))
 		{
 			trySetConnectSocket(true);
+			Sleep(2000);
 		}
 	}
 }

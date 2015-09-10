@@ -42,6 +42,7 @@ OPENGL_3D_ENGINE::OPENGL_3D_ENGINE()
 	serverEyeBackBufIdx = 0;
 	eyeLookaheadBackBufIdx = 0;
 	quadBackBufIdx = 0;
+	serverCharBackBufIdx = 0;
 	CarShowList = 0;
 
 	//signBuffer[0].number = 0;
@@ -152,6 +153,12 @@ GLboolean OPENGL_3D_ENGINE::AddOneRoadLineInfo(lineTypeEnum_t type, baseColor_t 
 	roadLineBuffer[roadLineBackBufIdx].push_back(tempLine);
 
 	return GL_TRUE;
+}
+
+GLboolean OPENGL_3D_ENGINE::AddOneServerCharInfo(drawServerCharInfo_t &charInfo)
+{
+	serverCharBuffer[serverCharBackBufIdx].push_back(charInfo);
+	return true;
 }
 
 GLboolean OPENGL_3D_ENGINE::setLookAheadEyeLookat(int number, 
@@ -323,6 +330,15 @@ GLboolean OPENGL_3D_ENGINE::SwapCharBuffer(void)
 	return GL_TRUE;
 }
 
+GLboolean OPENGL_3D_ENGINE::SwapServerCharBuffer(void)
+{
+	WaitForSingleObject(hMutex,INFINITE);
+	serverCharBackBufIdx ^= 1;
+	serverCharBuffer[serverCharBackBufIdx].clear();
+	ReleaseMutex(hMutex);
+	return GL_TRUE;
+}
+
 void OPENGL_3D_ENGINE::setMode(mode3DEngineEnum_t mode)
 {
 	WaitForSingleObject(hMutex,INFINITE);
@@ -464,12 +480,13 @@ void OPENGL_3D_ENGINE::DrawFrontBufferClient()
 
 void OPENGL_3D_ENGINE::DrawFrontBufferServer()
 {
-	int signIdx,lineIdx,quadIdx;
+	int signIdx,lineIdx,quadIdx, serverCharIdx;
 	int charFrontBufIdx = charBackBufIdx^1;
 	int signFrontBufIdx = signBackbufIdx^1;
 	int lineFrontBufIdx = lineBackBufIdx^1;
 	int roadLineFrontBufIdx = roadLineBackBufIdx^1;
 	int quadFrontBufIdx = quadBackBufIdx^1;
+	int serverCharFrontBufIdx = serverCharBackBufIdx^1;
 
 	if(_signFlag)
 	{
@@ -502,6 +519,18 @@ void OPENGL_3D_ENGINE::DrawFrontBufferServer()
 	for(quadIdx = 0; quadIdx < quadBuffer[quadFrontBufIdx].size(); quadIdx++)
 	{
 		DrawQuad(quadBuffer[quadFrontBufIdx][quadIdx]);
+	}
+	
+	//draw server side char
+	baseColor_t color;
+	color.R = 1;
+	color.G = 0;
+	color.B = 0;
+	//selectFont(8, ANSI_CHARSET);
+	//glScalef(0.5,0.5,0.5);
+	for(serverCharIdx = 0; serverCharIdx < serverCharBuffer[serverCharFrontBufIdx].size(); serverCharIdx++)
+	{
+		DrawChar(serverCharBuffer[serverCharFrontBufIdx][serverCharIdx].position, serverCharBuffer[serverCharFrontBufIdx][serverCharIdx].drawChar, color);
 	}
 }
 
@@ -554,7 +583,11 @@ void OPENGL_3D_ENGINE::DrawCharView(char *drawChar,GLfloat red, GLfloat green, G
 	position.z = -3;
 	position.y = -20;
 
-	DrawChar(position, drawChar);
+	baseColor_t color;
+	color.R = 1;
+	color.G = 1;
+	color.B = 0;
+	DrawChar(position, drawChar, color);
 
 }
 
@@ -826,13 +859,26 @@ void OPENGL_3D_ENGINE::DrawSignServer(signInfo_t sign)
 
 	//add a flag number beside the sign
 	char info[6];
-	int flag = sign.attribute>=5?5:sign.attribute;
-	sprintf(&info[0],"%d",sign.attribute);
-	memset(&info[1],0,1);
+	//int flag = sign.attribute>=5?5:sign.attribute;
+	int showNum = sign.attribute;
+	if(sign.attribute > 99)
+	{
+		showNum = 99;
+	}
+	if(showNum < 10)
+	{
+		sprintf(&info[0],"%d",showNum);
+		memset(&info[1],0,1);
+	}else
+	{
+		sprintf(&info[0],"%d",(showNum/10));
+		sprintf(&info[1],"%d",(showNum%10));
+		memset(&info[2],0,1);
+	}
 
-	GLfloat red = 1-0.25*(flag-1);
-	GLfloat green = (flag-1)*0.25;
-	glColor3f(red,green, 0);
+	//GLfloat red = 1-0.25*(flag-1);
+	//GLfloat green = (flag-1)*0.25;
+	glColor3f(0, 1, 0);
 
 	glRasterPos3f(0, 0, HALF_WIDTH_SIGN_OVERLOOKING+2);
 	//glRotatef(-serverHeadAngle,0,1,0);
@@ -1162,14 +1208,15 @@ void OPENGL_3D_ENGINE::DrawCharDynamic(drawCharInfo_t input)
 	glDeleteLists(list,1);
 }
 
-void OPENGL_3D_ENGINE::DrawChar(point3DFloat_t position, char *drawChar)
+void OPENGL_3D_ENGINE::DrawChar(point3DFloat_t position, char *drawChar, baseColor_t color)
 {
 	char* str = drawChar;
 	glPushMatrix();
 
-	glColor3f(1.0f, 1.0f, 0.0f);
+	glColor3f(color.R, color.G, color.B);
 	glRasterPos3f(position.x,position.y,position.z);
 
+	//glScalef(0.1,0.1,0.1);
 	for(;*str!='\0';++str)
 		glCallList(CharShowList + *str);
 	glPopMatrix();
@@ -1384,14 +1431,24 @@ void OPENGL_3D_ENGINE::CreateSignRoadSideShowList()
 void OPENGL_3D_ENGINE::CreateCharaterShowList()
 {
 	//set the charater size and type
-	HFONT hFont = CreateFontA(24, 0, 0, 0, FW_MEDIUM, 0, 0, 0,
-		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-		DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Comic Sans MS");
+	HFONT hFont = CreateFontA(20, 0, 0, 0, FW_MEDIUM, 0, 0, 0,
+	ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+	DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Comic Sans MS");
 	HFONT hOldFont = (HFONT)SelectObject(wglGetCurrentDC(), hFont);
 	DeleteObject(hOldFont);
 
 	CharShowList = glGenLists(128);
 	wglUseFontBitmaps(wglGetCurrentDC(), 0, 128, CharShowList);
+}
+
+void OPENGL_3D_ENGINE::selectFont(int size,  int charset)
+{
+	//set the charater size and type
+	HFONT hFont = CreateFontA(size, 0, 0, 0, FW_MEDIUM, 0, 0, 0,
+	charset, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+	DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Comic Sans");
+	HFONT hOldFont = (HFONT)SelectObject(wglGetCurrentDC(), hFont);
+	DeleteObject(hOldFont);
 }
 
 int OPENGL_3D_ENGINE::power_of_two(int n)

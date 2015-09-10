@@ -26,6 +26,7 @@
 #include <windows.h>
 
 #include "databaseDef.h"
+#include "apiDataStruct.h" // backgroundSectionData
 
 namespace ns_database
 {
@@ -84,10 +85,14 @@ namespace ns_database
         void addFurniture(IN furAttributes_t* furnitureIn,
                           OUT furAttributes_t* furnitureOut);
 
+		void resetFurnitureRoadSideLoc();
+
         void addFurnitureTlv(IN uint8* tlvBuff, 
                              IN uint32 buffLen,
                              OUT uint8*  tlvOutBuff,
                              OUT uint32* outBuffLen);
+
+        void addFurnitureListTlv(IN uint8* tlvBuff, IN uint32 buffLen);
 
         void reduceFurnitureTlv(IN uint8* tlvBuff, 
                                 IN uint32 buffLen,
@@ -103,6 +108,8 @@ namespace ns_database
 
         void resetFurniture();
 
+        void mergeFurInSameRange(INOUT furAttributes_t& furnitureInOut);
+
 		uint32 getFurnitureVersion();
 
         void getNewDataVec(std::list<std::vector<point3D_t>> &newDataVec);
@@ -115,9 +122,27 @@ namespace ns_database
 
         void setNewDataVec(std::list<std::vector<point3D_t>> &newDataVec);
 
-		int databaseServer::getSegIdInFurList(int furListIndex, int *furSegId);
+		int getSegIdInFurList(int furListIndex, int *furSegId);
+
+        bool loadFurFromFile(IN std::string fileName);
+
+        bool saveFurToFile(IN std::string fileName);
+
+        bool loadRoadVecFromFile(IN std::string fileName);
+
+        bool saveRoadVecToFile(IN std::string fileName);
+
+        void convBgRoadVecToTlv(IN std::list<backgroundSectionData> &bgVec, 
+                                OUT uint8 *tlvBuf, 
+                                OUT int *bufLen);
+
+        bool convTlvToBgRoadVec(IN  uint8 *tlvBuf,
+                                IN  int bufLen,
+                                OUT std::list<backgroundSectionData> &bgVec);
 
     private:
+        static const int _MAX_PAYLOAD_BYTE_NUM = (1024*1024);// 1M byte for furniture load/store furniture temp memory
+        static const int _MAX_ROAD_POINT_BYTES = (1024*100000);// 100M byte for furniture load/store road vector temp memory
 
         std::list<std::list<furAttributesServer_t>> _furnitureList; // segment list / furniture element
         std::list<std::vector<point3D_t>> _newDataVec;

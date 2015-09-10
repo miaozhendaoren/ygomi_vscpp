@@ -59,7 +59,7 @@
 #define RD_USE_CAMERA          OFF
 #define RD_IMAGE_BUFFER_FILE   ON
 #define RD_LOCATION            RD_GERMAN_LEHRE2
-#define RD_SIGN_DETECT         RD_SIGN_DETECT_OFF
+#define RD_SIGN_DETECT         RD_SIGN_DETECT_COLOR
 #define RD_ROAD_DETECT         ON
 #else
 #define RD_USE_CAMERA          OFF

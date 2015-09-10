@@ -54,6 +54,20 @@ namespace ns_database
 
         /*
         * @FUNC
+        *     Update road sections data without new reported data from vehicle.
+        *     Just generate foreground database from background data.
+        *
+        * @PARAMS
+        *     fgData  - updated data of road. there may be multiple sections, iterate
+        *               one by one from first list. The second list stands for lane
+        *               number and vector stands for lines of each lane.
+        *               There may by empty items in the output.
+        *
+        */
+        bool roadSectionsGen(OUT list<list<vector<point3D_t>>> &fgData);
+
+        /*
+        * @FUNC
         *     Set road section configuration file path in order to get configuration
         *     data
         *
@@ -94,6 +108,37 @@ namespace ns_database
         *
         */
         void resetDatabase();
+        
+        /*
+        * @FUNC
+        *     Load predefined section data for special sections.
+        *
+        * @PARAMS
+        *     segId    - which section to used pre-load data.
+        *     filename - pre-load data, format is TXT.
+        *
+        */
+        bool loadDefaultSegData(IN uint32 segId, IN string filename);
+
+        /*
+        * @FUNC
+        *     Output back ground road vector list
+        *
+        * @PARAMS
+        *     bgVecOut - output road vector list
+        *
+        */
+        void getBgRoadVec(OUT std::list<backgroundSectionData> &bgVecOut);
+
+        /*
+        * @FUNC
+        *     Set back ground DB using input road vector list
+        *
+        * @PARAMS
+        *     bgVecIn - input vector to set DB
+        *
+        */
+        void setBgRoadVec(IN std::list<backgroundSectionData> &bgVecIn);
 
     protected:
         CExtractSection               _extractSecObj;
@@ -322,8 +367,26 @@ namespace ns_database
         *     fgData - output line data of foreground database without overlap.
         *
         */
-        void removeOverlap(/*OUT list<list<vector<point3D_t>>> &fgData*/);
+        void removeOverlap(OUT list<list<vector<point3D_t>>> &fgData);
 
+        /*
+        * @FUNC
+        *     Remove foreground database section overlap and output lines.
+        *
+        * @PARAMS
+        *
+        */
+        void removeOverlap();
+
+        /*
+        * @FUNC
+        *    Process adjacent section connection data.
+        *
+        * @PARAM
+        *    fgData - output line data of foreground database after processing
+        *             connection part.
+        *
+        */
         void jointProcessing(OUT list<list<vector<point3D_t>>> &fgData);
 
     };

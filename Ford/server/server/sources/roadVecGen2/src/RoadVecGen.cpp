@@ -952,7 +952,9 @@ bool isResampleSec(uint32 segId)
                         // number of dblines should be double of valid lanes
                         if (2 * numOfValidLanes != dblines.size())
                         {
+#if VISUALIZATION_ON
                             printf("number of lines not match with number of lanes\n");
+#endif
                             continue;
                         }
 

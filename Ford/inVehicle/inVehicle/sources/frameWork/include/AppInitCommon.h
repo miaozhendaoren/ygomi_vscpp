@@ -43,6 +43,7 @@ extern ns_roadScan::Parameters inParam;
 extern cv::Mat H;
 extern cv::Mat invertH;
 extern int g_CameraPort;
+extern list<segAttributes_t> g_segCfgList;
 
 //#if(RD_SIGN_DETECT == RD_SIGN_DETECT_COLOR)
 //    extern ns_detection::Detector_colored *trafficSignDetector;

@@ -119,13 +119,25 @@ RESTART_LABEL:
 					{
 						int8 tag = recvHeader->payloadHeader.tlvArray[pduIdx].tag;
 						int16 value = recvHeader->payloadHeader.tlvArray[pduIdx].value;
-						if((1 == tag) && (3 == value))
+						if((1 == tag))
 						{
+							if(3 == value)
+							{
 							// delete furniture
 							database_gp->resetFurniture();
 							// delete all vectors
 							database_gp->resetAllVectors();
+							}else if(4 == value)
+							{
+								// delete furniture
+								database_gp->resetFurniture();
+							}else if(5 == value)
+							{
+								// delete all vectors
+								database_gp->resetAllVectors();
+							}
 						}
+						
 					}
 					break;
 				}

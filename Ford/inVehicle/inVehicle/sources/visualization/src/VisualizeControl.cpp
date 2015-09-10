@@ -75,7 +75,10 @@ void load_all_textures(void)
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/25400.bmp",35);
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/26700.bmp",36);
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/31401.bmp",37);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/00000.bmp",38);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/27600.bmp",38);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/44100.bmp",39);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/44200.bmp",40);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/00000.bmp",41);
 
 #else if((RD_LOCATION&RD_NATION_MASK) == RD_UNIT_STATES)
 
@@ -275,8 +278,8 @@ void keyboardFunc(unsigned char key, int x, int y)
 			engine3DPtr->SwapServerEyeBuffer();
 		}
 		break;
-	case 83: //turn on/off traffic sign
-	case 115:
+	case 88: //turn on/off traffic sign
+	case 120:
 		engine3DPtr->setSignFlag();
 		break;
 	default:

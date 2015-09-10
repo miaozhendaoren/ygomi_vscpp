@@ -16,6 +16,8 @@
 
 #include "database.h"
 #include "databaseServer.h"
+#include "apiDataStruct.h"
+#include "appInitCommon.h"
 
 #include <stdio.h>    // FILE
 #include <windows.h>  // CreateMutex, FOREGROUND_RED
@@ -71,9 +73,9 @@ namespace ns_database
             _detectedFlagHistory.erase(_detectedFlagHistory.begin());
         }
 
-        if (reliabRating > 5)
+        if (reliabRating > 99)
         {
-            reliabRating = 5;
+            reliabRating = 99;
         }
     }
 
@@ -185,53 +187,31 @@ namespace ns_database
     {
         WaitForSingleObject(_hMutexMemory,INFINITE);
 
-        uint8 segExistFlag = 0;
-        segAttributes_t segAttr;
-
-        //getSegmentByGps(gpsP, &segExistFlag, &segAttr); // FIXME: replace by new get segment func
-
-        if(segExistFlag == 1)
-        {
-            uint8 furExistFlag = 0;
-
-            list<list<furAttributesServer_t>>::iterator segIter = _furnitureList.begin();
+        list<list<furAttributesServer_t>>::iterator segIter = _furnitureList.begin();
             
-            // For each segment
-            while(segIter != _furnitureList.end())
+        // For each segment
+        while(segIter != _furnitureList.end())
+        {
+            list<furAttributesServer_t>::iterator furIter = (*segIter).begin();
+
+            // For each furniture in the segment
+            while(furIter != (*segIter).end())
             {
-                // Find the segment containing the furniture
-                uint8  segId_used = (*(*segIter).begin()).segId_used;
-                uint32 segIdTmp   = (*(*segIter).begin()).segId;
-
-                // TODO: Check all segments now
-                //if((segId_used != 1) || (segAttr.segId != segIdTmp))
-                //{
-                //    segIter++;
-                //    continue;
-                //}
-
-                list<furAttributesServer_t>::iterator furIter = (*segIter).begin();
-
-                // For each furniture in the segment
-                while(furIter != (*segIter).end())
+                if((*furIter).location_used == 1)
                 {
-                    
-                    if((*furIter).location_used == 1)
+                    point3D_t gpsTmp = (*furIter).location;
+
+                    // Push furniture to output list if in GPS range
+                    if(checkRelGpsInRange(&gpsTmp, gpsP, distThreshMeter))
                     {
-                        point3D_t gpsTmp = (*furIter).location;
-
-                        // Push furniture to output list if in GPS range
-                        if(checkGpsInRange(&gpsTmp, gpsP, distThreshMeter))
-                        {
-                            furnitureAttrList.push_back(*furIter);
-                        }
+                        furnitureAttrList.push_back(*furIter);
                     }
-
-                    furIter++;
                 }
 
-                segIter++;
+                furIter++;
             }
+
+            segIter++;
         }
 
         ReleaseMutex(_hMutexMemory);
@@ -318,38 +298,16 @@ namespace ns_database
     void databaseServer::calcFurnitureHeight(IN point3D_t *locIn, IN uint8 sideFlagIn, OUT double *altOut)
     {
         // Input height is a value from 0 to 1 representing the sign height on the screen
-        double height = floor(locIn->alt * 4.0 + 0.5); // x4 so the height is from 0 to 4 meter with step 1 meter
+        double height = (locIn->alt * 0.6 + 0.5); // *0.6 for the real sign surface height is about 0.6m
+                                                  // +0.5 for the half sign surface height
 
-        // No sign on the ground
-        if(height == 0)
+        // Limit the traffic sign height in [0, 5]
+        if(height <= 1)
         {
             height = 1;
-        }
-
-        // Check if the height is same with other furnitures in the same location
-        list<furAttributesServer_t> furAttrNearby;
-        getFurnitureByGps(locIn, 5.0, furAttrNearby); // 5.0m
-        int heightArray[20] = {0};
-
-        if(furAttrNearby.size() > 0)
+        }else if(height >= 5)
         {
-            list<furAttributesServer_t>::iterator furIter = furAttrNearby.begin();
-            while(furIter != furAttrNearby.end())
-            {
-                if(((*furIter).sideFlag_used == 1) && 
-                    ((*furIter).sideFlag == sideFlagIn))
-                {
-                    int heightIdx = (int)(*furIter).location.alt;
-                    heightArray[heightIdx] ++;
-                }
-
-                furIter++;
-            }
-
-            while(heightArray[(int)height])
-            {
-                height += 1;
-            }
+            height = 5;
         }
                 
         *altOut = height;
@@ -382,6 +340,27 @@ namespace ns_database
 
         string furTypeString = "Furniture \"";  furTypeString += ID2Name(furAttr.type); furTypeString += "\" reliability ++";
         logPrintf(logLevelInfo_e, "DB_UPDATE", furTypeString, FOREGROUND_GREEN);
+    }
+
+    void databaseServer::addFurnitureListTlv(IN uint8* tlvBuff, IN uint32 buffLen)
+    {
+        void*  inputLoc = tlvBuff;
+        void** input = &inputLoc;
+
+        _mEndPosition = tlvBuff + buffLen;
+
+        // Add all furnitures in the tlv buffer
+        while(inputLoc < _mEndPosition)
+        {
+            furAttributes_t furAttr, furAttrOut;
+
+            readTlvToFurniture(input, memory_e, &furAttr);
+
+            addFurniture(&furAttr, &furAttrOut);
+        }
+
+        //string furTypeString = "Furniture List";
+        //logPrintf(logLevelInfo_e, "DB_UPDATE", furTypeString, FOREGROUND_GREEN);
     }
 
     void databaseServer::addFurniture(IN furAttributes_t* furnitureIn,
@@ -429,12 +408,23 @@ namespace ns_database
         if (furIdFoundFlag == true)
         // Update existing one
         {
+            // Update with new location and reliability
             (*furIter).update(&furnitureServerIn);
 
+            // Check if need to merge other funitures in DB after updating location
+            mergeFurInSameRange(*furIter);
+            
+            // Put furniture to the side of road
+            calcFurnitureRoadSideLoc(&furnitureServerIn);
+            *furIter = furnitureServerIn;
+
+            // Calculate height of the furniture
             double altOut;
-            calcFurnitureHeight(&furnitureServerIn.location, furnitureServerIn.sideFlag, &altOut);
-            (*furIter).location.alt = altOut;
-			furnitureServerIn.location.alt = altOut;
+            calcFurnitureHeight(&furIter->location, furIter->sideFlag, &altOut);
+            furIter->location.alt = altOut;
+                
+            // Update local structure
+			furnitureServerIn = *furIter;
         }
         else
         {
@@ -470,12 +460,23 @@ namespace ns_database
             if (furFoundFlag)
             // Update existing furniture
             {
+                // Update with new location and reliability
                 (*furIter).update(&furnitureServerIn);
 
+                // Check if need to merge other funitures in DB after updating location
+                mergeFurInSameRange(*furIter);
+                
+                // Put furniture to the side of road
+                calcFurnitureRoadSideLoc(&furnitureServerIn);
+                *furIter = furnitureServerIn;
+
+                // Calculate height of the furniture
                 double altOut;
-                calcFurnitureHeight(&furnitureServerIn.location, furnitureServerIn.sideFlag, &altOut);
-                (*furIter).location.alt = altOut;
-				furnitureServerIn.location.alt = altOut;
+                calcFurnitureHeight(&furIter->location, furIter->sideFlag, &altOut);
+                furIter->location.alt = altOut;
+                
+                // Update local structure
+				furnitureServerIn = *furIter;
             }
             else
             // Add new furniture
@@ -503,6 +504,8 @@ namespace ns_database
 
                 furnitureServerIn.segId_used = 1;
                 furnitureServerIn.segId = segAttr.segId;
+
+                calcFurnitureRoadSideLoc(&furnitureServerIn);
 
                 // Calculate altitude from input height
                 double altOut;
@@ -547,6 +550,145 @@ namespace ns_database
         {
             int stop = 1;
         }
+
+        ReleaseMutex(_hMutexMemory);
+    }
+
+    void databaseServer::resetFurnitureRoadSideLoc()
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        list<list<vector<point3D_t>>>::iterator vecListIter = _vectorList.begin();
+        list<segAttributes_t>::iterator segAttrListIter = _segmentList.begin();        
+        
+        // For each segment
+        while(vecListIter != _vectorList.end())
+        {
+            if((*vecListIter).empty())
+            // Segment with no vector
+            {
+                ++vecListIter;
+                ++segAttrListIter;
+                continue;
+            }
+
+            uint32 segmentIdDb = segAttrListIter->segId;
+
+            list<list<furAttributesServer_t>>::iterator segIter = _furnitureList.begin();
+            
+            // For each segment
+            while(segIter != _furnitureList.end())
+            {
+                list<furAttributesServer_t>::iterator furIter = (*segIter).begin();
+
+                // For each furniture in the segment
+                while(furIter != (*segIter).end())
+                {
+                    uint8  segId_usedIn = furIter->segId_used;
+                    if(0 == segId_usedIn)
+                    {
+                        continue;
+                    }
+                    uint32 segIdIn = furIter->segId;
+                    // Segment ID match
+                    if(segmentIdDb == segIdIn)
+                    {                
+                        int vectorNumInSeg = (*vecListIter).size();
+                        if(2 > vectorNumInSeg)
+                        {
+                            continue;
+                        }
+                        
+                        if(0 == furIter->location_used)
+                        {
+                            continue;
+                        }
+                        point3D_t furLocation = furIter->location;
+                        point3D_t nearFurLocation = furLocation;
+                        uint8  furSideFlag_used = furIter->sideFlag_used;
+                        uint8  furSideFlag = furIter->sideFlag; // 1: right side, 2: left side, 3: both sides, 4: on the road
+                        if(1 != furSideFlag_used)
+                        {
+                            furSideFlag = 4;
+                        }
+                        
+                        double minDist = DBL_MAX;
+                        
+                        vector<point3D_t> pointListPolygon;
+                        list<vector<point3D_t>>::iterator pointListIter = vecListIter->begin();
+
+                        // For each vector
+                        //while(pointListIter != vecListIter->end())
+                        {
+                            int numPoints = (*pointListIter).size();
+                            // For each point
+                            for(int pointIdx = 0; pointIdx < numPoints; pointIdx++)
+                            {
+                                point3D_t pointTmp = (*pointListIter)[pointIdx];
+
+                                double distance = (furLocation.lat - pointTmp.lat) * (furLocation.lat - pointTmp.lat) + (furLocation.lon - pointTmp.lon) * (furLocation.lon - pointTmp.lon);
+
+                                //2: left side, or  4: on the road
+                                if(1 != furSideFlag)
+                                {
+                                    if(distance < minDist)
+                                    {
+            							minDist = distance;
+                                        nearFurLocation = pointTmp;
+                                    }
+                                }
+                                    
+                                pointListPolygon.push_back(pointTmp);
+                            }
+
+                            for(int pointListIdx = 1; pointListIdx < vectorNumInSeg; pointListIdx++)
+                            {
+                                ++pointListIter;
+                            }
+                            
+                            numPoints = (*pointListIter).size();
+                            // For each point
+                            for(int pointIdx = numPoints-1; pointIdx >= 0; pointIdx--)
+                            {
+                                point3D_t pointTmp = (*pointListIter)[pointIdx];
+
+                                double distance = (furLocation.lat - pointTmp.lat) * (furLocation.lat - pointTmp.lat) + (furLocation.lon - pointTmp.lon) * (furLocation.lon - pointTmp.lon);
+
+                                //1: right side, or  4: on the road
+                                if(2 != furSideFlag)
+                                {
+                                    if(distance < minDist)
+                                    {
+            							minDist = distance;
+                                        nearFurLocation = pointTmp;
+                                    }
+                                }
+                                
+                                pointListPolygon.push_back(pointTmp);
+                            }
+
+                            bool pointInFlag = pointInPolygon(furLocation, pointListPolygon);
+                            if(true == pointInFlag)
+                            {
+                                furIter->location = nearFurLocation;
+                                furIter->location.alt = furLocation.alt;
+                                furIter->location.count = furLocation.count;
+                                furIter->location.paintFlag = furLocation.paintFlag;
+                            }
+                        }
+                        
+                        pointListPolygon.clear();                        
+                    }
+
+                    furIter++;
+                }
+
+                segIter++;
+            }
+
+            ++vecListIter;
+            ++segAttrListIter;
+        }       
 
         ReleaseMutex(_hMutexMemory);
     }
@@ -666,6 +808,46 @@ namespace ns_database
         ReleaseMutex(_hMutexMemory);
 
         logPrintf(logLevelInfo_e, "DB_UPDATE", "Reseting furnitures", FOREGROUND_BLUE | FOREGROUND_GREEN);
+    }
+
+    void databaseServer::mergeFurInSameRange(INOUT furAttributes_t& furnitureInOut)
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+
+        list<list<furAttributesServer_t>>::iterator segIter = _furnitureList.begin();
+
+        // For each segment
+        while( segIter != _furnitureList.end() )
+        {
+            list<furAttributesServer_t>::iterator furIter = (*segIter).begin();
+
+            // For each furniture in the segment
+            while( furIter != (*segIter).end() )
+            {
+                // Same furniture nearby with different furId
+                if( checkTwoFurnitureSame( &(*furIter), &furnitureInOut, 6.0, _angleThresh) ) 
+                {
+                    if(furIter->furId != furnitureInOut.furId)
+                    {
+                        // Merge the two furnitures
+                        // TODO: currently delete the old furniture in DB
+                        list<furAttributesServer_t>::iterator furIterTmp = furIter++;
+                        segIter->erase(furIterTmp);
+                    }else
+                    {
+                        furIter++;
+                    }
+                }
+                else
+                {
+                    furIter++;
+                }
+            }
+
+            segIter++;
+        }
+
+        ReleaseMutex(_hMutexMemory);
     }
 
     void databaseServer::getFurnitureTlvInSeg(IN  int32 segIdIn,
@@ -894,5 +1076,382 @@ namespace ns_database
 		ReleaseMutex(_hMutexMemory);
 
 		return returnFlag;
+    }
+
+    bool databaseServer::loadFurFromFile(IN string fileName)
+    {
+        // Load furnitures from file
+        int32 totalBufLen = _MAX_PAYLOAD_BYTE_NUM;
+        uint8 *payloadFromDb = new uint8[totalBufLen];
+        if(payloadFromDb == NULL)
+        {
+            return false;
+        }
+
+        FILE* fp = fopen(fileName.c_str(), "rb");
+        if (fp == NULL)
+        {
+            delete payloadFromDb;
+            return false;
+        }
+
+        int buffLen = fread(payloadFromDb, 1, totalBufLen, fp);
+
+        fclose(fp);
+
+        // Reset furnitures in DB
+        WaitForSingleObject(_hMutexMemory, INFINITE);
+
+        resetFurniture();
+
+        addFurnitureListTlv(payloadFromDb, buffLen);
+
+        ReleaseMutex(_hMutexMemory);
+
+        delete payloadFromDb;
+
+        return true;
+    }
+
+    bool databaseServer::saveFurToFile(IN string fileName)
+    {
+        // Get all furnitures
+        int32 totalBufLen = _MAX_PAYLOAD_BYTE_NUM;
+        uint8 *payloadFromDb = new uint8[totalBufLen];
+        if(payloadFromDb == NULL)
+        {
+            return false;
+        }
+
+        uint8 *outBuffPtr = payloadFromDb;
+        int32 outBuffOffset = 0;
+
+        WaitForSingleObject(_hMutexMemory, INFINITE);
+        
+        int segNumOfFur;
+        getSegNumOfFurniture(&segNumOfFur);
+
+        for(int segIndex = 0; segIndex < segNumOfFur; ++segIndex)
+        {
+            uint8* bufferAddr = outBuffPtr;
+            int32 furMsgLen;
+            int32 furNum;
+            int segId;
+            int getFlag = getSegIdInFurList(segIndex, &segId);
+
+            if(0 != getFlag)
+            {
+                getFurnitureTlvInSeg(segId,
+                                     totalBufLen - outBuffOffset,
+                                     bufferAddr, 
+                                     &furMsgLen, 
+                                     &furNum);
+
+                if(furNum > 0)
+                {
+                    outBuffPtr += furMsgLen;
+                    outBuffOffset += furMsgLen;
+                }
+            }
+        }
+
+        ReleaseMutex(_hMutexMemory);
+
+        // Save furnitures to file
+        FILE* fp = fopen(fileName.c_str(), "wb");
+        if (fp == NULL)
+        {
+            delete payloadFromDb;
+            return false;
+        }
+
+        fwrite(payloadFromDb, outBuffOffset, 1, fp);
+
+        fclose(fp);
+
+        delete payloadFromDb;
+
+        return true;
+    }
+
+    bool databaseServer::loadRoadVecFromFile(IN string fileName)
+    {
+        // Load furnitures from file
+        int32 totalBufLen = _MAX_ROAD_POINT_BYTES;
+        uint8 *payloadFromDb = new uint8[totalBufLen];
+        if(payloadFromDb == NULL)
+        {
+            return false;
+        }
+
+        FILE* fp = fopen(fileName.c_str(), "rb");
+        if (fp == NULL)
+        {
+            delete payloadFromDb;
+            return false;
+        }
+
+        int buffLen = fread(payloadFromDb, 1, totalBufLen, fp);
+
+        fclose(fp);
+
+        list<backgroundSectionData> bgVec;
+        bool status = convTlvToBgRoadVec(payloadFromDb, buffLen, bgVec);
+
+        // Reset furnitures in DB
+        if (status)
+        {
+            roadVecGen2_gp->setBgRoadVec(bgVec);
+        }
+
+        delete payloadFromDb;
+
+        return true;
+    }
+
+    bool databaseServer::saveRoadVecToFile(IN string fileName)
+    {
+        // Get all vectors
+        int32 totalBufLen = _MAX_ROAD_POINT_BYTES;
+        uint8 *payloadFromDb = new uint8[totalBufLen];
+        if(payloadFromDb == NULL)
+        {
+            return false;
+        }
+
+        uint8 *outBuffPtr = payloadFromDb;
+        int32 outBuffOffset = 0;
+        
+        list<backgroundSectionData> bgVecOut;
+        roadVecGen2_gp->getBgRoadVec(bgVecOut);
+
+        // Convert back ground vectors to TLV
+        convBgRoadVecToTlv(bgVecOut, payloadFromDb, &outBuffOffset);
+
+        // Save furnitures to file
+        FILE* fp = fopen(fileName.c_str(), "wb");
+        if (fp == NULL)
+        {
+            delete payloadFromDb;
+            return false;
+        }
+
+        fwrite(payloadFromDb, outBuffOffset, 1, fp);
+
+        fclose(fp);
+
+        delete payloadFromDb;
+
+        return true;
+    }
+
+    void databaseServer::convBgRoadVecToTlv(IN list<backgroundSectionData> &bgVec, 
+                                            OUT uint8 *tlvBuf, 
+                                            OUT int *bufLen)
+    {
+        WaitForSingleObject(_hMutexMemory, INFINITE);
+
+        tlvCommon_t tlvTmp;
+        tlvCfg_t* tlvCfgP;
+        int byteNum = 0;
+
+        resource_e sourceFlag = memory_e;
+        void **output = (void **) &tlvBuf;
+
+        // Segment Number
+        tlvCfgP = &_tlvCfg_vec_a[vec_segNum_e - vec_base_e];
+        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, bgVec.size());
+        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+        list<backgroundSectionData>::iterator bgVecIter = bgVec.begin();
+        // for each section
+        while (bgVecIter != bgVec.end())
+        {
+            // Segment ID
+            tlvCfgP = &_tlvCfg_vec_a[vec_segId_e - vec_base_e];
+            setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, bgVecIter->sectionId);
+            byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+            // Lane Num
+            tlvCfgP = &_tlvCfg_vec_a[vec_laneNum_e - vec_base_e];
+            setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, bgVecIter->bgSectionData.size());
+            byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+            list<list<vector<point3D_t>>>::iterator bgInSegIter = bgVecIter->bgSectionData.begin();
+            // for each lane
+            while (bgInSegIter != bgVecIter->bgSectionData.end())
+            {
+                // Vector list
+                tlvCfgP = &_tlvCfg_vec_a[vec_vecList_e - vec_base_e];
+                setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, bgInSegIter->size(), 0);
+                byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                list<vector<point3D_t>>::iterator bgInLaneIter = bgInSegIter->begin();
+                // for each line
+                while (bgInLaneIter != bgInSegIter->end())
+                {
+                    int numPoints = bgInLaneIter->size();
+
+                    // Point number
+                    tlvCfgP = &_tlvCfg_dataLine_a[data_linePointList_e - data_lineBase_e];
+                    setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, numPoints, 0);
+                    byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                    vector<point3D_t>::iterator bgPointIter = bgInLaneIter->begin();
+                    // for each point
+                    while (bgPointIter != bgInLaneIter->end())
+                    {
+                        point3D_t pointTmp = (*bgPointIter);
+
+                        tlvCfgP = &_tlvCfg_dataPoint_a[data_pointLatitude_e - data_pointBase_e];
+                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, (uint32)(&(pointTmp.lat)));
+                        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                        tlvCfgP = &_tlvCfg_dataPoint_a[data_pointLongitude_e - data_pointBase_e];
+                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, (uint32)(&(pointTmp.lon)));
+                        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                        tlvCfgP = &_tlvCfg_dataPoint_a[data_pointAltitude_e - data_pointBase_e];
+                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, (uint32)(&(pointTmp.alt)));
+                        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                        tlvCfgP = &_tlvCfg_dataPoint_a[data_pointPaintFlag_e - data_pointBase_e];
+                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, *(uint32*)(&pointTmp.paintFlag));
+                        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                        tlvCfgP = &_tlvCfg_dataPoint_a[data_mergeCounter_e - data_pointBase_e];
+                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, pointTmp.count);
+                        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                        ++bgPointIter;
+                    }
+
+                    ++bgInLaneIter;
+                }
+
+                ++bgInSegIter;
+            }
+
+            ++bgVecIter;
+        }
+
+        *bufLen = byteNum;
+
+        ReleaseMutex(_hMutexMemory);
+    }
+
+    bool databaseServer::convTlvToBgRoadVec(IN  uint8 *tlvBuf,
+                                            IN  int bufLen,
+                                            OUT list<backgroundSectionData> &bgVec)
+    {
+        WaitForSingleObject(_hMutexMemory, INFINITE);
+
+        tlvCommon_t tlvTmp;
+        uint32 segmentId = 0;
+
+        vector<point3D_t> vectorElement;
+        list<vector<point3D_t>> laneElement;
+        list<list<vector<point3D_t>>> segmentElement;
+        backgroundSectionData bgElement;
+
+        bgVec.clear();
+
+        // Read TLV from DB file
+        typeId_e idBase;
+        int numByteRead;
+        
+        _mEndPosition = tlvBuf + bufLen;
+
+        void** input = (void**) &tlvBuf;
+        resource_e sourceFlag = memory_e;
+
+        logPosition(input, sourceFlag);
+
+        // Segment Number
+        readTlv(input, sourceFlag, &tlvTmp, &idBase, &numByteRead, _dataTmpBuf);
+        if(tlvTmp.typeId != vec_segNum_e)
+        {
+            ReleaseMutex(_hMutexMemory);
+            return false;
+        }
+
+        int segNum = tlvTmp.value;
+        for(int segIdx = 0; segIdx < segNum; ++segIdx)
+        {
+            // Segment ID
+            logPosition(input, sourceFlag);
+            readTlv(input, sourceFlag, &tlvTmp, &idBase, &numByteRead, _dataTmpBuf);
+            if(tlvTmp.typeId != vec_segId_e)
+            {
+                ReleaseMutex(_hMutexMemory);
+                return false;
+            }
+
+            int segId = tlvTmp.value;
+
+            // Lane Num
+            logPosition(input, sourceFlag);
+            readTlv(input, sourceFlag, &tlvTmp, &idBase, &numByteRead, _dataTmpBuf);
+            if(tlvTmp.typeId != vec_laneNum_e)
+            {
+                ReleaseMutex(_hMutexMemory);
+                return false;
+            }
+
+            int laneNum = tlvTmp.value;
+
+            for(int laneIdx = 0; laneIdx < laneNum; ++laneIdx)
+            {
+                // Vector list
+                logPosition(input, sourceFlag);
+                readTlv(input, sourceFlag, &tlvTmp, &idBase, &numByteRead, _dataTmpBuf);
+                if(tlvTmp.typeId != vec_vecList_e)
+                {
+                    ReleaseMutex(_hMutexMemory);
+                    return false;
+                }
+
+                int vecNum = tlvTmp.length;
+
+                for(int vecIdx = 0; vecIdx < vecNum; ++vecIdx)
+                {
+                    // Point number
+                    logPosition(input, sourceFlag);
+                    readTlv(input, sourceFlag, &tlvTmp, &idBase, &numByteRead, _dataTmpBuf);
+                    if(tlvTmp.typeId != data_linePointList_e)
+                    {
+                        ReleaseMutex(_hMutexMemory);
+                        return false;
+                    }
+
+                    int pointNum = tlvTmp.length;
+
+                    for(int pointIdx = 0; pointIdx < pointNum; ++pointIdx)
+                    {
+                        int numBytes;
+                        point3D_t point;
+
+                        readTlvToPoint(input, sourceFlag, point, &numBytes);
+
+                        vectorElement.push_back(point);
+                    }
+
+                    laneElement.push_back(vectorElement);
+                    vectorElement.clear();
+                }
+
+                segmentElement.push_back(laneElement);
+                laneElement.clear();
+            }
+
+            bgElement.sectionId = segId;
+            bgElement.bgSectionData = segmentElement;
+            segmentElement.clear();
+
+            bgVec.push_back(bgElement);
+        }
+
+        ReleaseMutex(_hMutexMemory);
+        return true;
     }
 }

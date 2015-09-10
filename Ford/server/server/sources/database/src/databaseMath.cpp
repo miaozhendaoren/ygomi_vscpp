@@ -464,5 +464,97 @@ namespace ns_database
 
 		return 1;
 	}
+
+    
+    bool doubleLenEqual(double f1 , double f2)
+    {
+        return fabs(f1 - f2) <= 0.01;
+    }
+
+    /*
+    * brief: judge if a point in the line MN
+    * param: point
+    * param: pointM
+    * param: pointN
+    * return -1: not in Line;
+    *         0: on ray started from M
+    *         1: on line segment MN (include PointM and PointN);
+    *         2: on ray started from N
+    */
+    int pointInLine(const point3D_t& point, const point3D_t& pointM, const point3D_t& pointN) 
+    {
+        double x = point.lat;
+        double y = point.lon;
+        double mx = pointM.lat;
+        double my = pointM.lon;
+        double nx = pointN.lat;
+        double ny = pointN.lon;
+        double distMN = sqrt((mx - nx)*(mx - nx) +(my - ny)*(my - ny));
+        double distPM = sqrt((mx - x)*(mx - x) +(my - y)*(my - y));
+        double distPN = sqrt((nx - x)*(nx - x) +(ny - y)*(ny - y));
+
+        if(doubleLenEqual((distPM+distPN),distMN))
+        {
+            return 1;
+        }
+        else if(doubleLenEqual((distPM+distMN),distPN))
+        {
+            return 0;
+        }
+        else if(doubleLenEqual((distPN+distMN),distPM))
+        {
+            return 2;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+    
+    
+    /*
+    * brief: judge if a point in the polygon
+    * param: point
+    * param: polygon
+    * return true: in polygon
+    *        false: not in polygon
+    */
+    bool pointInPolygon(const point3D_t& point,const std::vector<point3D_t>& polygon) 
+    {
+        bool oddNodes = false;
+
+        int size = polygon.size();
+        int i = 0;
+        int j = size - 1;
+        double x = point.lat;
+        double y = point.lon;
+
+        for(i = 0; i < size; i ++)
+        {
+            const point3D_t& pi = polygon[i];
+            const point3D_t& pj = polygon[j];
+            if(1 == pointInLine(point, pi, pj)) 
+            {
+                return true;
+            }
+            
+            double xi = pi.lat;
+            double yi = pi.lon;
+            double xj = pj.lat;
+            double yj = pj.lon;
+
+            if((y > yi && y <= yj) || (y > yj && y <=yi)) 
+            {
+                if((xi + (y-yi)/(yj-yi)*(xj-xi)) > x) 
+                {
+                    oddNodes=!oddNodes;
+                }
+            }
+
+            j = i;
+        }
+
+        return oddNodes;
+    }
 }
 

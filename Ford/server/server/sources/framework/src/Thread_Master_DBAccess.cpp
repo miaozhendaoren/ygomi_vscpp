@@ -117,20 +117,69 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 							int16 value = diffRptMsgPtr->payloadHeader.tlvArray[pduIdx].value;
 							switch(tag)
 							{
+								case loadSaveDatabase_e:
+									if(1 == value) //save
+									{
+                                        database_gp->saveRoadVecToFile("log/roadVecSave.bin");
+                                        database_gp->saveFurToFile("log/furnitureSave.bin");
+									}else if(2 == value) //load
+									{
+                                        database_gp->loadRoadVecFromFile("log/roadVec.bin");
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+                                        roadVecGen2_gp->loadDefaultSegData(11, "log/section11.txt");// 11: empty section ID
+#endif
+                                        database_gp->loadFurFromFile("log/furniture.bin");
+
+                                        list<list<vector<point3D_t>>> fgData;
+                                        bool flag = roadVecGen2_gp->roadSectionsGen(fgData);
+                                        if (flag == true)
+                                        {
+                                            list<list<lineAttributes_t>> lineAttr;
+                                            database_gp->resetAllVectors(fgData, lineAttr);
+                                        }
+
+                                        ReleaseSemaphore(g_readySema_Redraw,1,NULL);
+									}
+									
+								break;
 								case communitationStatus_e:
 									break;
 								case resetDatabaseFurniture_e:
 									if(3 == value)
 									{
-										// delete furniture
+										// Reset all furnitures in database
 										database_gp->resetFurniture();
-										// delete all vectors
+
+										// Reset all vectors in database
 										list<list<vector<point3D_t>>> allLines;
 										list<list<lineAttributes_t>>  lineAttr;
 										list<vector<point3D_t>> newDataVec;
 
 										database_gp->resetAllVectors(allLines, lineAttr);
+
+                                        // Reset new data vectors (red lines) in database
 										database_gp->setNewDataVec(newDataVec);
+
+                                        // Reset front ground and back ground road vectors in RoadVecGen
+                                        roadVecGen2_gp->resetDatabase();
+									}else if(4 == value)
+									{
+										// Reset all furnitures in database
+										database_gp->resetFurniture();
+									}else if(5 == value)
+									{
+										// Reset all vectors in database
+										list<list<vector<point3D_t>>> allLines;
+										list<list<lineAttributes_t>>  lineAttr;
+										list<vector<point3D_t>> newDataVec;
+
+										database_gp->resetAllVectors(allLines, lineAttr);
+
+                                        // Reset new data vectors (red lines) in database
+										database_gp->setNewDataVec(newDataVec);
+
+                                        // Reset front ground and back ground road vectors in RoadVecGen
+                                        roadVecGen2_gp->resetDatabase();
 									}
 									// for debug and test client
 									updateMsgPtr->payloadHeader.tlvArray[pduIdx] = diffRptMsgPtr->payloadHeader.tlvArray[pduIdx];
@@ -308,9 +357,43 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 						    uint8 *outBuffPtr = payloadFromDb;
                             int32 outBuffOffset = 0;
                             int32 outPduIdx = 0;
-                            bool updateFlag = false;
+                            bool updateFlag = false;						    
 
-						    // furntiure update message
+						    // check which lane queue need to fusion
+						    if(laneProcessFlag == true)
+						    {
+							    if(processLaneBuffer())
+							    {
+		                            int payloadBytes = 0;
+
+                                    // Get updated road vector from database
+                                    uint8* bufferAddr = outBuffPtr;
+                                    int32 outBuffLen;
+                                    database_gp->getAllVectorsTlv(  memory_e, 
+                                                                    (void**)&bufferAddr, 
+                                                                    &outBuffLen);
+
+                                    database_gp->resetFurnitureRoadSideLoc();
+
+                                    if (outBuffLen > MAX_ROAD_POINT_BYTES)
+                                    {
+                                        logPrintf(logLevelCrit_e, "DBAccess", "Buffer overflow!", FOREGROUND_RED);
+                                    }
+
+                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
+                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = vectorList_e;
+                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
+
+                                    outBuffPtr += outBuffLen;
+                                    outBuffOffset += outBuffLen;
+
+                                    ++outPduIdx;
+
+                                    updateFlag = true;
+							    }
+						    }
+
+							// furntiure update message
 						    if(furUpdateVec.size() > 0)
 						    {
                                 for(int furIdx = 0; furIdx < furUpdateVec.size(); ++furIdx)
@@ -337,38 +420,6 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 
                                 updateFlag = true;
                             }
-
-						    // check which lane queue need to fusion
-						    if(laneProcessFlag == true)
-						    {
-							    if(processLaneBuffer())
-							    {
-		                            int payloadBytes = 0;
-
-                                    // Get updated road vector from database
-                                    uint8* bufferAddr = outBuffPtr;
-                                    int32 outBuffLen;
-                                    database_gp->getAllVectorsTlv(  memory_e, 
-                                                                    (void**)&bufferAddr, 
-                                                                    &outBuffLen);
-
-                                    if (outBuffLen > MAX_ROAD_POINT_BYTES)
-                                    {
-                                        logPrintf(logLevelCrit_e, "DBAccess", "Buffer overflow!", FOREGROUND_RED);
-                                    }
-
-                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
-                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = vectorList_e;
-                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
-
-                                    outBuffPtr += outBuffLen;
-                                    outBuffOffset += outBuffLen;
-
-                                    ++outPduIdx;
-
-                                    updateFlag = true;
-							    }
-						    }
 
                             // pack the update message
                             if(updateFlag)

@@ -184,7 +184,7 @@ namespace ns_database
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointDeviation3_e - data_pointBase_e], data_pointDeviation3_e, tvHalf_e, 2, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointReliabRating_e - data_pointBase_e], data_pointReliabRating_e, tvUint8_e, 1, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointPaintFlag_e - data_pointBase_e], data_pointPaintFlag_e, tvSingle_e, 1, 1, 0);
-        setTvlCfg(&_tlvCfg_dataPoint_a[data_mergeCounter_e - data_pointBase_e], data_mergeCounter_e, tvUint32_e, 1, 1, 0);
+        setTvlCfg(&_tlvCfg_dataPoint_a[data_mergeCounter_e - data_pointBase_e], data_mergeCounter_e, tvUint32_e, 4, 1, 0);
 
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointLatitudeL_e - data_pointBase_e], data_pointLatitudeL_e, tvDouble_e, 8, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointLongitudeL_e - data_pointBase_e], data_pointLongitudeL_e, tvDouble_e, 8, 1, 0);
@@ -1625,6 +1625,9 @@ namespace ns_database
                     }else if(typeId == data_pointPaintFlag_e)
                     {
                         pointElement.paintFlag = *(float*)&tlvTmp.value;
+                    }else if(typeId == data_mergeCounter_e)
+                    {
+                        pointElement.count = tlvTmp.value;
                     }else
                     // disX, disY, disZ, attributes
                     {

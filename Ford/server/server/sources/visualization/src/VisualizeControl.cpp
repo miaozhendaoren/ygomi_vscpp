@@ -75,7 +75,10 @@ void load_all_textures(void)
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/25400.bmp",35);
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/26700.bmp",36);
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/31401.bmp",37);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/00000.bmp",38);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/27600.bmp",38);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/44100.bmp",39);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/44200.bmp",40);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/00000.bmp",41);
 
 #else if((RD_LOCATION&RD_NATION_MASK) == RD_UNIT_STATES)
 
@@ -269,9 +272,63 @@ void keyboardFunc(unsigned char key, int x, int y)
 			engine3DPtr->SwapServerEyeBuffer();
 		}
 		break;
-	case 83: //turn on/off traffic sign
-	case 115:
+	case 88: //x/X turn on/off traffic sign
+	case 120:
 		engine3DPtr->setSignFlag();
+		break;
+	case 49: //reset the furnitures
+		{
+			messageProcessClass statusMessage;
+			diffRptMsg_t* statusRptMsgPtr = statusMessage.getDiffRptMsg();
+			int headerLen = sizeof(statusRptMsgPtr->msgHeader) + sizeof(statusRptMsgPtr->payloadHeader.pduHeader[0]);
+			statusMessage.setMsgHeader((uint32*)statusRptMsgPtr,headerLen,STATUS_UPDATE_RPT_MSG,0,highLevel_e,4,1);
+			statusRptMsgPtr->payloadHeader.tlvArray[0].tag = 1;
+			statusRptMsgPtr->payloadHeader.tlvArray[0].len = 2;
+			statusRptMsgPtr->payloadHeader.tlvArray[0].value = 4;
+			messageQueue_gp->push(&statusMessage);
+			ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
+		}
+		break;
+	case 50: //reset the road geometry
+		{
+			messageProcessClass statusMessage;
+			diffRptMsg_t* statusRptMsgPtr = statusMessage.getDiffRptMsg();
+			int headerLen = sizeof(statusRptMsgPtr->msgHeader) + sizeof(statusRptMsgPtr->payloadHeader.pduHeader[0]);
+			statusMessage.setMsgHeader((uint32*)statusRptMsgPtr,headerLen,STATUS_UPDATE_RPT_MSG,0,highLevel_e,4,1);
+			statusRptMsgPtr->payloadHeader.tlvArray[0].tag = 1;
+			statusRptMsgPtr->payloadHeader.tlvArray[0].len = 2;
+			statusRptMsgPtr->payloadHeader.tlvArray[0].value = 5;
+			messageQueue_gp->push(&statusMessage);
+			ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
+		}
+		break;
+	case 83:    //s/S
+	case 115:
+		{
+			messageProcessClass statusMessage;
+			diffRptMsg_t* statusRptMsgPtr = statusMessage.getDiffRptMsg();
+			int headerLen = sizeof(statusRptMsgPtr->msgHeader) + sizeof(statusRptMsgPtr->payloadHeader.pduHeader[0]);
+			statusMessage.setMsgHeader((uint32*)statusRptMsgPtr,headerLen,STATUS_UPDATE_RPT_MSG,0,highLevel_e,4,1);
+			statusRptMsgPtr->payloadHeader.tlvArray[0].tag = 4;
+			statusRptMsgPtr->payloadHeader.tlvArray[0].len = 2;
+			statusRptMsgPtr->payloadHeader.tlvArray[0].value = 1;
+			messageQueue_gp->push(&statusMessage);
+			ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
+		}
+		break;
+	case 76:  //l/L
+	case 108:
+		{
+			messageProcessClass statusMessage;
+			diffRptMsg_t* statusRptMsgPtr = statusMessage.getDiffRptMsg();
+			int headerLen = sizeof(statusRptMsgPtr->msgHeader) + sizeof(statusRptMsgPtr->payloadHeader.pduHeader[0]);
+			statusMessage.setMsgHeader((uint32*)statusRptMsgPtr,headerLen,STATUS_UPDATE_RPT_MSG,0,highLevel_e,4,1);
+			statusRptMsgPtr->payloadHeader.tlvArray[0].tag = 4;
+			statusRptMsgPtr->payloadHeader.tlvArray[0].len = 2;
+			statusRptMsgPtr->payloadHeader.tlvArray[0].value = 2;
+			messageQueue_gp->push(&statusMessage);
+			ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
+		}
 		break;
 	default:
 		break;

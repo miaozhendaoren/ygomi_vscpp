@@ -148,8 +148,17 @@ int convertSignType(int type)
 	case 31401:
 		number = 37;
 		break;
+    case 27600:
+        number = 38;
+        break;
+    case 44100:
+        number = 39;
+        break;
+    case 44200:
+        number = 40;
+        break;
 	default:
-		number = 38;
+		number = 41;
 		break;
 	}
 #else if((RD_LOCATION&RD_NATION_MASK) == RD_UNIT_STATES)
@@ -350,11 +359,36 @@ void extractQuadInfo(point3DFloat_t startPoint, point3DFloat_t endPoint, float w
 	startZ_right = quadInfo->vertex[2].z;
 }
 
+void generateRoadChar(point3DFloat_t position, int showNum, drawServerCharInfo_t &testChar)
+{
+	if(showNum > 99)
+	{
+		showNum = 99;
+	}else if(showNum < 0)
+	{
+		showNum = 0;
+	}
+    
+	testChar.position = position;
+	testChar.position.y += 0.1;
+	if(showNum < 10)
+	{
+		sprintf(&testChar.drawChar[0],"%d",showNum);
+		memset(&testChar.drawChar[1],0,1);
+	}else
+	{
+		sprintf(&testChar.drawChar[0],"%d",(showNum/10));
+		sprintf(&testChar.drawChar[1],"%d",(showNum%10));
+		memset(&testChar.drawChar[2],0,1);
+	}
+}
+
 unsigned int __stdcall Thread_VisualizePreProc(void *data)
 {
 	engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
 	engine3DPtr->SwapServerEyeBuffer();
 
+	//static int testNum = 0;
 
 	while(1)
 	{
@@ -377,6 +411,8 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 				int lineNum = (*lineInSegIter).size();
 				int lineIdx = 0;
+				point3DFloat_t lastPos;
+				int drawNum;
 
 				if(lineNum >= 2)
 				{
@@ -414,6 +450,30 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 							extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.03, index, &quadBuf,0.005);
 							engine3DPtr->AddQuadInfo(1,&quadBuf);
 						}
+
+						if(lineIdx == 0)
+						{
+							lastPos = pointVecBuf[0];
+							drawNum = (*lineIter)[0].count;
+						}else
+						{
+							point3DFloat_t drawPos;
+							drawPos.x = (lastPos.x + pointVecBuf[0].x)/2;
+							drawPos.y = (lastPos.y + pointVecBuf[0].y)/2;
+							drawPos.z = (lastPos.z + pointVecBuf[0].z)/2;
+
+							drawServerCharInfo_t testChar;
+
+							generateRoadChar(drawPos, drawNum, testChar);
+
+							engine3DPtr->AddOneServerCharInfo(testChar);
+							
+							lastPos = pointVecBuf[0];
+							drawNum = (*lineIter)[0].count;
+							
+						}
+
+						
 
 						if((lineIdx == 0)||(lineIdx == (lineNum-1)))
 						{
@@ -461,6 +521,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 		engine3DPtr->SwapLineBuffer();
 		engine3DPtr->SwapRoadLineBuffer();
+		engine3DPtr->SwapServerCharBuffer();
 
 		//get the new data to draw the paint
 		{

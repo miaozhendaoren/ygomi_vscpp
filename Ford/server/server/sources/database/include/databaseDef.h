@@ -117,6 +117,8 @@ namespace ns_database
         vec_base_e = 0x1001,
         vec_segId_e    = vec_base_e,
         vec_vecList_e  = 0x1002,
+        vec_laneNum_e  = 0x1003,
+        vec_segNum_e   = 0x1004,
         vec_max_e,
 
         fur_base_e = 0x2001,

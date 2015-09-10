@@ -30,6 +30,8 @@
 #include "markLocate.h"
 
 #include "roadScan.h"
+#include "configure.h"
+
 using namespace ns_roadScan;
 
 using namespace cv;
@@ -95,8 +97,17 @@ Detector_colored::Detector_colored(float highStep, double dist_per_piexl,int hor
     _image.push_back(imread("./resource/Germany/png/25400.png"));
     _image.push_back(imread("./resource/Germany/png/26700.png"));
     _image.push_back(imread("./resource/Germany/png/31401.png"));
+    _image.push_back(imread("./resource/Germany/png/27600.png"));
+    _image.push_back(imread("./resource/Germany/png/44100.png"));
+    _image.push_back(imread("./resource/Germany/png/44200.png"));
 
-    
+#if (RD_LOCATION == RD_GERMAN_LEHRE2)
+    _cir_model = svm_load_model("./resource/Germany/svmLehre2/cir_model.txt");
+    _rec_model = svm_load_model("./resource/Germany/svmLehre2/rec_model.txt");
+
+    loadFeat(_feat_cir, "./resource/Germany/svmLehre2/CIRfeat.txt");
+    loadFeat(_feat_rec, "./resource/Germany/svmLehre2/RECfeat.txt");
+#else
     _cir_model = svm_load_model("./resource/Germany/svm/cir_model.txt");
     _rec_model = svm_load_model("./resource/Germany/svm/rec_model.txt");
     _tri_model = svm_load_model("./resource/Germany/svm/tri_model.txt");
@@ -104,6 +115,7 @@ Detector_colored::Detector_colored(float highStep, double dist_per_piexl,int hor
     loadFeat(_feat_cir, "./resource/Germany/svm/CIRfeat.txt");
     loadFeat(_feat_rec, "./resource/Germany/svm/RECfeat.txt");
     loadFeat(_feat_tri, "./resource/Germany/svm/TRIfeat.txt");
+#endif
 }
 
 int Detector_colored::contoursSelect(vector<vector<Point>> &contours,int *validIdx, double*validVal, double ratioT, int *maxIndex, double *maxValue) 
@@ -322,31 +334,37 @@ Mat Detector_colored::ID2Image(int target)
 			break;
 		}
 	case 27452:
+    case 27552:
 		{
 			s = _image[18];
 			break;
 		}
 	case 27453:
+    case 27553:
 		{
 			s = _image[19];
 			break;
 		}
 	case 27454:
+    case 27554:
 		{
 			s = _image[20];
 			break;
 		}
 	case 27455:
+    case 27555:
 		{
 			s = _image[21];
 			break;
 		}
 	case 27456:
+    case 27556:
 		{
 			s = _image[22];
 			break;
 		}
 	case 27458:
+    case 27558:
 		{
 			s = _image[23];
 			break;
@@ -416,6 +434,22 @@ Mat Detector_colored::ID2Image(int target)
             s = _image[36];
             break;
         }
+    case 27600:
+        {
+            s = _image[37];
+            break;
+        }
+    case 44100:
+        {
+            s = _image[38];
+            break;
+        }
+    case 44200:
+        {
+            s = _image[39];
+            break;
+        }
+
 	default:
 		break;
 	}
@@ -664,7 +698,8 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
                     }
                 }//end for    
 
-                if((flag ==1)  && (type != 31400))// remove 28300 && 28600
+                if(((flag ==1)  && (type != 31400))// FIXME: remove 31400 for Frankfurt video
+                    && !((type == 20500) && (center.x  < image.cols/2.0)))//FIXME:porcess the two 20500 sign for Frankfurt video                  
                 {
                     TS_Structure::TS_element detectSign;
                     detectSign.type = type;
@@ -688,6 +723,7 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
             }//end if
             else
             {
+                //FIXME: process 30600
                 if( (type == 0) && (shape = rectangles))
                 {
                     Mat image_roi = imag(r);
@@ -843,6 +879,7 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
         rectangle(background,Rect(0,2*image.rows/3,image.cols/3,image.rows/3),Scalar(255,255,255), 1,8);
         rectangle(background,Rect(image.cols/3,0,image.cols,image.rows),Scalar(255,255,255), 1,8);        
 
+        //resize(background,background, Size(background.rows/4,background.cols/4));
         namedWindow( "VEHICLE DISPLAY",CV_WINDOW_NORMAL);
         imshow( "VEHICLE DISPLAY", background);    
     }

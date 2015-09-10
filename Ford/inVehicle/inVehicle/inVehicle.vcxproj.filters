@@ -138,6 +138,9 @@
     <ClCompile Include="sources\detectImage\src\markLocate.cpp">
       <Filter>Source Files\detectImage</Filter>
     </ClCompile>
+    <ClCompile Include="sources\visualization\src\getSectionID.cpp">
+      <Filter>Source Files\visualization</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sources\visualization\include\3dsId.h">
@@ -226,6 +229,9 @@
     </ClInclude>
     <ClInclude Include="sources\detectImage\include\detection_colored.h">
       <Filter>Header Files\detectImage</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\visualization\include\getSectionID.h">
+      <Filter>Header Files\visualization</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
