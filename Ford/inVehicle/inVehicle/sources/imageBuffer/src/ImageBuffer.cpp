@@ -4,6 +4,186 @@
 #include "ImageBuffer.h"
 #include "Signal_Thread_Sync.h"
 
+#if(RD_MODE == RD_VIDEO_LOAD_MODE)
+ImageBuffer::ImageBuffer()
+{
+	readIdx = 0;
+	bufferSize = 0;
+	_imageHeight = 0;
+	_imageWidth = 0;
+	readFileFlag = false;
+}
+
+bool ImageBuffer::getCurrentImage(imageInfo_t *outImage)
+{
+	reader.read(outImage->image);
+	if(!feof(readFp))
+	{
+		fscanf(readFp,"%lf,%lf\n",&outImage->gpsInfo.lat,
+			&outImage->gpsInfo.lon);
+		
+		outImage->gpsInfo.alt = 0;
+		
+		//if it is the first point, the previous gps should be the same
+		if(readIdx == 0)
+		{
+			outImage->gpsInfoPre = outImage->gpsInfo;
+		}else
+		{
+			outImage->gpsInfoPre = preGps;
+		}
+		preGps = outImage->gpsInfo;
+	}
+	readIdx = ((readIdx+1)%bufferSize);
+	if(readIdx == 0)
+	{
+		reader.set(CV_CAP_PROP_POS_AVI_RATIO, 0);
+		fseek(readFp,0,SEEK_SET);
+	}
+
+	return true;
+}
+
+bool ImageBuffer::setImageToStart(void)
+{
+	reader.set(CV_CAP_PROP_POS_AVI_RATIO, 0);
+	fseek(readFp,0,SEEK_SET);
+	readIdx = 0;
+	return true;
+}
+
+int ImageBuffer::getImageNumber(void)
+{
+	return bufferSize;
+}
+
+void ImageBuffer::cleanBuffer(void)
+{
+	readIdx = 0;
+	bufferSize = 0;
+	_imageWidth = 0;
+	_imageHeight = 0;
+}
+
+bool ImageBuffer::openReadFiles()
+{
+    printf("Open video: %s\n",saveFileName[0]);
+	if(!readFileFlag)
+	{
+		reader.open(saveFileName[0]);
+		if(!reader.isOpened())
+		{
+			printf("cannot open reader %s file\n",saveFileName[0]);
+			return false;
+		}
+		bufferSize = reader.get(CV_CAP_PROP_FRAME_COUNT);
+		_imageWidth = reader.get(CV_CAP_PROP_FRAME_WIDTH);
+		_imageHeight = reader.get(CV_CAP_PROP_FRAME_HEIGHT);
+		
+		readFp = fopen(saveFileName[1],"r");
+		if(readFp == NULL)
+		{
+			printf("cannot open the reader %s file\n",saveFileName[1]);
+			return false;
+		}
+		readFileFlag = true;
+	}
+	return true;
+}
+
+bool ImageBuffer::closeReadFiles()
+{
+	if(readFileFlag)
+	{
+		reader.release();
+		fclose(readFp);
+	}
+	readFileFlag = false;
+	return true;
+}
+
+bool ImageBuffer::setFileName(const char* imageFileName, const char* gpsFileName)
+{
+	memset(saveFileName[0],0,MAX_VIDEO_FILENAME_LEN*sizeof(char));
+	memset(saveFileName[1],0,MAX_VIDEO_FILENAME_LEN*sizeof(char));
+	
+	strcpy(saveFileName[0],imageFileName);
+	strcpy(saveFileName[1],gpsFileName);
+	return true;
+}
+
+bool ImageBuffer::getImageSize(int& width, int& height)
+{
+	width  = _imageWidth;
+	height = _imageHeight; 
+	return true;
+}
+
+ImageBufferAll::ImageBufferAll()
+{	
+	imageBuffer = new ImageBuffer();
+	totalNum = 0;
+	proIdx   = 0;
+	readyFlag = false;
+	for(int idx = 0; idx < MAX_VIDEO_NUM; idx++)
+	{
+		memset(aviNames[idx],0,MAX_VIDEO_FILENAME_LEN*sizeof(char));
+		memset(gpsNames[idx],0,MAX_VIDEO_FILENAME_LEN*sizeof(char));
+	}
+}
+
+ImageBufferAll::~ImageBufferAll()
+{
+	delete imageBuffer;
+}
+
+bool ImageBufferAll::addVideoAndGpsName(const char* imageFileName, const char* gpsFileName)
+{
+	if(totalNum >= MAX_VIDEO_NUM)
+	{
+		printf("file number is bigger than %d\n",MAX_VIDEO_NUM );
+		return false;
+	}
+	strcpy(aviNames[totalNum],imageFileName);
+	strcpy(gpsNames[totalNum],gpsFileName);
+	totalNum++;
+	
+	return true;
+}
+
+void ImageBufferAll::addVideoFinish(void)
+{
+	readyFlag = true;
+}
+
+void ImageBufferAll::getImageSize(int& width,int& height)
+{
+	imageBuffer->getImageSize(width, height);
+}
+
+bool ImageBufferAll::getBuffer(ImageBuffer **buffer)
+{
+	if(!readyFlag)
+	{
+		return false;
+	}
+	imageBuffer->cleanBuffer();
+	imageBuffer->closeReadFiles();
+	
+	imageBuffer->setFileName(aviNames[proIdx],gpsNames[proIdx]);
+	
+	imageBuffer->openReadFiles();
+	
+	proIdx++;
+	if(proIdx >= totalNum)
+	{
+		proIdx = 0;
+	}
+	*buffer = imageBuffer;
+	return true;
+}
+
+#else
 ImageBuffer::ImageBuffer(const char* imageFileName, const char* gpsFileName)
 {
 	readIdx = 0;
@@ -266,3 +446,5 @@ void ImageBufferAll::getImageSize(int& width,int& height)
     width = _imageWidth;
     height = _imageHeight;
 }
+
+#endif

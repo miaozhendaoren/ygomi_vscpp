@@ -58,6 +58,12 @@
     <Filter Include="Header Files\imageBuffer">
       <UniqueIdentifier>{2a36ea0b-f23a-43f1-891f-986ef8646386}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\configParse">
+      <UniqueIdentifier>{e17d5460-be36-46d0-b601-d4d44d55ceb2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\configParse">
+      <UniqueIdentifier>{f048784d-a4b7-4540-83aa-295939544e0e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="sources\database\src\database.cpp">
@@ -140,6 +146,24 @@
     </ClCompile>
     <ClCompile Include="sources\visualization\src\getSectionID.cpp">
       <Filter>Source Files\visualization</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\configParse.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\tinystr.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\tinyxml.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\tinyxmlerror.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\tinyxmlparser.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\XMLParser.cpp">
+      <Filter>Source Files\configParse</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -232,6 +256,18 @@
     </ClInclude>
     <ClInclude Include="sources\visualization\include\getSectionID.h">
       <Filter>Header Files\visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\configParse\include\configParse.h">
+      <Filter>Header Files\configParse</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\configParse\include\tinystr.h">
+      <Filter>Header Files\configParse</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\configParse\include\tinyxml.h">
+      <Filter>Header Files\configParse</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\configParse\include\XMLParser.h">
+      <Filter>Header Files\configParse</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -18,6 +18,8 @@
 #include "apiDataStruct.h"
 #include "ExtractSection.h"
 
+bool reverseFlag_g;
+
 namespace ns_database
 {
     /***************************************************************************************************
@@ -597,14 +599,36 @@ namespace ns_database
                     }
 
                     // step 1.get one section data
-                    for (unsigned int m = uiSectionFrontLoc;m<=uiSectionBackLoc;m++)
+                    bool revDirFlag;
+                    list<segAttributes_t>::iterator secCfg = ltSectionDataScale.begin();
+                    if ((uiSectionFrontLoc <= uiSectionBackLoc) || // normal scenario
+                        ((uiSectionFrontLoc > uiSectionBackLoc) && (uiSectionBackLoc == secCfg->segId))) // at the end of loop
+                    // normal
                     {
-                        vSectionLeftLine.push_back(vRawLeftLineData[m]);
-                        vSectionRightLine.push_back(vRawRightLineData[m]);
-                    }
+                        revDirFlag = false;
 
-                    ltSectionData.push_back(vSectionLeftLine);
-                    ltSectionData.push_back(vSectionRightLine);
+                        for (int idx = uiSectionFrontLoc; idx<=uiSectionBackLoc; idx++)
+                        {
+                            vSectionLeftLine.push_back(vRawLeftLineData[idx]);
+                            vSectionRightLine.push_back(vRawRightLineData[idx]);
+                        }
+
+                        ltSectionData.push_back(vSectionLeftLine);
+                        ltSectionData.push_back(vSectionRightLine);
+                    }else
+                    // reverse
+                    {
+                        revDirFlag = true;
+
+                        for (int idx = uiSectionFrontLoc; idx>=uiSectionBackLoc; idx--)
+                        {
+                            vSectionLeftLine.push_back(vRawLeftLineData[idx]);
+                            vSectionRightLine.push_back(vRawRightLineData[idx]);
+                        }
+
+                        ltSectionData.push_back(vSectionRightLine);
+                        ltSectionData.push_back(vSectionLeftLine);
+                    }
 
                     ltLaneSectionData.push_back(ltSectionData);
 
@@ -620,13 +644,20 @@ namespace ns_database
                         if (i==(*iter).sectionId)
                         {
                             (*iter).rptSecData.push_back(ltLaneSectionData);
+                            (*iter).revDirFlag = revDirFlag;
                             ltLaneSectionData.clear();
+
+							reverseFlag_g = revDirFlag;
                             break;
                         }                 
                     }
                     if (!ltLaneSectionData.empty())
                     {
                         rptSecionsData.sectionId = i;
+                        rptSecionsData.revDirFlag = revDirFlag;
+
+						reverseFlag_g = revDirFlag;
+
                         rptSecionsData.rptSecData.push_back(ltLaneSectionData);
                         ltMatchSections.push_back(rptSecionsData);
                         ltLaneSectionData.clear();

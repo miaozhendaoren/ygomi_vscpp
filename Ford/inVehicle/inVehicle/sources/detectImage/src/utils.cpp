@@ -374,96 +374,22 @@ double GPStoDst(Point2d A,Point2d B)
 }
 void getGPSLocationOfEveryPixelInRoadScanImage(Point2d GPS1,Point2d GPS2,Point2d pixel,int scopeOfScanImage,Point2d &GPSFinal, double distancePerPixel)
 {
-	// get GPS from GPS1 / GPS2 / distance of GPS1 and GPS2 in pixel
-	// road scan size and pixel location of road scan image
-
-	//pixel - origin coordinate at GPS1
-
-	GPSFinal.x = -1.0;
-	GPSFinal.y = -1.0;
-
-	pixel.x = pixel.x*-1;
-
-	//pixel.y *= downSampling;
-	//scopeOfScanImage *= downSampling;
-
-	//GPS angle
-	double angle = atan((GPS2.y-GPS1.y)/(GPS2.x-GPS1.x));
-
-	//double distancePerPixel = 0.85;
-	//double distancePerPixel = 0.9093;
-	//double distancePerPixel = 1.2258;
-	double threshold = 0.00000000000001;
-
-	if((abs(GPS2.x-GPS1.x)>=threshold)&&(abs(GPS2.y-GPS1.y)>=threshold))
+	if (scopeOfScanImage < 1)
 	{
-		if(pixel.x>=0)
-		{
-			//the first quadrant
-			GPSFinal.x = (pixel.x*tan(angle)+pixel.y)/scopeOfScanImage*(GPS2.x-GPS1.x)+GPS1.x;
-
-			double middleValue = pixel.y-tan(PI/2-angle)*pixel.x;
-
-			if(middleValue>=0)
-			{
-				GPSFinal.y = (pixel.y-pixel.x/tan(angle))/scopeOfScanImage*(GPS2.y-GPS1.y)+GPS1.y;
-			}
-			else
-			{
-				GPSFinal.y = GPS1.y-(pixel.x/tan(angle)-pixel.y)/scopeOfScanImage*(GPS2.y-GPS1.y);
-			}
-		}
-		else
-		{
-			//the second quadrant
-			double middleValue = pixel.y-tan(PI-angle)*pixel.x;
-
-			if(middleValue>=0)
-			{
-				GPSFinal.x = (pixel.y+pixel.x*tan(angle))/scopeOfScanImage*(GPS2.x-GPS1.x)+GPS1.x;
-			}
-			else
-			{
-				GPSFinal.x = GPS1.x+(pixel.x/tan(PI/2-angle)+pixel.y)/scopeOfScanImage*(GPS2.x-GPS1.x);
-			}
-
-			GPSFinal.y = (pixel.y-pixel.x/tan(angle))/scopeOfScanImage*(GPS2.y-GPS1.y)+GPS1.y;
-
-		}
+		cout<<"error : scope of scan image empty."<<endl;
 	}
-	else if((abs(GPS2.x-GPS1.x)>=threshold)&&(abs(GPS2.y-GPS1.y)<threshold))
-	{
-		// horizontal
-		GPSFinal.x = pixel.y/scopeOfScanImage*(GPS2.x-GPS1.x)+GPS1.x;
 
-		if(GPS2.x>GPS1.x)
-		{
-			GPSFinal.y = GPS1.y-pixel.x*distancePerPixel/100;
-		}
-		else
-		{
-			GPSFinal.y = GPS1.y+pixel.x*distancePerPixel/100;
-		}
-	}
-	else if((abs(GPS2.x-GPS1.x)<threshold)&&(abs(GPS2.y-GPS1.y)>=threshold))
-	{
-		//vertical
-		GPSFinal.y = pixel.y/scopeOfScanImage*(GPS2.y-GPS1.y)+GPS1.y;
+	// update for algorithm 2015.09.14
+	double angle = atan2(GPS2.y-GPS1.y, GPS2.x-GPS1.x);
+	double t = PI*1.5 + angle;
 
-		if(GPS2.y>GPS1.y)
-		{
-			GPSFinal.x = GPS1.x+pixel.x*distancePerPixel/100;
-		}
-		else
-		{
-			GPSFinal.x = GPS1.x-pixel.x*distancePerPixel/100;
-		}
-	}
-	else
-	{
-		GPSFinal.x = 0.0;
-		GPSFinal.y = 0.0;
-	}
+	// coordinate system 2
+	double x2 = -1.0 * pixel.x * distancePerPixel / 100;
+	double y2 = pixel.y * distancePerPixel / 100;
+
+	// coordinate system 1
+	GPSFinal.x = x2 * cos(t) - y2 * sin(t) + GPS1.x;
+	GPSFinal.y = x2 * sin(t) + y2 * cos(t) + GPS1.y;
 }
 
 CvPoint2D32f sub(CvPoint2D32f b, CvPoint2D32f a) { return cvPoint2D32f(b.x-a.x, b.y-a.y); }

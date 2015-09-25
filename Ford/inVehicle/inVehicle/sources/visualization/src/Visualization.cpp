@@ -403,7 +403,7 @@ void OPENGL_3D_ENGINE::setClientEyeOnce(eyeLookAt_t eye, modeViewEnum_t mode,GLf
 		glPopMatrix();
 #endif
 
-#if 1  //red car
+#if 0  //red car
 		glPushMatrix();
 		//GLfloat angle = ComputeAngle(&eye.eyePosition, &eye.lookatPosition);
 		
@@ -843,14 +843,43 @@ void OPENGL_3D_ENGINE::DrawSignServer(signInfo_t sign)
 	glRotatef(-serverHeadAngle,0,1,0);
 	glRotatef(5.0f, 0,0,1);
 
-	GLfloat poleLength = sign.position.y*10;
-	DrawPoleServer(poleLength);
+	float eyeHeight = serverEyeBuffer[serverEyeBackBufIdx^1].buffer->eyePosition.y;
+
+	float ratio = (eyeHeight/150);
+	ratio = ratio > 1?1:ratio;
+	ratio = ratio < 0.1?0.1:ratio;
+
+	GLfloat poleLength = sign.position.y*8*ratio;
+	GLfloat poleWidth = ratio*0.3;
+	DrawPoleServer(poleWidth, poleLength);
 
 	//server mode, sign is forward the sky
-	glTranslatef(poleLength+HALF_WIDTH_SIGN_OVERLOOKING, 0, 0);
+	glTranslatef(poleLength+HALF_WIDTH_SIGN_OVERLOOKING*ratio, 0, 0);
 	glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture_ID);
 	glBindTexture(GL_TEXTURE_2D, texturelist[sign.type]);
-	glCallList(SignShowList_roadOn);
+	//glCallList(SignShowList_roadOn);
+	{
+		GLfloat
+		Point1[] = {HALF_WIDTH_SIGN_OVERLOOKING*ratio, 0.11f, HALF_WIDTH_SIGN_OVERLOOKING*ratio},
+		Point2[] = {-HALF_WIDTH_SIGN_OVERLOOKING*ratio, 0.11f, HALF_WIDTH_SIGN_OVERLOOKING*ratio},
+		Point3[] = {-HALF_WIDTH_SIGN_OVERLOOKING*ratio, 0.11f, -HALF_WIDTH_SIGN_OVERLOOKING*ratio},
+		Point4[] = {HALF_WIDTH_SIGN_OVERLOOKING*ratio,0.11f, -HALF_WIDTH_SIGN_OVERLOOKING*ratio};
+	    GLfloat ColorR[] = {1, 0, 0,0.5};
+		glBegin(GL_QUADS);
+	
+		// front side texture
+		glTexCoord2f(1.0f, 1.0f);
+		ColoredVertex(ColorR, Point1);
+		glTexCoord2f(1.0f, 0.0f);
+		ColoredVertex(ColorR, Point2);
+		glTexCoord2f(0.0f, 0.0f);
+		ColoredVertex(ColorR, Point3);
+		glTexCoord2f(0.0f, 1.0f);
+		ColoredVertex(ColorR, Point4);
+
+		glEnd();
+	}
+
 	glBindTexture(GL_TEXTURE_2D, last_texture_ID);
 
 	//glPopMatrix();
@@ -880,7 +909,7 @@ void OPENGL_3D_ENGINE::DrawSignServer(signInfo_t sign)
 	//GLfloat green = (flag-1)*0.25;
 	glColor3f(0, 1, 0);
 
-	glRasterPos3f(0, 0, HALF_WIDTH_SIGN_OVERLOOKING+2);
+	glRasterPos3f(0, 0, (HALF_WIDTH_SIGN_OVERLOOKING+2)*ratio);
 	//glRotatef(-serverHeadAngle,0,1,0);
 
 	DrawCharWithOutPos(info);
@@ -944,7 +973,7 @@ void OPENGL_3D_ENGINE::DrawSignClient(signInfo_t sign)
 	glPopMatrix();
 }
 
-void OPENGL_3D_ENGINE::DrawPoleServer(GLfloat height)
+void OPENGL_3D_ENGINE::DrawPoleServer(GLfloat radius,GLfloat height)
 {
 #if 0
 	GLfloat PointList[][3] = {
@@ -983,16 +1012,16 @@ void OPENGL_3D_ENGINE::DrawPoleServer(GLfloat height)
 	}
 	glEnd();
 #endif
-	GLfloat radius = 0.3;
+	//GLfloat radius = 0.3;
 	glColor3f(0.5f,0.5f,0.5f);
 	glBegin(GL_QUAD_STRIP);
 	for(int i=0; i<360; ++i)
 	{
-		glVertex3f( 0, radius*cos(2*PI/360*i),radius*sin(2*PI/360*i));
-		glVertex3f( height, radius*cos(2*PI/360*i), radius*sin(2*PI/360*i));
+		glVertex3f( 0, radius*cos(2*PI/360*i)+0.11,radius*sin(2*PI/360*i));
+		glVertex3f( height, radius*cos(2*PI/360*i)+0.11, radius*sin(2*PI/360*i));
 	}
-	glVertex3f(0, radius*cos(0.0), radius*sin(0.0));
-	glVertex3f(height, radius*cos(0.0), radius*sin(0.0));
+	glVertex3f(0, radius*cos(0.0)+0.11, radius*sin(0.0));
+	glVertex3f(height, radius*cos(0.0)+0.11, radius*sin(0.0));
 	glEnd();
 }
 

@@ -24,6 +24,8 @@
 
 #include "LogInfo.h"  // logPrintf
 
+extern bool reverseFlag_g;
+
 using std::list;
 using std::vector;
 using std::string;
@@ -363,12 +365,44 @@ namespace ns_database
         //logPrintf(logLevelInfo_e, "DB_UPDATE", furTypeString, FOREGROUND_GREEN);
     }
 
+    void databaseServer::addFurnitureListAsIsTlv(IN uint8* tlvBuff, IN uint32 buffLen)
+    {
+        void*  inputLoc = tlvBuff;
+        void** input = &inputLoc;
+
+        _mEndPosition = tlvBuff + buffLen;
+
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+
+        // Add all furnitures in the tlv buffer
+        while(inputLoc < _mEndPosition)
+        {
+            furAttributes_t furAttr, furAttrOut;
+
+            readTlvToFurniture(input, memory_e, &furAttr);
+
+            furAttributesServer_t furServ(&furAttr);
+
+            insertOneFurniture(furServ);
+        }
+
+        ReleaseMutex(_hMutexMemory);
+
+        //string furTypeString = "Furniture List";
+        //logPrintf(logLevelInfo_e, "DB_UPDATE", furTypeString, FOREGROUND_GREEN);
+    }
+
     void databaseServer::addFurniture(IN furAttributes_t* furnitureIn,
                                       OUT furAttributes_t* furnitureOut)
     {
         WaitForSingleObject(_hMutexMemory,INFINITE);
 
         furAttributesServer_t furnitureServerIn(furnitureIn);
+
+		if (reverseFlag_g)
+		{
+			furnitureServerIn.sideFlag = furnitureServerIn.sideFlag ^ 0x01;
+		}
 
         // Check if same furniture exist in DB
         bool furIdFoundFlag = false;
@@ -512,34 +546,7 @@ namespace ns_database
                 calcFurnitureHeight(&furnitureServerIn.location, furnitureServerIn.sideFlag, &altOut);
                 furnitureServerIn.location.alt = altOut;
 
-                // Check Segment ID in furniture list
-                bool segIdFound = false;
-                segIter = _furnitureList.begin();
-                while(segIter != _furnitureList.end())
-                {
-                    // ID found
-                    if( (*(*segIter).begin()).segId == furnitureServerIn.segId )
-                    {
-                        segIdFound = true;
-                        break;
-                    }
-
-                    segIter++;
-                }
-
-                if(segIdFound)
-                // Add furniture
-                {
-                    (*segIter).push_back(furnitureServerIn);
-                }
-                else
-                // Create a new furniture list
-                {
-                    std::list<furAttributesServer_t> furListTmp;
-                    furListTmp.push_back(furnitureServerIn);
-
-                    _furnitureList.push_back(furListTmp);
-                }
+                insertOneFurniture(furnitureServerIn);
             }
 
         }
@@ -552,6 +559,38 @@ namespace ns_database
         }
 
         ReleaseMutex(_hMutexMemory);
+    }
+
+    void databaseServer::insertOneFurniture(IN furAttributesServer_t &furnitureServerIn)
+    {
+        // Check Segment ID in furniture list
+        bool segIdFound = false;
+        list<list<furAttributesServer_t>>::iterator segIter = _furnitureList.begin();
+        while(segIter != _furnitureList.end())
+        {
+            // ID found
+            if( (*(*segIter).begin()).segId == furnitureServerIn.segId )
+            {
+                segIdFound = true;
+                break;
+            }
+
+            segIter++;
+        }
+
+        if(segIdFound)
+        // Add furniture
+        {
+            (*segIter).push_back(furnitureServerIn);
+        }
+        else
+        // Create a new furniture list
+        {
+            std::list<furAttributesServer_t> furListTmp;
+            furListTmp.push_back(furnitureServerIn);
+
+            _furnitureList.push_back(furListTmp);
+        }
     }
 
     void databaseServer::resetFurnitureRoadSideLoc()
@@ -909,26 +948,7 @@ namespace ns_database
 
 	uint32 databaseServer::getFurnitureVersion()
     {    
-		uint32 version = 0xFFFE; // default version
-				
-		if(!(_furnitureList.empty()))
-		{
-			WaitForSingleObject(_hMutexMemory,INFINITE);
-
-			list<list<furAttributesServer_t>>::iterator segIter = _furnitureList.begin();
-			list<furAttributesServer_t>::iterator furIter = (*segIter).begin();
-
-			if((*furIter).segVersion_used == 1)
-			{
-				version = (*furIter).segVersion;
-			}
-			else
-			{
-				version = 0;
-			}
-
-			ReleaseMutex(_hMutexMemory);
-		}
+		uint32 version = 0xFFFF; // default version
 		
 		return version;
     }
@@ -1104,7 +1124,7 @@ namespace ns_database
 
         resetFurniture();
 
-        addFurnitureListTlv(payloadFromDb, buffLen);
+        addFurnitureListAsIsTlv(payloadFromDb, buffLen);
 
         ReleaseMutex(_hMutexMemory);
 

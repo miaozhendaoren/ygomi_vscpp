@@ -201,6 +201,60 @@ uint32 getSectionId(IN point3D_t inPoint,
 
 bool fixVehicleLocationInLane(point3D_t reletiveGps,list<vector<point3D_t>> &allLines, point3D_t *locationInLane)
 {
+	if(allLines.size() >= 2) //decide if there is a lane
+	{
+		//only use the first and the last line to decide the road center
+		list<vector<point3D_t>>::iterator firstLine = allLines.begin();
+		list<vector<point3D_t>>::iterator endLine = allLines.end();
+		endLine--;
+
+		//get the nearest point between the vehicle and lines
+        float minDist1 = 9e+10;
+		float minDist2 = 9e+10;
+        point3D_t   firstMinIdx;
+		point3D_t   endMinIdx;
+        for(int pointIdx = 0; pointIdx < firstLine->size();++pointIdx)
+        {
+            point3D_t currentPoint = (*firstLine)[pointIdx];
+            float distX = reletiveGps.lat - currentPoint.lat;
+            float distY = reletiveGps.lon - currentPoint.lon;
+            float dist  = (distX*distX + distY*distY);
+            if(dist < minDist1)
+            {
+                minDist1 = dist;
+                firstMinIdx  = currentPoint;
+            }
+        }
+
+		for(int pointIdx = 0; pointIdx < endLine->size();++pointIdx)
+        {
+            point3D_t currentPoint = (*endLine)[pointIdx];
+            float distX = reletiveGps.lat - currentPoint.lat;
+            float distY = reletiveGps.lon - currentPoint.lon;
+            float dist  = (distX*distX + distY*distY);
+            if(dist < minDist2)
+            {
+                minDist2 = dist;
+                endMinIdx  = currentPoint;
+            }
+        }
+
+		float minDist = (minDist1>minDist2)?minDist2:minDist1;
+		if(minDist < MAX_DIST_BETWEEN_CAR_AND_LANE*MAX_DIST_BETWEEN_CAR_AND_LANE)
+		{
+			locationInLane->lat = (firstMinIdx.lat + endMinIdx.lat)*0.5;
+			locationInLane->lon = (firstMinIdx.lon + endMinIdx.lon)*0.5;
+			locationInLane->alt = (firstMinIdx.alt + endMinIdx.alt)*0.5;
+			return true;
+		}
+
+	}
+	return false;
+}
+
+#if 0
+bool fixVehicleLocationInLane(point3D_t reletiveGps,list<vector<point3D_t>> &allLines, point3D_t *locationInLane)
+{
     bool locationFlag = false;
 
     if(allLines.size() >= 2) // no lane
@@ -293,6 +347,7 @@ bool fixVehicleLocationInLane(point3D_t reletiveGps,list<vector<point3D_t>> &all
     }
     return locationFlag;
 }
+#endif
 
 bool checkLineSection(list<list<lineAttributes_t>> &lineAttr, int sectionId, int &LineNum)
 {

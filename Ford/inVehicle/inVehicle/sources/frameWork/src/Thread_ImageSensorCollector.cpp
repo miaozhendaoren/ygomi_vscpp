@@ -39,22 +39,25 @@ using namespace cv;
 VideoCapture capture;
 
 #define LAST_FRAME_NUM 100
-#if(RD_USE_CAMERA == ON) 
+#if(RD_MODE == RD_CAMERA_MODE) 
 CNEMA_GPGGA_PROC gNemaGpggaProc;
 #define NC_UDP_GPS_DATA_BUF_LEN        (1500)
 char nc_udpGpsBuffer[NC_UDP_GPS_DATA_BUF_LEN];
 CacheBuffer cacheBuffer;
 volatile SOCKET g_ServerSockUDP;
-#else
-char aviNames[50][100];
-char gpsNames[50][100];
+#elif(RD_MODE == RD_VIDEO_BUFFER_MODE)
+//char aviNames[50][100];
+//char gpsNames[50][100];
 HANDLE g_readySema_VideoReader;
 unsigned int timeDelay;
 volatile SOCKET g_EmulatorSockUDP;
 SOCKADDR_IN emulatorAddr;
+#elif(RD_MODE == RD_VIDEO_LOAD_MODE)
+char aviNames[50][100];
+char gpsNames[50][100];
 #endif
 
-#if(RD_USE_CAMERA == ON)
+#if(RD_MODE == RD_CAMERA_MODE)
 
 unsigned int getSysTimeMs(void)
 {
@@ -125,12 +128,13 @@ void gpsSensorCollect_UDP(void)
 
 }
 
-void imageTimer(int value)
+//void imageTimer(int value)
+void WINAPI imageTimer(UINT wTimerID, UINT msg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
-	if(3 == value)
+	if(11 == dwUser)
 	{
 		imageCamera_t tempImage;
-		glutTimerFunc((unsigned int)(33),&imageTimer,3);
+		//glutTimerFunc((unsigned int)(33),&imageTimer,3);
 
 		//get the 
 		cacheBuffer.lockCacheBuffer();
@@ -169,8 +173,9 @@ bool InitGpsSocket_UDP()
 	sockaddr_in local;
     memset(&local, 0, sizeof(local));
     local.sin_family = AF_INET;
-    local.sin_port = g_GpsPort;
-    local.sin_addr.s_addr = htonl(INADDR_ANY);
+    //local.sin_port = g_GpsPort;
+    local.sin_port = g_NetworkConfig.GpsPort;
+	local.sin_addr.s_addr = htonl(INADDR_ANY);
 	//open the UDP socket server, and listening
     if((g_ServerSockUDP = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
     {
@@ -220,7 +225,9 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	}
 
 	//start the timer to get the camera image
-	glutTimerFunc((unsigned int)(50),&imageTimer,3);
+	//glutTimerFunc((unsigned int)(50),&imageTimer,3);
+	MMRESULT timer_id;
+	timer_id = timeSetEvent(50,1,(LPTIMECALLBACK)imageTimer, DWORD(11),TIME_PERIODIC);
 
 	while(1)
 	{
@@ -316,7 +323,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	}//end while(1)
 
 }
-#else
+#elif(RD_MODE == RD_VIDEO_BUFFER_MODE)
 std::string GetFileNameByFilePath(const std::string filepath)
 {
 	std::string filename;
@@ -423,23 +430,25 @@ bool InitTimeOffsetSocket_UDP()
         return false;
     }
 	emulatorAddr.sin_family = AF_INET;
-	emulatorAddr.sin_addr.S_un.S_addr = g_EmulatorIP;
-	emulatorAddr.sin_port = g_EmulatorPort;
+	//emulatorAddr.sin_addr.S_un.S_addr = g_EmulatorIP;
+	emulatorAddr.sin_addr.S_un.S_addr = g_NetworkConfig.EmulatorIP;
+	//emulatorAddr.sin_port = g_EmulatorPort;
+	emulatorAddr.sin_port = g_NetworkConfig.EmulatorPort;
 	return true;
 }
 
-void imageTimer(int value)
+//void imageTimer(int value)
+void WINAPI imageTimer(UINT wTimerID, UINT msg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
-	if(3 == value)
+	if(11 == dwUser)
 	{
-		glutTimerFunc(timeDelay,&imageTimer,3);
 		ReleaseSemaphore(g_readySema_VideoReader, 1 ,NULL);
 	}
 }
 
 unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 {
-	int numFiles;
+	//int numFiles;
 	int idxFile = 0;
 	int numFrame;
 	int totalNumFrame;
@@ -451,6 +460,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	cv::Size showSize;
 
 	InitTimeOffsetSocket_UDP();
+/*
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
     FILE* fp = fopen("./config/DE_Airport2_aviGpsFiles.txt", "r");
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
@@ -482,30 +492,35 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 
 	numFiles = (readIdx>>1);
 	fclose(fp);
+*/
+	
 	srand((unsigned)time(NULL));
 	//idxFile = generateRandFileIdx(numFiles);
 	printf("select video %d\n",idxFile);
 
-	FILE* gpsFile = fopen(gpsNames[idxFile],"r");
+	//FILE* gpsFile = fopen(gpsNames[idxFile],"r");
+	FILE* gpsFile = fopen(g_aviAndgpsfilelist.gpsNames[idxFile],"r");
 	fseek(gpsFile, 0, SEEK_SET);
 	fscanf(gpsFile,"%lf,%lf\n",&preGps.lat,&preGps.lon);
 	preGps.alt = 0;
 	fseek(gpsFile, 0, SEEK_SET);
 
-	if( !openVideoFile(aviNames[idxFile],capture ,numFrame))
+	if( !openVideoFile(g_aviAndgpsfilelist.aviNames[idxFile],capture ,numFrame))
 	{
-		printf("can't open file: %s",aviNames[idxFile]);
+		printf("can't open file: %s",g_aviAndgpsfilelist.aviNames[idxFile]);
 	}
 	totalNumFrame = numFrame;
 	fps = capture.get(CV_CAP_PROP_FPS);  //get the frames per seconds of the video
 
 	imageBuffer.setImageSize(capture.get(CV_CAP_PROP_FRAME_WIDTH),
 	    capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-	showSize.height = capture.get(CV_CAP_PROP_FRAME_HEIGHT)/2;
-	showSize.width = capture.get(CV_CAP_PROP_FRAME_WIDTH)/2;
+	showSize.height = capture.get(CV_CAP_PROP_FRAME_HEIGHT) * inParam.imageScaleHeight;
+	showSize.width = capture.get(CV_CAP_PROP_FRAME_WIDTH) * inParam.imageScaleWidth;
 
 	timeDelay = (unsigned int)(1000/fps);
-	glutTimerFunc(timeDelay,&imageTimer,3);
+	//glutTimerFunc(timeDelay,&imageTimer,3);
+	MMRESULT timer_id;
+	timer_id = timeSetEvent(timeDelay,1,(LPTIMECALLBACK)imageTimer, DWORD(11),TIME_PERIODIC);
 
     const int MAX_FRAME_INTERVAL = 1;
     int frameInterval = 0;
@@ -518,7 +533,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 		{
 
 			idxFile++;
-			if(idxFile >= numFiles)
+			if(idxFile >= g_aviAndgpsfilelist.numFiles)
 			{
 				idxFile = 0;
 			}
@@ -526,15 +541,15 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 			//idxFile = generateRandFileIdx(numFiles);
 			printf("select video %d\n",idxFile);
 			capture.release();
-			if( !openVideoFile(aviNames[idxFile],capture ,numFrame))
+			if( !openVideoFile(g_aviAndgpsfilelist.aviNames[idxFile],capture ,numFrame))
 			{
-				printf("can't open file: %s",aviNames[idxFile]);
+				printf("can't open file: %s",g_aviAndgpsfilelist.aviNames[idxFile]);
 				continue;
 			}
 			fclose(gpsFile);
 			totalNumFrame = numFrame;
 
-			gpsFile = fopen(gpsNames[idxFile],"r");
+			gpsFile = fopen(g_aviAndgpsfilelist.gpsNames[idxFile],"r");
 			fseek(gpsFile, 0, SEEK_SET);
 			
 			//make sure the video start point the previous GPS is the same.
@@ -562,10 +577,10 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	            int sendLen = 1;
 				int checkSum = 0;
 				int videoOffset = (totalNumFrame - numFrame) * 1000 / fps;
-				string fileName = GetFileNameByFilePath(aviNames[idxFile]);
+				string fileName = GetFileNameByFilePath(g_aviAndgpsfilelist.aviNames[idxFile]);
 
-	            sprintf(sendBuff, "$VEHICLE,%ld,%s,%i", g_VehicleID, fileName.c_str(), videoOffset);
-
+	            //sprintf(sendBuff, "$VEHICLE,%ld,%s,%i", g_VehicleID, fileName.c_str(), videoOffset);
+				sprintf(sendBuff, "$VEHICLE,%ld,%s,%i", g_NetworkConfig.VehicleID, fileName.c_str(), videoOffset);
 				for(int index = sendLen; index < sizeof(sendBuff); index++)
 				{
 					if('\0' != sendBuff[index])
@@ -635,6 +650,63 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
         }
 	}
 }
+#elif(RD_MODE == RD_VIDEO_LOAD_MODE)
+
+
+unsigned int __stdcall Thread_ImageSensorCollector(void *data)
+{
+	int numFiles;
+	int idxFile = 0;
+	int numFrame;
+	int totalNumFrame;
+	double fps;
+	int counter = 0;
+
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+    FILE* fp = fopen("./config/DE_Airport2_aviGpsFiles.txt", "r");
+#elif (RD_LOCATION == RD_GERMAN_LEHRE)
+    FILE* fp = fopen("./config/DE_Lehre_aviGpsFiles.txt", "r");
+#elif (RD_LOCATION == RD_GERMAN_LEHRE2)
+    FILE* fp = fopen("./config/DE_Lehre2_aviGpsFiles.txt", "r");
+#elif (RD_LOCATION == RD_US_DETROIT)
+	FILE* fp = fopen("./config/US_Detroit_aviGpsFiles.txt", "r"); 
+#elif (RD_LOCATION == RD_US_PALO_ALTO)
+	FILE* fp = fopen("./config/aviGpsFiles.txt", "r"); 
+#endif
+	
+	if(fp == NULL)
+	{
+		printf("cannot open the aviGpsFiles.txt file\n");
+	}
+	int readIdx = 0;
+	while(!feof(fp))
+	{
+		if((readIdx&0x1) == 0)
+		{
+			fscanf(fp,"%s",aviNames[readIdx>>1]);
+		}else
+		{
+			fscanf(fp,"%s",gpsNames[readIdx>>1]);
+		}
+		readIdx++;
+	}
+
+	numFiles = (readIdx>>1);
+	fclose(fp);
+
+	for(int Idx = 0; Idx < numFiles; Idx++)
+	{
+		imageBuffer.addVideoAndGpsName(aviNames[Idx],gpsNames[Idx]);
+	}
+	imageBuffer.addVideoFinish();
+
+	while(1)
+	{
+		Sleep(10000000);
+	}
+
+}
+
 #endif
 
 

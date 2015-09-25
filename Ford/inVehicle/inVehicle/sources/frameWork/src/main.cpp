@@ -38,7 +38,14 @@ int main(int argc, char* argv[])
 	//do some system initialation
 	appInitEvents();
     databaseInit();
-    int status = detectorInit();
+    //config file parser
+	if(!configParameterInit())
+	{
+		cout<<"parse config file  fail!!!"<<endl;
+		return -1;
+	}	
+	
+	int status = detectorInit();
     if(status != 0)
     {
         return -1;

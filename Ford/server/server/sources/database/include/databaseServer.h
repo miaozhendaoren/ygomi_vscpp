@@ -94,6 +94,8 @@ namespace ns_database
 
         void addFurnitureListTlv(IN uint8* tlvBuff, IN uint32 buffLen);
 
+        void addFurnitureListAsIsTlv(IN uint8* tlvBuff, IN uint32 buffLen);
+
         void reduceFurnitureTlv(IN uint8* tlvBuff, 
                                 IN uint32 buffLen,
                                 OUT uint8*  tlvOutBuff,
@@ -146,6 +148,8 @@ namespace ns_database
 
         std::list<std::list<furAttributesServer_t>> _furnitureList; // segment list / furniture element
         std::list<std::vector<point3D_t>> _newDataVec;
+
+        void insertOneFurniture(IN furAttributesServer_t &furnitureServerIn);
     };
 }
 

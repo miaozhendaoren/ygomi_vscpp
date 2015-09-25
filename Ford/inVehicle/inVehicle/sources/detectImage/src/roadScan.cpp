@@ -156,6 +156,7 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
 		yy = min(yy,HH*SCALE*h-2*h-1);
 				
 		Rect rect = Rect(xx, yy, history.cols, h*2);
+		cv::namedWindow("Road Scan",CV_WINDOW_NORMAL);
 		imshow("Road Scan",history(rect));			
 	}
 

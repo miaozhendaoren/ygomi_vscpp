@@ -520,6 +520,8 @@ bool isResampleSec(uint32 segId)
         threshold = LINE_TYPE_THRESHOLD[segId];
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
         // use default threshold
+#elif (RD_LOCATION == RD_US_DETROIT)
+        // use default threshold
 #endif
 
         // left line of input lane

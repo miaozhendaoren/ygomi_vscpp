@@ -32,6 +32,8 @@ namespace ns_database
     #define  ROADCIRCLE    1
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
     #define  ROADCIRCLE    0
+#elif (RD_LOCATION == RD_US_DETROIT)
+    #define  ROADCIRCLE    1
 #endif
 
     enum ISTATUS

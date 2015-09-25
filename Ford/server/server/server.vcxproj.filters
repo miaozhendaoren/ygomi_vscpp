@@ -114,6 +114,9 @@
     <ClCompile Include="sources\roadVecGen2\src\RoadVecGen2.cpp">
       <Filter>Source Files\roadVecGen</Filter>
     </ClCompile>
+    <ClCompile Include="sources\roadVecGen2\src\SecRptData.cpp">
+      <Filter>Source Files\roadVecGen</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sources\database\include\database.h">

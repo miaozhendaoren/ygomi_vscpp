@@ -49,4 +49,4 @@ imageCols:
 640
 
 discardRoadDataAfterLaneChange:
-1
+0

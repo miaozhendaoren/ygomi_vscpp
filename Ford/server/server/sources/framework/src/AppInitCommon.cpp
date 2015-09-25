@@ -65,6 +65,8 @@ void databaseInit()
     roadVecGen2_gp->setSectionConfigPath(".\\config\\DE_Airport_manualSeg.txt", segConfigList);
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
     roadVecGen2_gp->setSectionConfigPath(".\\config\\DE_Lehre_manualSeg.txt", segConfigList);
+#elif (RD_LOCATION == RD_US_DETROIT)
+    roadVecGen2_gp->setSectionConfigPath(".\\config\\US_Detroit_manualSeg.txt", segConfigList);
 #endif
 
 #else
@@ -74,6 +76,8 @@ void databaseInit()
     roadVecGen_gp->setSectionConfigPath(".\\config\\DE_Airport_manualSeg.txt", segConfigList);
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
     roadVecGen_gp->setSectionConfigPath(".\\config\\DE_Lehre_manualSeg.txt", segConfigList);
+#elif (RD_LOCATION == RD_US_DETROIT)
+    roadVecGen_gp->setSectionConfigPath(".\\config\\US_Detroit_manualSeg.txt", segConfigList);
 #endif
 
 #endif
@@ -117,6 +121,8 @@ void viewPointInit()
     bool readStatus = readOverViewPoint("./config/DE_Airport_overViewPoint.txt",serverEyeInfo[0]);
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
     bool readStatus = readOverViewPoint("./config/DE_Lehre_overViewPoint.txt",serverEyeInfo[0]);
+#elif (RD_LOCATION == RD_US_DETROIT)
+    bool readStatus = readOverViewPoint("./config/US_Detroit_overViewPoint.txt",serverEyeInfo[0]);
 #endif
 	
 	if(!readStatus)

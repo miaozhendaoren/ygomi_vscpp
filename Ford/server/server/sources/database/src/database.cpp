@@ -20,6 +20,7 @@
 #include <windows.h>  // CreateMutex, FOREGROUND_RED
 
 #include "LogInfo.h"  // logPrintf
+#include "configure.h"
 
 using std::list;
 using std::vector;
@@ -117,7 +118,11 @@ namespace ns_database
         _distThreshFarFar = 40.0;// 40m
         _distThreshFar  = 25.0;
         _distThreshMid  = 25.0;
+#if (RD_LOCATION == RD_GERMAN_LEHRE || RD_LOCATION == RD_GERMAN_LEHRE2)
+        _distThreshNear = 40.0;
+#else
         _distThreshNear = 12.0;
+#endif
 
         _angleThresh = PI;// FIXME: PI means not filter on angle
     }

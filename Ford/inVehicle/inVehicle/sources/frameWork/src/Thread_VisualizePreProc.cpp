@@ -368,12 +368,13 @@ void convFurToSignInfo(list<list<furAttributesInVehicle_t>>& furnitureList,
 	}
 }
 
-void gpsTimer(int value)
+//void gpsTimer(int value)
+void WINAPI gpsTimer(UINT wTimerID, UINT msg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
-	if(2 == value)
+	if(10 == dwUser)
 	{
 		ReleaseSemaphore(g_readySema_GPS, 1 ,NULL);
-		glutTimerFunc((unsigned int)(1000),&gpsTimer,2);
+		//glutTimerFunc((unsigned int)(1000),&gpsTimer,2);
 	}
 }
 
@@ -513,6 +514,9 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 	point3D_t gpsAheadLast;
     point3D_t newPointD; 
 
+	list<list<vector<point3D_t>>> allLinesBak; // segment list / vector list / point list / point
+	list<list<lineAttributes_t>> lineAttrBak; // segment list / vector list / attributes
+
 	gpsAheadNew.lat = 0;
 	gpsAheadNew.lon = 0;
 	gpsAheadNew.alt = 0;
@@ -537,8 +541,9 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
     //newPointD.lat = 0;
 	//newPointD.lon = 0;
 	//newPointD.alt = 0;
-
-	glutTimerFunc((unsigned int)(1000),&gpsTimer,2);
+	MMRESULT timer_id;
+	timer_id = timeSetEvent((1000),1,(LPTIMECALLBACK)gpsTimer, DWORD(10),TIME_PERIODIC);
+	//glutTimerFunc((unsigned int)(1000),&gpsTimer,2);
 
 	standPoint.lat = inParam.GPSref.x;//42.296853333333331;//gGpsInfo.dLatitude;
 	standPoint.lon = inParam.GPSref.y;//-83.213250000000002;//gGpsInfo.dLongitude;
@@ -565,11 +570,16 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 			//database_gp->getAllVectors(allLines, lineAttr);
             bool dataAccess = database_gp->getAllVectorsAsync(allLines, lineAttr);
 
+			//cout<<"accessFlag = " <<dataAccess<<endl;
 			//point3D_t standPoint = (*(*allLines.begin()).begin())[0];
             if(dataAccess == true)
             {
 			    if(allLines.size() != 0)
 			    {
+					allLinesBak.clear();
+					allLinesBak = allLines;
+					lineAttrBak.clear();
+					lineAttrBak = lineAttr;
 				    list<list<vector<point3D_t>>>::iterator lineInSegIter = allLines.begin();
 				    list<list<lineAttributes_t>>::iterator lineAttrInSegIter = lineAttr.begin();
 
@@ -719,6 +729,24 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 		        engine3DPtr->SwapQuadBuffer();
 				engine3DPtr->SwapServerCharBuffer();
 			}// end if(dataAccess == true)
+			else
+			{
+                uint32 secId;
+                int lineId;           
+
+                getSectionId(newPointD, g_segCfgList,secId);
+
+                bool emptyFlag = checkLineSection(lineAttrBak, secId, lineId);
+                if(emptyFlag)
+                {
+                    list<list<vector<point3D_t>>>::iterator lineInSegIter2 = allLinesBak.begin();
+                    for(int idx = 0; idx < lineId; idx++)
+                    {
+                        lineInSegIter2++;
+                    }
+                    fixVehicleLocationInLane(newPointD,(*lineInSegIter2), &newPointD);
+                }
+			}
         }
 
 		//For all the furnitures
@@ -779,5 +807,6 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 	}
 
+	timeKillEvent(timer_id); 
 	return 0;
 }

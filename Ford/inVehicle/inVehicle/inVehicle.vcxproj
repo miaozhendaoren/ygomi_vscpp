@@ -31,6 +31,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="sources\configParse\src\configParse.cpp" />
+    <ClCompile Include="sources\configParse\src\tinystr.cpp" />
+    <ClCompile Include="sources\configParse\src\tinyxml.cpp" />
+    <ClCompile Include="sources\configParse\src\tinyxmlerror.cpp" />
+    <ClCompile Include="sources\configParse\src\tinyxmlparser.cpp" />
+    <ClCompile Include="sources\configParse\src\XMLParser.cpp" />
     <ClCompile Include="sources\database\src\database.cpp" />
     <ClCompile Include="sources\database\src\databaseInVehicle.cpp" />
     <ClCompile Include="sources\database\src\databaseMath.cpp" />
@@ -63,6 +69,10 @@
     <ClInclude Include="include\configure.h" />
     <ClInclude Include="include\statisticsFurInfo.h" />
     <ClInclude Include="include\typeDefine.h" />
+    <ClInclude Include="sources\configParse\include\configParse.h" />
+    <ClInclude Include="sources\configParse\include\tinystr.h" />
+    <ClInclude Include="sources\configParse\include\tinyxml.h" />
+    <ClInclude Include="sources\configParse\include\XMLParser.h" />
     <ClInclude Include="sources\database\include\database.h" />
     <ClInclude Include="sources\database\include\databaseDef.h" />
     <ClInclude Include="sources\detectImage\include\Detection.h" />
@@ -166,43 +176,43 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Frankfurt_Camera_Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Frankfurt_Video_Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DE_Lehre_Video_Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DE_Lehre2_Video_Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Detroit_Video_Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

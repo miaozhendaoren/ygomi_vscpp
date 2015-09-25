@@ -246,7 +246,7 @@ private:
 	void DrawSignServer(signInfo_t sign);
 	void DrawSignClient(signInfo_t sign);
 	void DrawPole(GLfloat height = 2.0f);
-	void DrawPoleServer(GLfloat height = 20.0f);
+	void DrawPoleServer(GLfloat radius, GLfloat height = 20.0f);
 	void DrawCharDynamic(drawCharInfo_t input);
 	void DrawChar(point3DFloat_t position, char *drawChar, baseColor_t color);
 	void DrawCharWithOutPos(char *drawChar);

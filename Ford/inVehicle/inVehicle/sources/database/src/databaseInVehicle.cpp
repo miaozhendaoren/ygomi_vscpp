@@ -853,7 +853,7 @@ namespace ns_database
 
         ReleaseMutex(_hMutexMemory);
 
-        logPrintf(logLevelInfo_e, "DB_UPDATE", "Reseting furnitures", FOREGROUND_BLUE | FOREGROUND_GREEN);
+        //logPrintf(logLevelInfo_e, "DB_UPDATE", "Reseting furnitures", FOREGROUND_BLUE | FOREGROUND_GREEN);
     }
 
     void databaseInVehicle::getAllFurnitures(OUT std::list<std::list<furAttributesInVehicle_t>>& furnitureListOut)

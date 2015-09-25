@@ -45,7 +45,8 @@ namespace ns_database
 #define SAMPLE_SPACE              0.1
 #define SINGLE_LANE               1
 #define DOUBLE_LANE               2
-#define MAX_SUPPORTED_LANES       3
+#define TRIPLE_LANE               3
+#define MAX_SUPPORTED_LANES       4
 #define INVALID_LANE_FLAG        -1
 #define VALID_LANE_FLAG           1
 #define DASH_DIST_DIFF            2.5
@@ -107,6 +108,9 @@ namespace ns_database
         // calculate section rotation angle and X data range
         calcRotAngleAndRange();
 
+        // check whether road is a circle
+        checkCircleRoad();
+
         // create mutex
         _hMutexMerging = CreateMutex(NULL, FALSE, NULL);
         ReleaseMutex(_hMutexMerging);
@@ -162,8 +166,14 @@ namespace ns_database
         list<reportSectionData> secData;
 
         // section partition, input is rptData
-        _extractSecObj.extractSections(_segConfigList, _stSecConfig, rptData, secData);
-
+        //_extractSecObj.extractSections(_segConfigList, _stSecConfig, rptData, secData);
+        if(_segConfigList.empty())
+        {
+            printf("roadSectionsGen:The _segConfigList is empty");
+            return false;
+        }
+        uint32 sampleInterval = 20;
+        _secRptDataObj.segMultiRptData(rptData,sampleInterval,_segConfigList,secData);
 #if SAVE_DATA_ON
         int groupNum = 0, laneNum = 0;
         list<reportSectionData>::iterator fsec = secData.begin();
@@ -289,6 +299,9 @@ namespace ns_database
 
         // calculate section rotation angle and X data range
         calcRotAngleAndRange();
+
+        // check whether road is a circle
+        checkCircleRoad();
     }
 
     bool CRoadVecGen2::loadDefaultSegData(IN uint32 segId, IN string filename)
@@ -401,6 +414,7 @@ namespace ns_database
         int sectionNum = 0;
         int sectionID  = 0;
         int laneNum = 0;
+        int a = 0, b = 0, c = 0, d = 0, e = 0;
 
         segAttributes_t segmentElement;
         segmentElement.segId_used          = 0;
@@ -423,22 +437,59 @@ namespace ns_database
             return;
         }
 
-        // number of sections
-        fscanf_s(fp, "%d\n", &(_stSecConfig.uiSecNum));
-
-        // width, length, overlap, paint and step size information
-        fscanf_s(fp, "width=%lf,overlap=%lf,minLength=%lf,maxLength=%lf,\
-                      stepSize=%d,paintV=%lf\n",
-                     &(_stSecConfig.dbWidth), &(_stSecConfig.dbOverlap),
-                     &(_stSecConfig.dbMinLength), &(_stSecConfig.dbMaxLength),
-                     &(_stSecConfig.uiStepSize), &(_stSecConfig.dbPaintV));
         while (!feof(fp))
         {
-            fscanf_s(fp, "%d,%d\n", &sectionID, &laneNum);
+            fscanf_s(fp, "segId: %d,laneNum: %d\n", &sectionID, &laneNum);
             segmentElement.segId_used = 1;
             segmentElement.segId      = sectionID;
             segmentElement.uiLaneNum_used = 1;
             segmentElement.uiLaneNum      = laneNum;
+
+            vector<int> laneType, laneConn;
+            switch (laneNum)
+            {
+            case 1:
+                fscanf_s(fp, "lineType: %d,%d\n", &a, &b);
+                laneType.push_back(a);
+                laneType.push_back(b);
+                fscanf_s(fp, "connectInfo: %d\n", &a);
+                laneConn.push_back(a);
+                break;
+            case 2:
+                fscanf_s(fp, "lineType: %d,%d,%d\n", &a, &b, &c);
+                laneType.push_back(a);
+                laneType.push_back(b);
+                laneType.push_back(c);
+                fscanf_s(fp, "connectInfo: %d,%d\n", &a, &b);
+                laneConn.push_back(a);
+                laneConn.push_back(b);
+                break;
+            case 3:
+                fscanf_s(fp, "lineType: %d,%d,%d,%d\n", &a, &b, &c, &d);
+                laneType.push_back(a);
+                laneType.push_back(b);
+                laneType.push_back(c);
+                laneType.push_back(d);
+                fscanf_s(fp, "connectInfo: %d,%d,%d\n", &a, &b, &c);
+                laneConn.push_back(a);
+                laneConn.push_back(b);
+                laneConn.push_back(c);
+                break;
+            case 4:
+                fscanf_s(fp, "lineType: %d,%d,%d,%d,%d\n", &a, &b, &c, &d, &e);
+                laneType.push_back(a);
+                laneType.push_back(b);
+                laneType.push_back(c);
+                laneType.push_back(d);
+                laneType.push_back(e);
+                fscanf_s(fp, "connectInfo: %d,%d,%d,%d\n", &a, &b, &c, &d);
+                laneConn.push_back(a);
+                laneConn.push_back(b);
+                laneConn.push_back(c);
+                laneConn.push_back(d);
+                break;
+            }
+
             fscanf_s(fp, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,\n",
                 &segmentElement.ports[0].lon, &segmentElement.ports[0].lat,
                 &segmentElement.ports[1].lon, &segmentElement.ports[1].lat,
@@ -447,6 +498,8 @@ namespace ns_database
 
             _secLaneNum.push_back(laneNum);
             _segConfigList.push_back(segmentElement);
+            _secLaneType.push_back(laneType);
+            _secLaneConn.push_back(laneConn);
         }
 
         fclose(fp);
@@ -479,7 +532,9 @@ namespace ns_database
     {
         if(sourceLine.empty() || sampledLine.empty())
         {
+#if VISUALIZATION_ON
             printf("ERROR: interpolationSample : Input empty. \n");
+#endif
             return;
         }
 
@@ -1530,7 +1585,7 @@ namespace ns_database
 
             // if current section is the first section and circle exists, then
             // the previous section is the last one
-            if (i == 0)
+            if (i == 0 && _bCircleRoad)
             {
                 prevData = _fgOutputList.back();
             }
@@ -1616,29 +1671,27 @@ namespace ns_database
                 }
 
                 // match to correct lines, get matched end points
-                int numOfLines = max(currlines, prevlines);
                 vector<int> matchedInd;
                 vector<point3D_t> stPnts;
                 vector<point3D_t> edPnts;
 
-                for (int i = 0; i < currlines; i++)
+                // get matched line index
+                getMatchedLineInd(prevData.sectionId, matchedInd);
+
+                int numOfMatchedLines = matchedInd.size();
+                for (int i = 0; i < numOfMatchedLines; i++)
                 {
-                    if (i >= prevlines)
+                    if (UNMATCHED_LINE_FLAG != matchedInd[i] &&
+                        i < currlines && matchedInd[i] < prevlines &&
+                        (!ppCurrLines[i]->empty()) &&
+                        (!ppPrevLines[matchedInd[i]]->empty()))
                     {
-                        matchedInd.push_back(UNMATCHED_LINE_FLAG);
+                        stPnts.push_back(ppCurrLines[i]->front());
+                        edPnts.push_back(ppPrevLines[matchedInd[i]]->back());
                     }
                     else
                     {
-                        if (!ppCurrLines[i]->empty() && !ppPrevLines[i]->empty())
-                        {
-                            matchedInd.push_back(MATCHED_LINE_FLAG);
-                            stPnts.push_back(ppCurrLines[i]->front());
-                            edPnts.push_back(ppPrevLines[i]->back());
-                        }
-                        else
-                        {
-                            matchedInd.push_back(UNMATCHED_LINE_FLAG);
-                        }
+                        matchedInd[i] = UNMATCHED_LINE_FLAG;
                     }
                 }
 
@@ -1646,11 +1699,11 @@ namespace ns_database
                 // the same
                 if (!stPnts.empty() && !edPnts.empty())
                 {
-                    uint32 matchedCnt = stPnts.size();
-                    uint32 index = 0;
+                    int matchedCnt = stPnts.size();
+                    int index = 0;
                     double dx = 0.0, dy = 0.0, ddx = 0.0, ddy = 0.0;
 
-                    for (uint32 i = 0; i < matchedInd.size(); i++)
+                    for (int i = 0; i < currlines; i++)
                     {
                         if (UNMATCHED_LINE_FLAG == matchedInd[i])
                         {
@@ -2434,13 +2487,91 @@ namespace ns_database
         {
             matchedLane = (SOLID_DASH == lanetype) ? SOLID_DASH : DOUBLE_LANE - 1;
         }
-        if (MAX_SUPPORTED_LANES == numOfLanes)
+        if (TRIPLE_LANE == numOfLanes)
         {
             matchedLane = lanetype;
         }
     }
 
+    void CRoadVecGen2::checkCircleRoad()
+    {
+        _bCircleRoad = true;
 
+        if (!_secLaneConn.empty())
+        {
+            int curSegId = 0, valSum = 0;
+            int numOfSegs = _secLaneConn.size();
+
+            list<vector<int>>::iterator connIt = _secLaneConn.begin();
+            while (connIt != _secLaneConn.end())
+            {
+                valSum = 0;
+
+                if (connIt->size() == _secLaneNum[curSegId])
+                {
+                    for (int i = 0; i < _secLaneNum[curSegId]; i++)
+                    {
+                        valSum += connIt->at(i);
+                    }
+
+                    if (valSum == -1 * _secLaneNum[curSegId])
+                    {
+                        _bCircleRoad = false;
+                        break;
+                    }
+                }
+
+                curSegId++;
+                connIt++;
+            }
+        }
+    }
+
+
+    void CRoadVecGen2::getMatchedLineInd(IN uint32 segId,
+        OUT vector<int> &matchedInd)
+    {
+        matchedInd.clear();
+
+        if (_secLaneConn.empty())
+        {
+            return;
+        }
+
+        int currSegId = 1;
+        int index[MAX_SUPPORTED_LANES + 1] = {UNMATCHED_LINE_FLAG,
+            UNMATCHED_LINE_FLAG, UNMATCHED_LINE_FLAG,
+            UNMATCHED_LINE_FLAG, UNMATCHED_LINE_FLAG};
+        list<vector<int>>::iterator connIt = _secLaneConn.begin();
+        while (connIt != _secLaneConn.end())
+        {
+            if (currSegId == segId)
+            {
+                int numOfLanes = connIt->size();
+                for (int i = 0; i < numOfLanes; i++)
+                {
+                    if (-1 != connIt->at(i))
+                    {
+                        // for connected lane
+                        index[i]     = connIt->at(i) - 1;
+                        index[i + 1] = connIt->at(i);
+                    }
+                }
+
+                break;
+            }
+
+            currSegId++;
+            connIt++;
+        }
+
+        // matched line index for current section
+        int numOfLines = _secLaneNum[segId % _secLaneNum.size()] + 1;
+        for (int i = 0; i < numOfLines; i++)
+        {
+            matchedInd.push_back((UNMATCHED_LINE_FLAG != index[i]) ? index[i] : UNMATCHED_LINE_FLAG);
+        }
+    }
 } // end of namespace ns_database
 
 

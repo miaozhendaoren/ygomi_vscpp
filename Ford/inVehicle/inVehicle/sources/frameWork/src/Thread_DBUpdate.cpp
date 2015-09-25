@@ -105,6 +105,10 @@ RESTART_LABEL:
 				}
 			}
 		}
+
+        // This is the flag to indicate if the PDU is the first PDU of ADD_ALL_FURNITURE
+        bool firstAddAllFurPduFlag = true;
+
 		// process message
         int16 msgType = recvHeader->msgHeader.msgTypeID;
         if( (msgType & 0x1000) == 0x0000)
@@ -166,6 +170,12 @@ RESTART_LABEL:
                                 database_gp->addFurnitureTlv(recvHeader->payload + recvHeader->payloadHeader.pduHeader[pduIdx].pduOffset,pduLen);
                                 break;
                             case ADD_ALL_FURNITURE:
+                                // This type of PDU only carry fur in one section.  So only clear the fur DB before the first PDU.
+                                if(firstAddAllFurPduFlag)
+                                {
+                                    database_gp->resetFurniture();
+                                    firstAddAllFurPduFlag = false;
+                                }
                                 database_gp->addFurnitureListTlv(recvHeader->payload + recvHeader->payloadHeader.pduHeader[pduIdx].pduOffset,pduLen);
                                 break;
                             case ADD_ALL_VECTORLIST:

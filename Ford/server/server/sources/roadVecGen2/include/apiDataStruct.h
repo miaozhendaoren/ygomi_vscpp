@@ -9,8 +9,9 @@
 * @brief data structures definition for merging section lanes with new data.
 *
 * Change Log:
-*      Date                Who             What
-*      2015/08/17       Zhong Ning        Create
+*      Date                Who                 What
+*      2015/08/17       Zhong Ning             Create
+*      2015/09/10       Qian Xu,Shili Wang     Modify
 *******************************************************************************
 */
 
@@ -89,5 +90,27 @@ typedef struct _sectionConfigure
     uint32 uiSecNum;                                  // number of sections
 }sectionCon;
 
+struct samplePoint_t
+{
+	uint32    segId;
+	uint32    startLoc;
+	point3D_t leftLane;
+};
+
+struct sampleSectionBody_t
+{
+	uint32 segId;
+	uint32 startLoc;
+	uint32 endLoc;
+	bool   reverseFlag;
+};
+
+struct sampleSectionOverlap_t
+{
+	uint32 segId;
+	vector<point3D_t> sampleOverlapData;
+	uint32 startLoc;
+	uint32 endLoc;
+};
 
 #endif

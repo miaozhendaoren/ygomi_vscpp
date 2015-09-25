@@ -20,6 +20,7 @@
 
 #include "apiDataStruct.h"
 #include "ExtractSection.h"
+#include "SecRptData.h"
 #include <string>
 
 namespace ns_database
@@ -142,17 +143,19 @@ namespace ns_database
 
     protected:
         CExtractSection               _extractSecObj;
-
+        CSecRptData                   _secRptDataObj;
         std::string                   _configPath;
 
-        sectionCon                    _stSecConfig;
+        bool                          _bCircleRoad;
         uint32                        _curSecId;       // current section ID
         vector<int>                   _secLaneNum;     // number of lanes for section
         vector<int>                   _secBodyStInd;   // section body data start index
         vector<int>                   _secBodyEdInd;   // section body data end index
         vector<double>                _secRotAngle;    // rotation angle for sections
-        list<vector<point3D_t>>       _secLeftData;   // section left line sample data
-        list<vector<point3D_t>>       _secRightData;  // section right line sample data
+        list<vector<point3D_t>>       _secLeftData;    // section left line sample data
+        list<vector<point3D_t>>       _secRightData;   // section right line sample data
+        list<vector<int>>             _secLaneType;    // section lane type
+        list<vector<int>>             _secLaneConn;    // adjacent section connection relationship
 
         list<segAttributes_t>         _segConfigList;  // section configurations
         list<backgroundSectionData>   _bgDatabaseList; // background database
@@ -382,12 +385,34 @@ namespace ns_database
         * @FUNC
         *    Process adjacent section connection data.
         *
-        * @PARAM
+        * @PARAMS
         *    fgData - output line data of foreground database after processing
         *             connection part.
         *
         */
         void jointProcessing(OUT list<list<vector<point3D_t>>> &fgData);
+
+        /*
+        * @FUNC
+        *    Check whether current road is circle based on adjacent section
+        *    connection relationship.
+        *
+        * @PARAMS
+        *    save the value in member _bCircleRoad.
+        *
+        */
+        void checkCircleRoad(void);
+
+        /*
+        * @FUNC
+        *    Matched current section lines with previous section lines.
+        *
+        * @PARAMS
+        *    segId      - previous section Id.
+        *    matchedInd - matched section line index.
+        *
+        */
+        void getMatchedLineInd(IN uint32 segId, OUT vector<int> &matchedInd);
 
     };
 

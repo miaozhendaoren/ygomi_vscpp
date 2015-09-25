@@ -426,8 +426,9 @@ CLEAN_ROADSCAN_BUFFER:
             msgHeaderPtr->msgHeader.msgTypeID = DIFF_RPT_MSG;
             msgHeaderPtr->msgHeader.numPDUs = numRoadGeoPdu + furInfoListUpdateReport.size() + furInfoListAddReport.size();
             msgHeaderPtr->msgHeader.priority = middLevel_e;
-            msgHeaderPtr->msgHeader.vehicleID = g_VehicleID;
-            msgHeaderPtr->msgHeader.headerLen = sizeof(msgHeaderPtr->msgHeader) + msgHeaderPtr->msgHeader.numPDUs * sizeof(msgHeaderPtr->payloadHeader.pduHeader[0]);
+            //msgHeaderPtr->msgHeader.vehicleID = g_VehicleID;
+			msgHeaderPtr->msgHeader.vehicleID = g_NetworkConfig.VehicleID;
+			msgHeaderPtr->msgHeader.headerLen = sizeof(msgHeaderPtr->msgHeader) + msgHeaderPtr->msgHeader.numPDUs * sizeof(msgHeaderPtr->payloadHeader.pduHeader[0]);
 
             // Traffic signs
             int32 payloadSize = 0;

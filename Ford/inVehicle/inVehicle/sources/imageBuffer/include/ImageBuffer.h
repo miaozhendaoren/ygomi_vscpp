@@ -7,15 +7,20 @@
 #include "databaseDef.h"
 #include "configure.h"
 
+using namespace ns_database;
+
+#define MAX_VIDEO_NUM            50
+#define MAX_VIDEO_FILENAME_LEN   100
+
 #if (RD_LOCATION == RD_GERMAN_LEHRE || RD_LOCATION == RD_GERMAN_LEHRE2)
-    #define IMAGE_BUFFER_DEPTH          4000
+    #define IMAGE_BUFFER_DEPTH          400
+#elif (RD_LOCATION == RD_US_DETROIT)
+    #define IMAGE_BUFFER_DEPTH          400
 #else
     #define IMAGE_BUFFER_DEPTH          1500
 #endif
 
 #define IMAGE_BUFFER_NUM            2
-
-using namespace ns_database;
 
 struct imageInfo_t
 {
@@ -25,6 +30,55 @@ struct imageInfo_t
 	float    speed;
 	float    direction;
 };
+
+#if(RD_MODE == RD_VIDEO_LOAD_MODE)
+
+class ImageBuffer
+{
+	public:
+		ImageBuffer();
+		bool getCurrentImage(imageInfo_t *outImage);
+		int  getImageNumber(void);
+		void cleanBuffer(void);
+		bool openReadFiles(void);
+		bool closeReadFiles(void);
+		bool setImageToStart(void);
+		bool setFileName(const char* imageFileName, const char* gpsFileName);
+		bool getImageSize(int& width, int& height);
+
+	private:
+		char saveFileName[2][MAX_VIDEO_FILENAME_LEN];
+		cv::VideoCapture reader;
+		FILE *readFp;
+		int readIdx;
+		int bufferSize;
+		bool ready_flag;
+		bool readFileFlag;
+		point3D_t preGps;
+		int _imageHeight;
+		int _imageWidth;
+};
+
+class ImageBufferAll
+{
+	public:
+		ImageBufferAll();
+		~ImageBufferAll();
+		bool getBuffer(ImageBuffer **buffer);
+        void getImageSize(int& width,int& height);
+		bool addVideoAndGpsName(const char* imageFileName, const char* gpsFileName);
+		void addVideoFinish(void);
+
+	private:
+		ImageBuffer *imageBuffer;
+	    int totalNum;
+		int proIdx;
+		bool readyFlag;
+		char aviNames[MAX_VIDEO_NUM][MAX_VIDEO_FILENAME_LEN];
+		char gpsNames[MAX_VIDEO_NUM][MAX_VIDEO_FILENAME_LEN];
+};
+
+#else
 
 class ImageBuffer
 {
@@ -44,7 +98,7 @@ class ImageBuffer
 
 	private:
 		//imageInfo_t Buffer[IMAGE_BUFFER_DEPTH];
-		char saveFileName[2][100];
+		char saveFileName[2][MAX_VIDEO_FILENAME_LEN];
 		cv::VideoWriter *writer; 
 		cv::VideoCapture reader;
 		FILE *writeFp;
@@ -79,3 +133,5 @@ class ImageBufferAll
         int _imageWidth;
 		HANDLE _hMutex;
 };
+
+#endif

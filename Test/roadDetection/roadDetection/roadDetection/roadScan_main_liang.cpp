@@ -29,7 +29,7 @@ int main(void)
 {
 	Parameters inParam;
 	//DE_Airport2--US_Detroit
-	bool readStatus = readParamRoadScan("../../../../Ford/inVehicle/inVehicle/config/DE_Lehre2.txt", inParam);
+	bool readStatus = readParamRoadScan("../../../../Ford/inVehicle/inVehicle/config/US_Detroit.txt", inParam);
 
 	// Calculate H and H inverse for road scan and traffic sign detection
 	ns_roadScan::calHAndInvertH(inParam, H, invertH);
@@ -40,7 +40,7 @@ int main(void)
 		return -1;
 	}
 
-	int ChooseVideo = VW2;
+	int ChooseVideo = Ford;
 	int videoIndex = 0;
 
 	int locNum[2], holeNum[2];

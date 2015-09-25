@@ -32,6 +32,7 @@ void storeLaneInfoInBuffer(uint8* tlvBuff,int bufferLen);
 bool processLaneBuffer();
 void calcMsgPduHeaderLen(messageProcessClass *msgIn,uint32 *pduHeaderLen);
 bool checkLineFusionCondition(queue<laneType_t> *laneQueuePtr);
+bool prepareAllDataToVehicle(IN messageProcessClass &sendMsg);
 
 extern uint8 *test;
 
@@ -124,12 +125,14 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
                                         database_gp->saveFurToFile("log/furnitureSave.bin");
 									}else if(2 == value) //load
 									{
+                                        // Load pre-stored data
                                         database_gp->loadRoadVecFromFile("log/roadVec.bin");
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
                                         roadVecGen2_gp->loadDefaultSegData(11, "log/section11.txt");// 11: empty section ID
 #endif
                                         database_gp->loadFurFromFile("log/furniture.bin");
 
+                                        // Update front ground DB
                                         list<list<vector<point3D_t>>> fgData;
                                         bool flag = roadVecGen2_gp->roadSectionsGen(fgData);
                                         if (flag == true)
@@ -138,7 +141,13 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
                                             database_gp->resetAllVectors(fgData, lineAttr);
                                         }
 
-                                        ReleaseSemaphore(g_readySema_Redraw,1,NULL);
+                                        // Prepare messages to sync to vehicle
+                                        if(prepareAllDataToVehicle(sendMsg))
+                                        {
+                                            // Semaphores
+                                            ReleaseSemaphore(g_readySema_readDb,1,NULL);
+                                            ReleaseSemaphore(g_readySema_Redraw,1,NULL);
+                                        }
 									}
 									
 								break;
@@ -198,81 +207,10 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 									int16 version = database_gp->getFurnitureVersion();
 									if(value != version)
 									{
-                                        int32 totalBufLen = MAX_PAYLOAD_BYTE_NUM + MAX_ROAD_POINT_BYTES;
-                                        uint8 *payloadFromDb = new uint8[totalBufLen];
-                                        if(payloadFromDb == NULL)
+                                        if(prepareAllDataToVehicle(sendMsg))
                                         {
-                                            break;
+										    ReleaseSemaphore(g_readySema_readDb,1,NULL);
                                         }
-
-                                        uint8 *outBuffPtr = payloadFromDb;
-                                        int32 outBuffOffset = 0;
-                                        int32 outPduIdx = 0;
-
-										// Get updated road vector from database
-										uint8* bufferAddr = outBuffPtr;
-										int32 outBuffLen;
-										database_gp->getAllVectorsTlv(  memory_e, 
-																		(void**)&bufferAddr, 
-																		&outBuffLen);
-
-										if (outBuffLen > MAX_ROAD_POINT_BYTES)
-										{
-											logPrintf(logLevelCrit_e, "DBAccess", "Buffer overflow!", FOREGROUND_RED);
-										}
-
-										updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
-										updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = vectorList_e;
-										updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
-
-										outBuffPtr += outBuffLen;
-										outBuffOffset += outBuffLen;
-
-										++outPduIdx;
-                                        
-										// Convert all furniture to TLVs
-										int32 segNumOfFur;
-										database_gp->getSegNumOfFurniture(&segNumOfFur);
-
-										for(int segIndex = 0; segIndex < segNumOfFur; ++segIndex)
-										{
-											uint8* bufferAddr = outBuffPtr;
-											int32 furMsgLen;
-											int32 furNum;
-											int segId;
-											int getFlag = database_gp->getSegIdInFurList(segIndex, &segId);
-
-											if(0 != getFlag)
-											{
-												database_gp->getFurnitureTlvInSeg(segId,
-																				  totalBufLen - outBuffOffset,
-																				  bufferAddr, 
-																				  &furMsgLen, 
-																				  &furNum);
-
-												if(furNum > 0)
-												{
-													updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
-													updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureList_e;
-													updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
-
-													outBuffPtr += furMsgLen;
-													outBuffOffset += furMsgLen;
-													++outPduIdx;
-												}
-											}
-										}
-
-										int numPDUs = outPduIdx;
-
-										updateMsgPtr->msgHeader.numPDUs = numPDUs;
-										updateMsgPtr->msgHeader.headerLen = sizeof(updateMsgPtr->msgHeader) + numPDUs*sizeof(updateMsgPtr->payloadHeader.pduHeader[0]);
-										updateMsgPtr->msgHeader.msgTypeID = UPDATE_REQ_MSG;
-										updateMsgPtr->msgHeader.priority = highLevel_e;
-										updateMsgPtr->msgHeader.payloadLen = outBuffOffset;
-										updateMsgPtr->payload = payloadFromDb;
-										databaseQueue_gp->push(&sendMsg);
-										ReleaseSemaphore(g_readySema_readDb,1,NULL);
 									}
 								}
 								break;  
@@ -550,4 +488,87 @@ bool processLaneBuffer()
 bool checkLineFusionCondition(queue<laneType_t> *laneQueuePtr)
 {
 	return ((laneQueuePtr != NULL) && (laneQueuePtr->size() >= 0 ));//MAX_GPS_NUM_PER_LANE
+}
+
+bool prepareAllDataToVehicle(IN messageProcessClass &sendMsg)
+{
+    diffRptMsg_t* updateMsgPtr = sendMsg.getUpdateRptMsg();
+
+    int32 totalBufLen = MAX_PAYLOAD_BYTE_NUM + MAX_ROAD_POINT_BYTES;
+    uint8 *payloadFromDb = new uint8[totalBufLen];
+    if(payloadFromDb == NULL)
+    {
+        return false;
+    }
+
+    uint8 *outBuffPtr = payloadFromDb;
+    int32 outBuffOffset = 0;
+    int32 outPduIdx = 0;
+
+    // Get updated road vector from database
+    uint8* bufferAddr = outBuffPtr;
+    int32 outBuffLen;
+    database_gp->getAllVectorsTlv(  memory_e, 
+								    (void**)&bufferAddr, 
+								    &outBuffLen);
+
+    if (outBuffLen > MAX_ROAD_POINT_BYTES)
+    {
+	    logPrintf(logLevelCrit_e, "DBAccess", "Buffer overflow!", FOREGROUND_RED);
+        return false;
+    }
+
+    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
+    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = vectorList_e;
+    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
+
+    outBuffPtr += outBuffLen;
+    outBuffOffset += outBuffLen;
+
+    ++outPduIdx;
+                                        
+    // Convert all furniture to TLVs
+    int32 segNumOfFur;
+    database_gp->getSegNumOfFurniture(&segNumOfFur);
+
+    for(int segIndex = 0; segIndex < segNumOfFur; ++segIndex)
+    {
+	    uint8* bufferAddr = outBuffPtr;
+	    int32 furMsgLen;
+	    int32 furNum;
+	    int segId;
+	    int getFlag = database_gp->getSegIdInFurList(segIndex, &segId);
+
+	    if(0 != getFlag)
+	    {
+		    database_gp->getFurnitureTlvInSeg(segId,
+											    totalBufLen - outBuffOffset,
+											    bufferAddr, 
+											    &furMsgLen, 
+											    &furNum);
+
+		    if(furNum > 0)
+		    {
+			    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
+			    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureList_e;
+			    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
+
+			    outBuffPtr += furMsgLen;
+			    outBuffOffset += furMsgLen;
+			    ++outPduIdx;
+		    }
+	    }
+    }
+
+    int numPDUs = outPduIdx;
+
+    updateMsgPtr->msgHeader.numPDUs = numPDUs;
+    updateMsgPtr->msgHeader.headerLen = sizeof(updateMsgPtr->msgHeader) + numPDUs*sizeof(updateMsgPtr->payloadHeader.pduHeader[0]);
+    updateMsgPtr->msgHeader.msgTypeID = UPDATE_REQ_MSG;
+    updateMsgPtr->msgHeader.priority = highLevel_e;
+    updateMsgPtr->msgHeader.payloadLen = outBuffOffset;
+    updateMsgPtr->payload = payloadFromDb;
+    databaseQueue_gp->push(&sendMsg);
+
+    return true;
 }
