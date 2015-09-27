@@ -170,6 +170,11 @@ void showImage(list<vector<point3D_t>> dataInput, Scalar scalar, string winname)
     int height = (int)(maxY - minY) + 100;
     Mat outputImage(height, width, CV_8UC3, Scalar(255, 255, 255));
 
+    int B[2] = {0, 0};
+    int G[2] = {255, 0};
+    int R[2] = {0, 255};
+    int colorInd = 0;
+
     // iterate each line again to paint line points
     Point curr;
     lineItor = dataInput.begin();
@@ -183,10 +188,11 @@ void showImage(list<vector<point3D_t>> dataInput, Scalar scalar, string winname)
             {
                 curr.x = (int)(lineItor->at(i).lon - minX) + 50;
                 curr.y = (int)(height - (lineItor->at(i).lat - minY)) - 50;
-                circle(outputImage, curr, 0, scalar, 1);
+                circle(outputImage, curr, 0, Scalar(B[colorInd], G[colorInd], R[colorInd]), 1);
             }
         }
 
+        colorInd++;
         lineItor++;
     }
 

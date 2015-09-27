@@ -83,9 +83,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\Ford\server\server\sources\roadVecGen2\src\polynomialFit.cpp" />
+    <ClCompile Include="..\..\..\Ford\server\server\sources\roadVecGen2\src\RoadVecGen2.cpp" />
     <ClCompile Include="..\..\..\Ford\server\server\sources\roadVecGen2\src\SecRptData.cpp" />
     <ClCompile Include="..\..\..\Ford\server\server\sources\roadVecGen2\src\VisualizationApis.cpp" />
+    <ClCompile Include="FeatureExtract.cpp" />
     <ClCompile Include="lineTypeSVM_main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FeatureExtract.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

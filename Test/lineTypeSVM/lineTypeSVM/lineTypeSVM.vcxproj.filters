@@ -24,5 +24,19 @@
     <ClCompile Include="..\..\..\Ford\server\server\sources\roadVecGen2\src\VisualizationApis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FeatureExtract.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Ford\server\server\sources\roadVecGen2\src\RoadVecGen2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Ford\server\server\sources\roadVecGen2\src\polynomialFit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FeatureExtract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
