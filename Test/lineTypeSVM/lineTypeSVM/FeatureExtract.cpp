@@ -26,7 +26,7 @@ const int FEATURE_VEC_ITEMS = 100;
 
 static int section_num = 0;
 
-const int SAVE_DATA = 0;
+#define SAVE_DATA          1
 
 CFeatureExtract::CFeatureExtract(void)
 {
@@ -149,6 +149,12 @@ void CFeatureExtract::extractLineFeature(IN uint32 &segId,
     }
     int numOfSplPnts = leftSample->size();
 
+    // reset Y and paint for sample vector
+    for (int i = 0; i < numOfSplPnts; i++)
+    {
+        leftSample->at(i).paintFlag  = 0.0;
+    }
+
     // rotate the input two lines first
     vector<point3D_t> leftRotated, leftRotatedValid;
     vector<point3D_t> rightRotated, rightRotatedValid;
@@ -160,14 +166,21 @@ void CFeatureExtract::extractLineFeature(IN uint32 &segId,
     // get paint information for re-sample lines
     getLinePaintInfo(leftRotated, *leftSample);
 
-    list<vector<point3D_t>> lane;
-    lane.push_back(*leftSample);
-
 #if SAVE_DATA
     char filename[_MAX_PATH];
+
+    list<vector<point3D_t>> lane;
+    lane.push_back(*leftSample);
     sprintf_s(filename, _MAX_PATH - 1, "section_data_%d_%d.txt",
+        segId, section_num);
+    saveListVec(lane, filename);
+
+    lane.clear();
+    lane.push_back(leftRotated);
+    sprintf_s(filename, _MAX_PATH - 1, "section_data_%d_%d_rotated.txt",
         segId, section_num++);
     saveListVec(lane, filename);
+
 #endif
 
     // down sample to specified vector elements number
