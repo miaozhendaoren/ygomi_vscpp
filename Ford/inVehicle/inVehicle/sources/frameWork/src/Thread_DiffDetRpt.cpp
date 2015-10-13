@@ -150,7 +150,6 @@ void smoothLaneId(INOUT vector<int> &lineIdxVec)
     }
 }
 
-//#define TRAFFIC_SIGN_TEST 1
 #ifdef TRAFFIC_SIGN_TEST
 FILE *fd;
 #endif
@@ -164,13 +163,7 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
     vector<dataEveryRow> roadPaintData;
     vector<gpsInformationAndInterval> GPSAndInterval;
     gpsInformationAndInterval gpsAndInterval;
-#ifdef TRAFFIC_SIGN_TEST
-    fd = fopen("D:/Newco/airport_Code/Demo/Ford/inVehicle/Release/gpsInfo.txt","a");
-	if (fd == NULL)
-	{
-		cout<< "open file failed!" << endl;
-	}
-#endif
+
     while(1)
     {
         ImageBuffer *buffer;
@@ -320,17 +313,26 @@ CLEAN_ROADSCAN_BUFFER:
         list<furAttributesInVehicle_t> furInfoListAddReport;
         list<furAttributesInVehicle_t> furInfoListUpdateReport;
 #if(RD_SIGN_DETECT != RD_SIGN_DETECT_OFF)
+
+#ifdef TRAFFIC_SIGN_TEST
+        fd = fopen("gpsInfo.txt","a");
+        if (fd == NULL)
+        {
+            cout<< "open file failed!" << endl;
+        }
+#endif
+
 		buffer->setImageToStart();
         {
             imageInfo_t image;
 
             list<statisticsFurInfo_t> furnListInBuff;
 
-            for(int index = 0; index < number; index+= 2) // +=2: skip one frame and process one frame
+            for(int index = 0; index < number; index += 1) // +=2: skip one frame and process one frame
             {
                 ns_detection::TS_Structure detectedTrafficSign;
 
-                buffer->getCurrentImage(&image); // skip one frame and process one frame
+                //buffer->getCurrentImage(&image); // skip one frame and process one frame
                 buffer->getCurrentImage(&image);
 
                 trafficSignDetector->trafficSignDetect(image.image, detectedTrafficSign); // detect traffic signs
@@ -355,7 +357,9 @@ CLEAN_ROADSCAN_BUFFER:
 
                         trafficSignDetector->positionMeasure(inParam, GPS_abs, GPS_next, image.image, detectedTrafficSign);
                         convertImageToFurniture(image.image.size(), detectedTrafficSign,&image.gpsInfo,&image.gpsInfoPre,&refGps,&furInfoListInDet);
+
 #ifdef TRAFFIC_SIGN_TEST
+
                         list<furWithPosition_t>::iterator testIdx = furInfoListInDet.begin();
 
                         while(testIdx != furInfoListInDet.end())
@@ -399,7 +403,12 @@ CLEAN_ROADSCAN_BUFFER:
                 }
             }
         }
+
+#ifdef TRAFFIC_SIGN_TEST
+        fclose(fd);
 #endif
+
+#endif//(RD_SIGN_DETECT != RD_SIGN_DETECT_OFF)
 
         // Generate message
         {
@@ -426,9 +435,8 @@ CLEAN_ROADSCAN_BUFFER:
             msgHeaderPtr->msgHeader.msgTypeID = DIFF_RPT_MSG;
             msgHeaderPtr->msgHeader.numPDUs = numRoadGeoPdu + furInfoListUpdateReport.size() + furInfoListAddReport.size();
             msgHeaderPtr->msgHeader.priority = middLevel_e;
-            //msgHeaderPtr->msgHeader.vehicleID = g_VehicleID;
-			msgHeaderPtr->msgHeader.vehicleID = g_NetworkConfig.VehicleID;
-			msgHeaderPtr->msgHeader.headerLen = sizeof(msgHeaderPtr->msgHeader) + msgHeaderPtr->msgHeader.numPDUs * sizeof(msgHeaderPtr->payloadHeader.pduHeader[0]);
+            msgHeaderPtr->msgHeader.vehicleID = g_VehicleID;
+            msgHeaderPtr->msgHeader.headerLen = sizeof(msgHeaderPtr->msgHeader) + msgHeaderPtr->msgHeader.numPDUs * sizeof(msgHeaderPtr->payloadHeader.pduHeader[0]);
 
             // Traffic signs
             int32 payloadSize = 0;
@@ -544,9 +552,7 @@ CLEAN_ROADSCAN_BUFFER:
         }
         //ReleaseSemaphore(g_readySema_DiffDet, 1 ,NULL);
     }//end while(1)
-#ifdef TRAFFIC_SIGN_TEST
-    fclose(fd);
-#endif
+
     return 0;
 }
 

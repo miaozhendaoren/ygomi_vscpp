@@ -53,14 +53,14 @@ bool readSectionConfig(string configPath,list<segAttributes_t> &segCfgList)
         return false;
 	}
 
-	fscanf(fp,"%*[^\n]%*c");
-	fscanf(fp,"%*[^\n]%*c");
-
 	while (!feof(fp))
 	{
-		fscanf_s(fp, "%d,%d\n", &sectionID, &laneNum);
+		fscanf_s(fp, "segId: %d,laneNum: %d\n", &sectionID, &laneNum);
 		segmentElement.segId_used = 1;
 		segmentElement.segId      = sectionID;
+
+	    fscanf(fp,"%*[^\n]%*c");
+	    fscanf(fp,"%*[^\n]%*c");
 
 		fscanf_s(fp, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,\n",
 			&segmentElement.ports[0].lon, &segmentElement.ports[0].lat,

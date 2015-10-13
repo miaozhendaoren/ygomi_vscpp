@@ -60,9 +60,9 @@ const int MAX_NUM_SIGN_PER_IMG = 6;
 const float MIN_DISTANCE = 400.0;
 //const int START_ROW = 0;
 //const int END_ROW = 1800;
-const float THESHOLD = 0.5;//0.35
+const float THESHOLD = 0.1;//0.35
 
-struct laneMarkerInfo
+struct landMarkInfo
 {
 	int    lineType;			// solid : 0 , dash : 1
 	double orientation;			// Direction: angle
@@ -82,8 +82,8 @@ struct pavementInfo
 struct laneInfo
 {
 	Point  XYBLOCK;
-	struct laneMarkerInfo leftLaneMarker;
-	struct laneMarkerInfo rightLaneMarker;
+	struct landMarkInfo leftlandMark;
+	struct landMarkInfo rightlandMark;
 	struct pavementInfo pavement;
 };
 
@@ -174,6 +174,8 @@ struct Parameters
 	int imageCols;
 
     bool discardRoadDataAfterLaneChange;
+
+    float offsetDist;
 };
 
 struct SLineInfo
@@ -194,7 +196,7 @@ struct PairPoints
 	int srcindex;
 };
 
-struct laneMarker
+struct landMark
 {
 	vector<Point> boundary;
 	vector<Point2d> boudaryRel;

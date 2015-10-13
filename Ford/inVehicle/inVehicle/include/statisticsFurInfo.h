@@ -51,9 +51,9 @@ struct deleteFurInfo_t
 };
 
  const double MIN_DIST = 9e+100;
- const int VAR_ACC_TIME = 1;
+ const int VAR_ACC_TIME = 4;
  const bool VAR_ALG = 0;
  const double DIST_METER = 50;
  const double PARALLEL_LINE_DEGREE = 1.0;
- const double DIST_THREHOLD = 20.0;
+ const double DIST_THREHOLD = 25.0;
 }

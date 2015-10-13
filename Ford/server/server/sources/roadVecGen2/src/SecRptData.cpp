@@ -392,20 +392,12 @@ namespace ns_database
 		int startRow = 0;
 		int endRow = 0;
 
+        // iterate all sections to get reported section data
 		for(int sectionIndex = 1;sectionIndex <= secConfigList.size();sectionIndex++)
 		{
 			reportSectionData middleData;
-			list<vector<point3D_t>> mutiSecLeftLanesData,mutiSecRightLanesData;
 
-			if(!middleData.rptSecData.empty())
-			{
-				middleData.rptSecData.clear();
-			}
-			if(!mutiSecLeftLanesData.empty() || !mutiSecRightLanesData.empty())
-			{
-				mutiSecLeftLanesData.clear();
-				mutiSecRightLanesData.clear();
-			}
+            // for section containing valid data, iterate each group
 			for(int dataIndex = 0;dataIndex < isValidData.size();dataIndex++)
 			{
 
@@ -417,6 +409,8 @@ namespace ns_database
 
 				for(int index = 0;index< (*videoNumItor).size();index++)
 				{
+                    rptSecData_t rptSeg;
+
 					vector<point3D_t> aSecLeftLaneData,aSecRightLaneData;  //segID left or right lane data
 					if((*videoNumItor)[index].segId == sectionIndex)
 					{
@@ -448,6 +442,8 @@ namespace ns_database
 							reverse(aSecLeftLaneData.begin(),aSecLeftLaneData.end());
 							reverse(aSecRightLaneData.begin(),aSecRightLaneData.end());
 						}*/
+
+                        // reverse data if reported direction is not the same as configuration
 						if ((*videoNumItor)[index].reverseFlag == TRUE )
 						{
 							vector<point3D_t> tempaSecLaneData;
@@ -461,6 +457,7 @@ namespace ns_database
 						vector<point3D_t> ::iterator aSecLeftLaneItor;
 						vector<point3D_t> ::iterator aSecRightLaneItor = aSecRightLaneData.begin();
 
+                        // remove lane change points
 						for(aSecLeftLaneItor = aSecLeftLaneData.begin();aSecLeftLaneItor!= aSecLeftLaneData.end();)
 						{
 							if((*aSecLeftLaneItor).paintFlag == 2 || (*aSecRightLaneItor).paintFlag == 2)
@@ -475,38 +472,17 @@ namespace ns_database
 							}
 						}
 
-						mutiSecLeftLanesData.push_back(aSecLeftLaneData);
-						mutiSecRightLanesData.push_back(aSecRightLaneData);
+                        rptSeg.revDirFlag = (*videoNumItor)[index].reverseFlag;
+                        rptSeg.rptLaneData.push_back(aSecLeftLaneData);
+                        rptSeg.rptLaneData.push_back(aSecRightLaneData);
+
+                        middleData.sectionId = sectionIndex;
+                        middleData.rptSecData.push_back(rptSeg);
 					}
 				}
 			}
-			if (!mutiSecLeftLanesData.empty() && !mutiSecRightLanesData.empty())
-			{
-				list<vector<point3D_t>> ::iterator mutiSecLeftItor = mutiSecLeftLanesData.begin();
-				list<vector<point3D_t>> ::iterator mutiSecRightItor = mutiSecRightLanesData.begin();
-				list<list<list<vector<point3D_t>>>> mutiVideoLanesData;
-				if(!mutiVideoLanesData.empty())
-				{
-					mutiVideoLanesData.clear();
-				}
-				while(mutiSecLeftItor != mutiSecLeftLanesData.end())
-				{
-					list<list<vector<point3D_t>>> aVideoLanesData;////segID all lane data 
-					list<vector<point3D_t>> lanesData;
 
-					lanesData.push_back((*mutiSecLeftItor));
-					lanesData.push_back((*mutiSecRightItor));
-
-					aVideoLanesData.push_back((lanesData));
-
-					mutiVideoLanesData.push_back(aVideoLanesData);
-					mutiSecLeftItor++;
-					mutiSecRightItor++;
-				}
-				middleData.sectionId = sectionIndex;
-				middleData.rptSecData = mutiVideoLanesData;
-				middleData.revDirFlag = true;
-			}
+            // construct output section data
 			if (!middleData.rptSecData.empty())
 			{
 				secData.push_back(middleData);

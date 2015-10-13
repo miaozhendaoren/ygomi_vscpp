@@ -748,7 +748,7 @@ int Detector_blackWhite::searchRegularPolygon(Mat &src,Mat &dxImg, Mat &dyImg,ve
                         /*sprintf_s( currFileName, 1000, "D:/Newco/testImage0620/rectangle/square/%06d.png",squareID++);
                         imwrite(currFileName,src(roi));*/
                     }
-                    if(type != 0)
+                    if((type != 0) && (type != 2) && (type != 3) && (type != 4))
                     {
                         TS_Structure::TS_element detectSign;
                         detectSign.type = type;

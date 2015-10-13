@@ -9,240 +9,269 @@
 #include <iomanip>
 #include <fstream>
 
+#define VW      0
+#define Ford    1
+#define Honda   2
+#define England 3
+#define Other   4
+#define Honda2  5
+#define Airport  6
+#define Airport2  7
+
 using namespace std;
 using namespace cv;
+using namespace ns_roadScan;
+cv::Mat H, invertH;
 
-//#define IMAGE_SENSOR_WIDTH 640
+// function header definitions
+void usage(int argc, char* argv[]);
 
-int main(void)
+int main(int argc, char* argv[])
 {
-	Parameters inParam;
-	bool readStatus = readParamRoadScan("../../../../Ford/inVehicle/inVehicle/config/US.txt", inParam);
+    // input parameters check
+    if (6 > argc)
+    {
+        usage(argc, argv);
+        return -1;
+    }
 
-	if(!readStatus)
-	{
-		cout<<"read parameters error"<<endl;
-		return -1;
-	}
-
-	int videoIndex = 0;
-
-	int locNum[2], holeNum[2];
-
-	//for(int kk = 0; kk<5; kk++)	//England
-	//for(int kk = 0; kk<4; kk++)	//US
-	{
-		VideoCapture capture;
-		FILE* gpsFile;
-
-#if 0
-		if (videoIndex%5 == 0)
-		{
-			MAP = Mat::zeros(600, 1000, CV_8UC3);
-			capture.open("F:/roadDB/traffic signs recognition/our data/cam_20150713105036.mp4");
-			gpsFile = fopen("F:/roadDB/traffic signs recognition/our data/list_20150713105036.txt","r");
-			capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-		}
-		else if (videoIndex%5 == 1)
-		{
-			capture.open("F:/roadDB/traffic signs recognition/our data/cam_20150713104153.mp4");
-			gpsFile = fopen("F:/roadDB/traffic signs recognition/our data/list_20150713104153.txt","r");
-			capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-		}
-		else if (videoIndex%5 == 2)
-		{
-			capture.open("F:/roadDB/traffic signs recognition/our data/cam_20150713103609.mp4");
-			gpsFile = fopen("F:/roadDB/traffic signs recognition/our data/list_20150713103609.txt","r");
-			capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-		}
-		else if (videoIndex%5 == 3)
-		{
-			capture.open("F:/roadDB/traffic signs recognition/our data/cam_20150713103327.mp4");
-			gpsFile = fopen("F:/roadDB/traffic signs recognition/our data/list_20150713103327.txt","r");
-			capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-		}
-		else if (videoIndex%5 == 4)
-		{
-			capture.open("F:/roadDB/traffic signs recognition/our data/cam_20150713102750.mp4");
-			gpsFile = fopen("F:/roadDB/traffic signs recognition/our data/list_20150713102750.txt","r");
-			capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-		}
-#else
-
-		if (videoIndex%4 == 0)
-		{
-			//MAP = Mat::zeros(600, 1000, CV_8UC3);
-			capture.open("F:/roadDB/Ford/NewcoData/MKS360_20130722_003_Uncompressed.avi");
-			gpsFile = fopen("F:/roadDB/Ford/NewcoData/gps_003.txt","r");
-			capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-
-
-		}
-		else if (videoIndex%4 == 1)
-		{
-			capture.open("F:/roadDB/Ford/NewcoData/MKS360_20130722_004_Uncompressed.avi");
-			gpsFile = fopen("F:/roadDB/Ford/NewcoData/gps_004.txt","r");
-			capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-		}
-		else if (videoIndex%4 == 2)
-		{
-			capture.open("F:/roadDB/Ford/NewcoData/MKS360_20130722_005_Uncompressed.avi");
-			gpsFile = fopen("F:/roadDB/Ford/NewcoData/gps_005.txt","r");
-			capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-		}
-		else if (videoIndex%4 == 3)
-		{
-			capture.open("F:/roadDB/Ford/NewcoData/MKS360_20130722_006_Uncompressed.avi");
-			gpsFile = fopen("F:/roadDB/Ford/NewcoData/gps_006.txt","r");
-			capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-		}
-
-#endif
-		int number_of_frames = capture.get(CV_CAP_PROP_POS_FRAMES);
-
-		if ( !capture.isOpened() )  // if not success, exit program
-		{
-			cout<<"error" <<endl;
-			return -1;
-		}
-		else
-		{
-			capture.set(CV_CAP_PROP_POS_AVI_RATIO, 0);
-			double fps = capture.get(CV_CAP_PROP_FPS); //get the frames per seconds of the video	
-		}
-
-		////////////////////////////////////////////////////////////////////////////
-		//Step1:  Kalman initialization	
-	
-		//ofstream widthAndGPS(txtname);
-		Size S = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH), (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));	
-
-		if(S.width!=640)
-		{
-			//S.height = 400;
-			//S.width = 640;
-
-			S.height *= 0.5;
-			S.width *= 0.5;
-		}
-        
-        vector<dataEveryRow> roadPaintData;
-	    vector<gpsInformationAndInterval> GPSAndInterval;
-        
-		////////////////////////////////////////////////////////////////////////////
-		Mat history = Mat::zeros(S.height *HH*SCALE,S.width, CV_8UC1);
-
-		Point2d *GPS_Points;
-		//GPS_Points = new Point2d [S.height *HH*SCALE];
-		
-		int rowIndex = 0;
-		int IntervalTmp = 0;
-		int Interval = 0;
-		int GPStmp = 0;
-
-		Point2d GPS_abs, GPS_ref, GPS_next;
-		//ref = Point2d(initialPointOfGPS[0], initialPointOfGPS[1]);
-
-		if(!feof(gpsFile))
-		{
-			fscanf(gpsFile,"%lf,%lf\n",&GPS_abs.x,&GPS_abs.y);
-		}
-
-		Point curr = Point(0,0);
-		Point last = Point(0,0);
-        
-        gpsInformationAndInterval gpsAndInterval;
-		Mat image;
-		int intrtmp=0;
-
-		//capture.set(CV_CAP_PROP_POS_FRAMES, 2000);
-
-		for(int index = 0; index < 200; index++)//number_of_frames
+    // parse input parameters
+    int parsedArgc = 0;
+    char videoListFilename[_MAX_PATH];
+    char gpsListFilename[_MAX_PATH];
+    char cfgFilename[_MAX_PATH];
+    while (parsedArgc < argc)
+    {
+        if (0 == strcmp(argv[parsedArgc], "-v"))
         {
-			capture >> image;
-            if(!feof(gpsFile))
-			{
-				fscanf(gpsFile,"%lf,%lf\n",&GPS_next.x,&GPS_next.y);
-			}
-
-        	//Method 2:
-        	roadImageGen(image, history, &rowIndex, &GPS_abs, &GPS_next, &gpsAndInterval, &intrtmp, inParam);
-			if (gpsAndInterval.intervalOfInterception)
-			{
-				 GPSAndInterval.push_back(gpsAndInterval);
-			}
-          
-            GPS_abs = GPS_next;
+            strcpy_s(videoListFilename, _MAX_PATH, argv[++parsedArgc]);
+            ++parsedArgc;
         }
-        
+        else if (0 == strcmp(argv[parsedArgc], "-g"))
+        {
+            strcpy_s(gpsListFilename, _MAX_PATH, argv[++parsedArgc]);
+            ++parsedArgc;
+        }
+        else
+        {
+            ++parsedArgc;
+        }
+    }
+
+    Parameters inParam;
+    bool bStatus = readParamRoadScan("../../../../Ford/inVehicle/inVehicle/config/US_Palo_Alto.txt", inParam);
+
+    // Calculate H and H inverse for road scan and traffic sign detection
+    ns_roadScan::calHAndInvertH(inParam, H, invertH);
+
+    // open video list and gps list file to check file path
+    FILE* videoListFile = NULL;
+    FILE* gpsListFile   = NULL;
+
+    errno_t err = fopen_s(&videoListFile, videoListFilename, "r");
+    if (0 != err)
+    {
+        printf("Failed to open video list file %s\n", videoListFilename);
+        return -1;
+    }
+
+    err = fopen_s(&gpsListFile, gpsListFilename, "r");
+    if (0 != err)
+    {
+        printf("Failed to open video list file %s\n", gpsListFilename);
+        return -1;
+    }
+
+    char videoFileName[_MAX_PATH];
+    char gpsFileName[_MAX_PATH];
+
+    int videoIndex = 0;
+
+    VideoCapture capture;
+    FILE* gpsFile = NULL;
+
+    // iterate to get each video and gps file
+    while (!feof(videoListFile) && !feof(gpsListFile))
+    {
+        fscanf_s(videoListFile, "%s\n", videoFileName,  _countof(videoFileName));
+        fscanf_s(gpsListFile, "%s\n", gpsFileName,  _countof(gpsFileName));
+
+        capture.open(videoFileName);
+        capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+
+        err = fopen_s(&gpsFile, gpsFileName, "r");
+        if (0 != err)
+        {
+            printf("Failed to open video list file %s\n", gpsFileName);
+            return -1;
+        }
+        else
+        {
+            printf("Opened gps file %s\n", gpsFileName);
+        }
+
+        int number_of_frames = (int)(capture.get(CV_CAP_PROP_POS_FRAMES));
+
+        // if not success, exit program
+        if (!capture.isOpened())
+        {
+            printf("Failed to open video file %s\n", videoFileName);
+            return -1;
+        }
+        else
+        {
+            capture.set(CV_CAP_PROP_POS_AVI_RATIO, 0);
+
+            // get the frames per seconds of the video
+            double fps = capture.get(CV_CAP_PROP_FPS);
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // Step1: Kalman initialization
+
+        Size S = Size((int)capture.get(CV_CAP_PROP_FRAME_WIDTH),
+            (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+        S.height = static_cast<int>(S.height * inParam.imageScaleHeight);
+        S.width  = static_cast<int>(S.width * inParam.imageScaleWidth);
+
+        vector<dataEveryRow> roadPaintData;
+        vector<dataEveryRow> roadPaintDataALL;
+
+        gpsInformationAndInterval gpsAndInterval;
+        vector<gpsInformationAndInterval> GPSAndInterval;
+
+        ////////////////////////////////////////////////////////////////////////
+        Mat history = Mat::zeros(S.height * HH * SCALE, S.width, CV_8UC1);
+
+        Mat image;
+        int rowIndex = 0;
+        int intrTmp = 0;
+        int frames = 350;
+
+        Point2d gps_next;
+        vector<Point2d> gps_points;
+
+        while (!feof(gpsFile))
+        {
+            fscanf_s(gpsFile, "%lf,%lf\n", &gps_next.x, &gps_next.y);
+            gps_points.push_back(gps_next);
+        }
         fclose(gpsFile);
 
-		if(!GPSAndInterval.empty())
-		{
-			rowIndex -= GPSAndInterval[GPSAndInterval.size()-1].intervalOfInterception;
-		}
+        int numOfGps = gps_points.size();
 
-		Mat historyROI = history(Rect(0,rowIndex,history.cols,history.rows-rowIndex));
+        for (int i = 0; i < 150; i++)
+        {
+            if ((i * frames + 1) > number_of_frames)
+            {
+                break;
+            }
 
-		imwrite("historyroi.png",historyROI);
-		//roadImageProc2("road_time0.png");
-		
-		roadImageProc2(historyROI, GPSAndInterval, roadPaintData, inParam);
-    
-		int H = historyROI.rows;
-		
-		//ofstream outFile0("GPS_0.txt");
-		//ofstream outFile1("GPS_1.txt");
-		//ofstream outFile2("GPS_2.txt");
-		//for(int i = 0; i<roadPaintData.size(); i++)
-		//{
-		//	//double distance = sqrt(pow(roadPaintData[i].leftGPS.x-roadPaintData[i].rightGPS.x,2.0)+pow(roadPaintData[i].leftGPS.y-roadPaintData[i].rightGPS.y,2.0));
-		//	outFile0<<setprecision(20)<<roadPaintData[i].Left_Middle_RelGPS.x<<" "<<roadPaintData[i].Left_Middle_RelGPS.y<<" "<<roadPaintData[i].Right_Middle_RelGPS.x<<" "<<roadPaintData[i].Right_Middle_RelGPS.y<<
-		//		" "<<roadPaintData[i].isPaint_Left<<" "<<roadPaintData[i].isPaint_Right<<endl;
+            capture.set(CV_CAP_PROP_POS_FRAMES, i * frames + 1);
+            for (int index = 0; index < frames; index++)
+            {
+                capture >> image;
 
-		//	outFile1<<setprecision(20)<<roadPaintData[i].Left_Paint_Edge[0].x<<" "<<roadPaintData[i].Left_Paint_Edge[0].y<<" "<<roadPaintData[i].Left_Paint_Edge[1].x<<" "<<roadPaintData[i].Left_Paint_Edge[1].y<<
-		//		" "<<roadPaintData[i].isPaint_Left<<" "<<roadPaintData[i].isPaint_Right<<endl;
+                if (image.data && ((i * frames + index + 1) < numOfGps))
+                {
+                    roadImageGen(image, history,
+                        &rowIndex,
+                        &gps_points[i * frames + index],
+                        &gps_points[i * frames + index + 1],
+                        &gpsAndInterval, &intrTmp, inParam);
 
-		//	outFile2<<setprecision(20)<<roadPaintData[i].Right_Paint_Edge[0].x<<" "<<roadPaintData[i].Right_Paint_Edge[0].y<<" "<<roadPaintData[i].Right_Paint_Edge[1].x<<" "<<roadPaintData[i].Right_Paint_Edge[1].y<<
-		//		" "<<roadPaintData[i].isPaint_Left<<" "<<roadPaintData[i].isPaint_Right<<endl;
-		//}
+                    if (gpsAndInterval.intervalOfInterception)
+                    {
+                        GPSAndInterval.push_back(gpsAndInterval);
+                    }
 
-		//outFile0.close();
-		//outFile1.close();
-		//outFile2.close();
+                    if ((index == (frames - 1)) ||
+                        ((i * frames + index + 1) == gps_points.size()))
+                    {
+                        rowIndex -= GPSAndInterval[GPSAndInterval.size() - 1].intervalOfInterception;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
 
-		ofstream dataStruct("dataStruct.txt");
-		dataStruct<<setprecision(20)<<inParam.GPSref.x<<" "<<inParam.GPSref.y<<endl;
+            Mat historyROI = history(Rect(0, rowIndex, history.cols, history.rows - rowIndex));
+            imwrite("historyroi.png", historyROI);
 
-		//for(int i = 0; i<roadPaintData.size(); i++)
-		//{
-		//	dataStruct<<setprecision(20)<<roadPaintData[i].Left_Middle_RelGPS.x<<" "<<roadPaintData[i].Left_Middle_RelGPS.y<<" "<<roadPaintData[i].isPaint_Left<<" "
-		//		<<roadPaintData[i].Left_Paint_Edge[0].x<<" "<<roadPaintData[i].Left_Paint_Edge[0].y<<" "
-		//		<<roadPaintData[i].Left_Paint_Edge[1].x<<" "<<roadPaintData[i].Left_Paint_Edge[1].y<<" "
-		//		<<roadPaintData[i].Left_Area_Pixel_Mean<<" "
-		//		<<roadPaintData[i].Middle_RelGPS.x<<" "<<roadPaintData[i].Middle_RelGPS.y<<" "<<roadPaintData[i].Middle_Area_Pixel_Mean<<" "
-		//		<<roadPaintData[i].Right_Middle_RelGPS.x<<" "<<roadPaintData[i].Right_Middle_RelGPS.y<<" "<<roadPaintData[i].isPaint_Right<<" "
-		//		<<roadPaintData[i].Right_Paint_Edge[0].x<<" "<<roadPaintData[i].Right_Paint_Edge[0].y<<" "
-		//		<<roadPaintData[i].Right_Paint_Edge[1].x<<" "<<roadPaintData[i].Right_Paint_Edge[1].y<<" "
-		//		<<roadPaintData[i].Right_Area_Pixel_Mean<<endl;
-		//}
+            rowIndex = 0;
+            intrTmp = 0;
 
-		//ofstream outFileGPS("GPSInterval.txt");
-		//for(int i=0;i<GPSAndInterval.size();i++)
-		//{
-		//	outFileGPS<<setprecision(20)<<GPSAndInterval[i].GPS_now.x<<" "<<GPSAndInterval[i].GPS_now.y<<" "<<GPSAndInterval[i].GPS_next.x<<" "<<GPSAndInterval[i].GPS_next.y<<
-		//		" "<<GPSAndInterval[i].intervalOfInterception<<endl;
-		//}
-		//outFileGPS.close();
+            roadImageProc2(historyROI, GPSAndInterval, roadPaintData, inParam);
 
-		roadPaintData.clear();
-		GPSAndInterval.clear();
+            history = Mat::zeros(S.height*HH*SCALE, S.width, CV_8UC1);
 
-		cout<<"GPS output finish"<<endl;
+            int H = historyROI.rows;
 
-		videoIndex++;
-		
-		//system("pause");
-		//waitKey(-1);
-	}
+            int numOfPnts = roadPaintData.size();
+            for(int i = 0; i < numOfPnts; i++)
+            {
+                roadPaintDataALL.push_back(roadPaintData[i]);
+            }
+
+            roadPaintData.clear();
+            GPSAndInterval.clear();
+        }
+
+        // save GPS data to files
+        char texname[32];
+        sprintf_s(texname, 32, "dataStruct_%d.txt", videoIndex);
+
+        ofstream dataStruct(texname);
+        dataStruct << setprecision(20) << inParam.GPSref.x << " "
+            << inParam.GPSref.y << endl;
+
+        int numOfPnts = roadPaintDataALL.size();
+        for(int i = 0; i < numOfPnts; i++)
+        {
+            dataStruct << setprecision(20)
+                << roadPaintDataALL[i].Left_Middle_RelGPS.x << " "
+                << roadPaintDataALL[i].Left_Middle_RelGPS.y << " "
+                << roadPaintDataALL[i].isPaint_Left << " "
+                << roadPaintDataALL[i].Left_Paint_Edge[0].x << " "
+                << roadPaintDataALL[i].Left_Paint_Edge[0].y << " "
+                << roadPaintDataALL[i].Left_Paint_Edge[1].x << " "
+                << roadPaintDataALL[i].Left_Paint_Edge[1].y << " "
+                << roadPaintDataALL[i].Left_Area_Pixel_Mean << " "
+                << roadPaintDataALL[i].Middle_RelGPS.x << " "
+                << roadPaintDataALL[i].Middle_RelGPS.y << " "
+                << roadPaintDataALL[i].Middle_Area_Pixel_Mean << " "
+                << roadPaintDataALL[i].Right_Middle_RelGPS.x << " "
+                << roadPaintDataALL[i].Right_Middle_RelGPS.y << " "
+                << roadPaintDataALL[i].isPaint_Right << " "
+                << roadPaintDataALL[i].Right_Paint_Edge[0].x << " "
+                << roadPaintDataALL[i].Right_Paint_Edge[0].y << " "
+                << roadPaintDataALL[i].Right_Paint_Edge[1].x << " "
+                << roadPaintDataALL[i].Right_Paint_Edge[1].y << " "
+                << roadPaintDataALL[i].Right_Area_Pixel_Mean <<endl;
+        }
+
+        cout << "output finish" << endl;
+        dataStruct.close();
+        roadPaintDataALL.clear();
+
+        printf("GPS output finish %d\n", videoIndex);
+        ++videoIndex;
+    }
+
+    fclose(videoListFile);
+    fclose(gpsListFile);
+
+    return 0;
+}
+
+
+void usage(int argc, char* argv[])
+{
+    printf("Usage: \n\n");
+    printf("\t %s -v videolist.txt -g gpslist.txt -c config.txt\n", "roadDetection.exe");
+    printf("\t                      videolist.txt - video file path list file\n");
+    printf("\t                      gpslist.txt - gps file path list file\n");
+    printf("\t                      config.txt - section configuration file path list file\n");
 }

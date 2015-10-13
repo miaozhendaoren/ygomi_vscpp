@@ -24,8 +24,6 @@
 
 #include "LogInfo.h"  // logPrintf
 
-extern bool reverseFlag_g;
-
 using std::list;
 using std::vector;
 using std::string;
@@ -399,11 +397,6 @@ namespace ns_database
 
         furAttributesServer_t furnitureServerIn(furnitureIn);
 
-		if (reverseFlag_g)
-		{
-			furnitureServerIn.sideFlag = furnitureServerIn.sideFlag ^ 0x01;
-		}
-
         // Check if same furniture exist in DB
         bool furIdFoundFlag = false;
         list<list<furAttributesServer_t>>::iterator segIter;
@@ -439,7 +432,7 @@ namespace ns_database
             }
         }
 
-        if (furIdFoundFlag == true)
+        if (0) // bugfix of (furIdFoundFlag == true): do not check furniture ID.  Always use location and type.
         // Update existing one
         {
             // Update with new location and reliability
@@ -1261,6 +1254,143 @@ namespace ns_database
         fclose(fp);
 
         delete payloadFromDb;
+
+        return true;
+    }
+
+    bool databaseServer::saveRoadVecAndFurToKml(IN std::string fileName)
+    {
+        list<list<vector<point3D_t>>> allLines;
+        list<list<lineAttributes_t>>  lineAttr;
+        getAllVectors(allLines, lineAttr);
+
+        list<list<furAttributesServer_t>> furnitureList;
+        getAllFurnitures(furnitureList);
+
+        // Output to kml file
+        int sectionIdx = 1;
+        int furIdx = 1;
+
+        FILE* fp = fopen(fileName.c_str(), "wt");
+        if (fp == NULL)
+        {
+            return false;
+        }
+
+        // kml file header tags: <xml>, <kml>, <Document>
+        fprintf(fp, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<kml>\n<Document>\n");
+
+        point3D_t standPoint;
+#if (RD_LOCATION == RD_US_DETROIT)
+        standPoint.lat = 42.296855933108084;
+        standPoint.lon = -83.213250649943689;
+#elif (RD_LOCATION == RD_GERMAN_LEHRE)
+        standPoint.lat = 52.352999550000001;
+        standPoint.lon = 10.693509536666666;
+#elif (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+        standPoint.lat = 48.354788999999997;
+        standPoint.lon = 11.758086000000000;
+#elif (RD_LOCATION == RD_US_PALO_ALTO)
+        standPoint.lat = 37.39630022;
+        standPoint.lon = -122.05374589;
+#else
+        return false;
+#endif
+
+        // Vectors
+        // For each segment
+        list<list<vector<point3D_t>>>::iterator lineIter = allLines.begin();
+        while (lineIter != allLines.end())
+        {
+            int lineIdx = 1;
+
+            // For each line
+            list<vector<point3D_t>>::iterator lineInSegIter = lineIter->begin();
+            while (lineInSegIter != lineIter->end())
+            {
+                // tags: <Placemark>, <name>
+                fprintf(fp, "    <Placemark>\n        <name>Section-%d-Line-%d</name>\n", sectionIdx, lineIdx);
+                
+                // tag: <LineString>
+                fprintf(fp, "        <LineString>\n");
+
+#if (KML_PAINT_ONLY_FLAG == ON)
+                // tag: <altitudeMode>
+                fprintf(fp, "            <altitudeMode>relativeToGround</altitudeMode>\n");
+#endif
+
+                // tag: <coordinates>
+                fprintf(fp, "            <coordinates>\n                ");
+
+                // For each point
+                vector<point3D_t>::iterator pointIter = lineInSegIter->begin();
+                while (pointIter != lineInSegIter->end())
+                {
+                    double alt = 0;
+                    
+                    point3D_t outGpsPoint;
+
+                    pointRelative3D_t relPoint;
+                    relPoint.x = pointIter->lon;
+                    relPoint.y = pointIter->lat;
+                    calcGpsFromRelativeLocation(&standPoint, &relPoint, &outGpsPoint);
+                    
+#if (KML_PAINT_ONLY_FLAG == ON)
+                    if (pointIter->paintFlag < 0.5)
+                        alt = -0.5;
+                    else
+                        alt = 0;
+#endif
+
+                    fprintf(fp, "%.7f,%.7f,%f ", outGpsPoint.lon, outGpsPoint.lat, alt);
+
+                    ++pointIter;
+                }
+
+                fprintf(fp, "\n            </coordinates>\n        </LineString>\n    </Placemark>\n");
+
+                ++lineInSegIter;
+                ++lineIdx;
+            }
+
+            ++lineIter;
+            ++sectionIdx;
+        }
+
+        // Traffic signs
+        // For each segment
+        list<list<furAttributesServer_t>>::iterator furIter = furnitureList.begin();
+        while (furIter != furnitureList.end())
+        {
+            // For each furniture
+            list<furAttributesServer_t>::iterator furInSegIter = furIter->begin();
+            while (furInSegIter != furIter->end())
+            {
+                fprintf(fp, "    <Placemark>\n        <name>Sign-%d</name>\n        <Point>\n            <coordinates>\n                ", furIdx);
+
+                double alt = 0;
+                point3D_t outGpsPoint;
+
+                pointRelative3D_t relPoint;
+                relPoint.x = furInSegIter->location.lon;
+                relPoint.y = furInSegIter->location.lat;
+                calcGpsFromRelativeLocation(&standPoint, &relPoint, &outGpsPoint);
+
+                fprintf(fp, "%.7f,%.7f,%f", outGpsPoint.lon, outGpsPoint.lat, alt);
+
+                fprintf(fp, "\n            </coordinates>\n        </Point>\n    </Placemark>\n");
+
+                ++furIdx;
+                ++furInSegIter;
+            }
+
+            ++furIter;
+        }
+
+        // End tags
+        fprintf(fp, "</Document>\n</kml>");
+
+        fclose(fp);
 
         return true;
     }

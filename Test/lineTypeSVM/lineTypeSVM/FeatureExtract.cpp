@@ -149,7 +149,7 @@ void CFeatureExtract::extractLineFeature(IN uint32 &segId,
     }
     int numOfSplPnts = leftSample->size();
 
-    // reset Y and paint for sample vector
+    // reset paint for sample vector
     for (int i = 0; i < numOfSplPnts; i++)
     {
         leftSample->at(i).paintFlag  = 0.0;
@@ -183,6 +183,8 @@ void CFeatureExtract::extractLineFeature(IN uint32 &segId,
 
 #endif
 
+#if 0
+    // use full section
     // down sample to specified vector elements number
     int sp = static_cast<int>(floor((double)numOfSplPnts / FEATURE_VEC_ITEMS));
     int mp = numOfSplPnts % FEATURE_VEC_ITEMS;
@@ -191,6 +193,20 @@ void CFeatureExtract::extractLineFeature(IN uint32 &segId,
     {
         extData.push_back(leftSample->at(i).paintFlag);
     }
+#else
+    // use body only
+    int numOfBodyPnts = _secBodyEdInd[segId - 1] - _secBodyStInd[segId - 1];
+
+    int sp = static_cast<int>(floor((double)numOfBodyPnts / FEATURE_VEC_ITEMS));
+    int mp = numOfBodyPnts % FEATURE_VEC_ITEMS;
+    int pp = static_cast<int>(floor((double)(mp - 1) / 2));
+    pp += _secBodyStInd[segId - 1];
+    for (int i = pp; i < FEATURE_VEC_ITEMS * sp + pp; i += sp)
+    {
+        extData.push_back(leftSample->at(i).paintFlag);
+    }
+
+#endif
 }
 
 

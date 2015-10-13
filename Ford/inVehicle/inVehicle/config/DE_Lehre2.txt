@@ -27,10 +27,10 @@ stretchRate:
 2
 
 downSampling:
-12
+6
 
 distancePerPixel:
-1.4229
+1.3840
 
 GPSref:
 52.352999550000001
@@ -50,3 +50,6 @@ imageCols:
 
 discardRoadDataAfterLaneChange:
 0
+
+offsetDistance:
+12

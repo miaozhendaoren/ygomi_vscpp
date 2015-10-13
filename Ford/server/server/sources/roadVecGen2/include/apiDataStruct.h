@@ -56,13 +56,18 @@ struct Offset
     float Y;
 };
 
+typedef struct _rptSecData_t
+{
+    bool                                revDirFlag;   // 0: not reverse direction,
+                                                      // 1: reverse direction
+    list<vector<point3D_t>>             rptLaneData;  // multiple lanes with 2
+                                                      // lines each lane
+} rptSecData_t;
+
 typedef struct _reportSectionData
 {
     uint32                              sectionId;    // segment ID
-    bool                                revDirFlag;   // 0: not reverse direction, 1: reverse direction
-    list<list<list<vector<point3D_t>>>> rptSecData;   // reported new lane data
-                                                      // multiple reported data
-                                                      // of lanes with lines
+    list<rptSecData_t>                  rptSecData;   // reported new lane data
 } reportSectionData;
 
 typedef struct _backgroundSectionData

@@ -120,6 +120,10 @@ namespace ns_database
         _distThreshMid  = 25.0;
 #if (RD_LOCATION == RD_GERMAN_LEHRE || RD_LOCATION == RD_GERMAN_LEHRE2)
         _distThreshNear = 40.0;
+#elif (RD_LOCATION == RD_US_DETROIT)
+        _distThreshNear = 40.0;
+#elif (RD_LOCATION == RD_US_PALO_ALTO)
+        _distThreshNear = 40.0;
 #else
         _distThreshNear = 12.0;
 #endif

@@ -48,10 +48,10 @@
 #define RD_SIGN_DETECT         RD_SIGN_DETECT_COLOR
 #define RD_ROAD_DETECT         ON
 #elif defined(_DETROIT_VIDEO)
-#define RD_MODE                RD_VIDEO_LOAD_MODE
+#define RD_MODE                RD_VIDEO_BUFFER_MODE
 #define RD_IMAGE_BUFFER_FILE   ON
 #define RD_LOCATION            RD_US_DETROIT
-#define RD_SIGN_DETECT         OFF//RD_SIGN_DETECT_WHITE_BLACK
+#define RD_SIGN_DETECT         RD_SIGN_DETECT_WHITE_BLACK
 #define RD_ROAD_DETECT         ON
 #elif defined(_DE_LEHRE_VIDEO)
 #define RD_MODE                RD_VIDEO_BUFFER_MODE
@@ -63,6 +63,12 @@
 #define RD_MODE                RD_VIDEO_BUFFER_MODE
 #define RD_IMAGE_BUFFER_FILE   ON
 #define RD_LOCATION            RD_GERMAN_LEHRE2
+#define RD_SIGN_DETECT         RD_SIGN_DETECT_COLOR
+#define RD_ROAD_DETECT         ON
+#elif defined(_US_PALO_ALTO_VIDEO)
+#define RD_MODE                RD_VIDEO_LOAD_MODE
+#define RD_IMAGE_BUFFER_FILE   ON
+#define RD_LOCATION            RD_US_PALO_ALTO
 #define RD_SIGN_DETECT         RD_SIGN_DETECT_COLOR
 #define RD_ROAD_DETECT         ON
 #else

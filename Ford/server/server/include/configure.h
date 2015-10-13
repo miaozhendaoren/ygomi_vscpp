@@ -29,36 +29,45 @@
 #define RD_SIGN_DETECT_WHITE_BLACK    1
 #define RD_SIGN_DETECT_COLOR          2
 
-// Road lane merge algorithm version, 1 or 2
-#define RD_MERGING_ALGO_VER           2
+#define RD_CAMERA_MODE           1
+#define RD_VIDEO_BUFFER_MODE     2
+#define RD_VIDEO_LOAD_MODE       3
 
 #if defined(_FRANKFORT_CAMERA)
-#define RD_USE_CAMERA          ON
+#define RD_MODE                RD_CAMERA_MODE
 #define RD_IMAGE_BUFFER_FILE   ON
 #define RD_LOCATION            RD_GERMAN_MUNICH_AIRPORT
 #define RD_SIGN_DETECT         RD_SIGN_DETECT_COLOR
 #define RD_ROAD_DETECT         ON
 
 #elif defined(_FRANKFORT_VIDEO)
-#define RD_USE_CAMERA          OFF
+#define RD_MODE                RD_VIDEO_BUFFER_MODE
 #define RD_IMAGE_BUFFER_FILE   ON
 #define RD_LOCATION            RD_GERMAN_MUNICH_AIRPORT
 #define RD_SIGN_DETECT         RD_SIGN_DETECT_COLOR
 #define RD_ROAD_DETECT         ON
 #elif defined(_DETROIT_VIDEO)
-#define RD_USE_CAMERA          OFF
+#define RD_MODE                RD_VIDEO_BUFFER_MODE
 #define RD_IMAGE_BUFFER_FILE   ON
 #define RD_LOCATION            RD_US_DETROIT
 #define RD_SIGN_DETECT         RD_SIGN_DETECT_WHITE_BLACK
 #define RD_ROAD_DETECT         ON
+#define KML_PAINT_ONLY_FLAG    ON
 #elif defined(_DE_LEHRE_VIDEO)
-#define RD_USE_CAMERA          OFF
+#define RD_MODE                RD_VIDEO_BUFFER_MODE
 #define RD_IMAGE_BUFFER_FILE   ON
 #define RD_LOCATION            RD_GERMAN_LEHRE
 #define RD_SIGN_DETECT         RD_SIGN_DETECT_OFF
 #define RD_ROAD_DETECT         ON
+#define KML_PAINT_ONLY_FLAG    ON
+#elif defined(_US_PALO_ALTO_VIDEO)
+#define RD_MODE                RD_VIDEO_LOAD_MODE
+#define RD_IMAGE_BUFFER_FILE   ON
+#define RD_LOCATION            RD_US_PALO_ALTO
+#define RD_SIGN_DETECT         RD_SIGN_DETECT_COLOR
+#define RD_ROAD_DETECT         ON
 #else
-#define RD_USE_CAMERA          OFF
+#define RD_MODE                RD_VIDEO_LOAD_MODE
 #define RD_IMAGE_BUFFER_FILE   ON
 #define RD_LOCATION            RD_GERMAN_MUNICH_AIRPORT
 #define RD_SIGN_DETECT         RD_SIGN_DETECT_COLOR

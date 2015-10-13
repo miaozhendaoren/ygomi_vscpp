@@ -172,13 +172,23 @@ bool ImageBufferAll::getBuffer(ImageBuffer **buffer)
 	
 	imageBuffer->setFileName(aviNames[proIdx],gpsNames[proIdx]);
 	
-	imageBuffer->openReadFiles();
-	
 	proIdx++;
-	if(proIdx >= totalNum)
+	if(proIdx > totalNum)
 	{
-		proIdx = 0;
+		//proIdx = 0;
+        proIdx = totalNum;
+
+        static bool firstTimeFlag = true;
+        if (firstTimeFlag == true)
+        {
+            printf("load files finished\n");
+            firstTimeFlag = false;
+        }
+        return false;
 	}
+
+    imageBuffer->openReadFiles();
+
 	*buffer = imageBuffer;
 	return true;
 }

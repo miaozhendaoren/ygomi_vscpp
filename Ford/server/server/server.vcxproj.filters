@@ -99,13 +99,7 @@
     <ClCompile Include="sources\interface\src\laneQueueClass.cpp">
       <Filter>Source Files\interface</Filter>
     </ClCompile>
-    <ClCompile Include="sources\roadVecGen2\src\RoadVecGen.cpp">
-      <Filter>Source Files\roadVecGen</Filter>
-    </ClCompile>
     <ClCompile Include="sources\roadVecGen2\src\VisualizationApis.cpp">
-      <Filter>Source Files\roadVecGen</Filter>
-    </ClCompile>
-    <ClCompile Include="sources\roadVecGen2\src\ExtractSection.cpp">
       <Filter>Source Files\roadVecGen</Filter>
     </ClCompile>
     <ClCompile Include="sources\roadVecGen2\src\polynomialFit.cpp">

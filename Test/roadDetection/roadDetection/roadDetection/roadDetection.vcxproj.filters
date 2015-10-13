@@ -36,6 +36,9 @@
     <ClCompile Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\src\detection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\src\polynomialFitting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\include\roadScan.h">
@@ -60,6 +63,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\include\Detection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Ford\inVehicle\inVehicle\sources\detectImage\include\polynomialFitting.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

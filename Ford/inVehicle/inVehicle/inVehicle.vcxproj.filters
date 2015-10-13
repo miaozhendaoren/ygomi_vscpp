@@ -61,9 +61,6 @@
     <Filter Include="Header Files\configParse">
       <UniqueIdentifier>{e17d5460-be36-46d0-b601-d4d44d55ceb2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\configParse">
-      <UniqueIdentifier>{f048784d-a4b7-4540-83aa-295939544e0e}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="sources\database\src\database.cpp">
@@ -147,23 +144,8 @@
     <ClCompile Include="sources\visualization\src\getSectionID.cpp">
       <Filter>Source Files\visualization</Filter>
     </ClCompile>
-    <ClCompile Include="sources\configParse\src\configParse.cpp">
-      <Filter>Source Files\configParse</Filter>
-    </ClCompile>
-    <ClCompile Include="sources\configParse\src\tinystr.cpp">
-      <Filter>Source Files\configParse</Filter>
-    </ClCompile>
-    <ClCompile Include="sources\configParse\src\tinyxml.cpp">
-      <Filter>Source Files\configParse</Filter>
-    </ClCompile>
-    <ClCompile Include="sources\configParse\src\tinyxmlerror.cpp">
-      <Filter>Source Files\configParse</Filter>
-    </ClCompile>
-    <ClCompile Include="sources\configParse\src\tinyxmlparser.cpp">
-      <Filter>Source Files\configParse</Filter>
-    </ClCompile>
-    <ClCompile Include="sources\configParse\src\XMLParser.cpp">
-      <Filter>Source Files\configParse</Filter>
+    <ClCompile Include="sources\detectImage\src\polynomialFitting.cpp">
+      <Filter>Source Files\detectImage</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

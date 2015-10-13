@@ -217,7 +217,7 @@ void Detector::positionMeasure(Parameters &inParam, Point2d &GPS_current, Point2
             determineBirdViewLocation(invertH, buttomPixel, pixelLocationBirdView);
 
             // change the bird view pixel to relative location.
-            getRefGPSLocationOfEveryPixelInRoadScanImage(imageOut, inParam.stretchRate, GPS_current, GPS_next, GPS_reference, pixelLocationBirdView, _DIST_PER_PIEXL, refGPSOriginalImage);
+            getRefGPSLocationOfEveryPixelInRoadScanImage(imageOut, inParam.stretchRate, GPS_current, GPS_next, GPS_reference, pixelLocationBirdView, _DIST_PER_PIEXL, inParam.offsetDist, refGPSOriginalImage);
 
             //cal absolute GPS of original image pixel from refGPS and GPS_reference, if need
             ns_database::point3D_t refGPSOriginalImage3d;

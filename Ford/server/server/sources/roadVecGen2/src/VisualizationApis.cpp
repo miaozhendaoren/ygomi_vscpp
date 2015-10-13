@@ -17,6 +17,13 @@
 #include <float.h>
 #include "VisualizationApis.h"
 
+uint32 PREVIOUS_SEGID = 0;
+uint32 FG_MERGED_NUM  = 0;
+
+uint32 MERGED_TIMES[100] = { 0 };
+char IMAGE_NAME_STR2[MAX_PATH] = { '\0' };
+
+
 void readReportData(char *filenamelist, list<list<vector<point3D_t>>> &newData)
 {
     if (nullptr == filenamelist)
@@ -142,7 +149,7 @@ void showImage(list<vector<point3D_t>> dataInput, Scalar scalar, string winname)
         for (int i = 0;i < numOfPoints; i++)
         {
             // only check painted points
-            if (0.0 < lineItor->at(i).paintFlag)
+            if(-2.0 < lineItor->at(i).paintFlag)
             {
                 if (lineItor->at(i).lon <= minX)
                 {
@@ -170,9 +177,9 @@ void showImage(list<vector<point3D_t>> dataInput, Scalar scalar, string winname)
     int height = (int)(maxY - minY) + 100;
     Mat outputImage(height, width, CV_8UC3, Scalar(255, 255, 255));
 
-    int B[2] = {0, 0};
-    int G[2] = {255, 0};
-    int R[2] = {0, 255};
+    int B[3] = {0, 0, 255};
+    int G[3] = {255, 0, 0};
+    int R[3] = {0, 255, 0};
     int colorInd = 0;
 
     // iterate each line again to paint line points
@@ -192,7 +199,7 @@ void showImage(list<vector<point3D_t>> dataInput, Scalar scalar, string winname)
             }
         }
 
-        colorInd++;
+        colorInd = (colorInd + 1) % 3;
         lineItor++;
     }
 
@@ -232,4 +239,120 @@ void saveListVec(list<vector<point3D_t>> &dataInput, char *filename)
 
     fclose(fp);
 }
+
+
+void saveData(list<reportSectionData> &secData)
+{
+    int groupNum = 0, laneNum = 0;
+    list<reportSectionData>::iterator fsec = secData.begin();
+    while (fsec != secData.end())
+    {
+        if (!fsec->rptSecData.empty())
+        {
+            groupNum = 0;
+            list<rptSecData_t>::iterator grp = fsec->rptSecData.begin();
+            while (grp != fsec->rptSecData.end())
+            {
+                sprintf_s(IMAGE_NAME_STR2, MAX_PATH - 1,
+                    "fg_%d_sec_%d_group_%d_lane_%d.txt",
+                    FG_MERGED_NUM, fsec->sectionId, groupNum, laneNum);
+                saveListVec(grp->rptLaneData, IMAGE_NAME_STR2);
+
+                grp++; groupNum++;
+            }
+        }
+
+        fsec++;
+    }
+}
+
+
+void saveData(list<list<vector<point3D_t>>> &fgData, bool bOutput/* = false*/)
+{
+    list<vector<point3D_t>> fglines;
+    list<list<vector<point3D_t>>>::iterator fgItor = fgData.begin();
+    list<vector<point3D_t>>::iterator fglineItor;
+    while (fgItor != fgData.end())
+    {
+        if (!fgItor->empty())
+        {
+            fglineItor = fgItor->begin();
+            while (fglineItor != fgItor->end())
+            {
+                fglines.push_back(*fglineItor);
+
+                fglineItor++;
+            }
+        }
+
+        fgItor++;
+    }
+
+    if (bOutput)
+    {
+#if VISUALIZATION_ON
+        sprintf_s(IMAGE_NAME_STR2, "fgdatabase_merged_%d.png", FG_MERGED_NUM);
+        showImage(fglines, Scalar(0, 0, 255), IMAGE_NAME_STR2);
+#endif // end of visualization
+#if SAVE_DATA_ON
+        sprintf_s(IMAGE_NAME_STR2, "fgdatabase_merged_%d.txt", FG_MERGED_NUM);
+        saveListVec(fglines, IMAGE_NAME_STR2);
+#endif // end of save data
+        FG_MERGED_NUM++;
+    }
+    else
+    {
+#if VISUALIZATION_ON
+        sprintf_s(IMAGE_NAME_STR2, "fg_%d_source.png", FG_MERGED_NUM);
+        showImage(fglines, Scalar(0, 0, 255), IMAGE_NAME_STR2);
+#endif // end of visualization
+#if SAVE_DATA_ON
+        sprintf_s(IMAGE_NAME_STR2, "fg_%d_source.txt", FG_MERGED_NUM);
+        saveListVec(fglines, IMAGE_NAME_STR2);
+#endif // end of save data
+    }
+}
+
+
+void saveData(list<backgroundSectionData> &bgDbData, uint32 segId, bool bRevDir/* = false*/)
+{
+    list<backgroundSectionData>::iterator bgDBItor = bgDbData.begin();
+    while (bgDBItor != bgDbData.end())
+    {
+        if (bgDBItor->sectionId == segId)
+        {
+            int laneNum = 0;
+
+            list<list<vector<point3D_t>>>::iterator bgDBLaneItor = bgDBItor->bgSectionData.begin();
+            while (bgDBLaneItor != bgDBItor->bgSectionData.end())
+            {
+                if (!bgDBLaneItor->empty())
+                {
+                    if (bRevDir)
+                    {
+                        sprintf_s(IMAGE_NAME_STR2, MAX_PATH - 1,
+                            "fg_%d_sec_%d_lane_%d_merged_%d_backward.png",
+                            FG_MERGED_NUM, segId, laneNum, MERGED_TIMES[segId - 1]);
+                    }
+                    else
+                    {
+                        sprintf_s(IMAGE_NAME_STR2, MAX_PATH - 1,
+                            "fg_%d_sec_%d_lane_%d_merged_%d.png",
+                            FG_MERGED_NUM, segId, laneNum, MERGED_TIMES[segId - 1]);
+                    }
+                    showImage(*bgDBLaneItor, Scalar(0, 0, 0), IMAGE_NAME_STR2);
+                }
+
+                laneNum++;
+
+                bgDBLaneItor++;
+            }
+
+            break;
+        }
+
+        bgDBItor++;
+    }
+}
+
 

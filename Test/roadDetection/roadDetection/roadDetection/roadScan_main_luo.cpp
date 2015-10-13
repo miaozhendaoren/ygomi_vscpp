@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <fstream>
 
+
 #define VW      0
 #define Ford    1
 #define Honda   2
@@ -17,6 +18,7 @@
 #define Honda2  5
 #define Airport  6
 #define Airport2  7
+#define Honda3  8
 
 using namespace std;
 using namespace cv;
@@ -24,6 +26,7 @@ using namespace ns_roadScan;
 cv::Mat H, invertH;
 
 //#define IMAGE_SENSOR_WIDTH 640
+FILE * getHonda3(VideoCapture &capture,int &videoIndex);
 
 int main(void)
 {
@@ -31,8 +34,9 @@ int main(void)
 	//ifstream readParam("VW.txt",ios::_Nocreate);DE_Lehre
 	//ifstream readParam("HD.txt",ios::_Nocreate);DE_Airport2
 	//ifstream readParam("US.txt",ios::_Nocreate);US_Detroit
+    //US_Palo_Alto
 	Parameters inParam;
-	bool readStatus = readParamRoadScan("../../../../Ford/inVehicle/inVehicle/config/DE_Airport2.txt", inParam);
+	bool readStatus = readParamRoadScan("../../../../Ford/inVehicle/inVehicle/config/US_Palo_Alto.txt", inParam);
     ns_roadScan::calHAndInvertH(inParam, H, invertH);
 	if(!readStatus)
 	{
@@ -40,47 +44,35 @@ int main(void)
 		return -1;
 	}
 
-	int ChooseVideo = Airport2;
+	int ChooseVideo = Honda3;
 
-	int videoIndex = 3;
-	
-	/*string gpsname;
-	string videoname;
-	ifstream fingps("F:/Airport2/gpslist.txt");
-	ifstream finvideo("F:/Airport2/videolist.txt");*/
+	int videoIndex = 1;
 
 	int locNum[2], holeNum[2];
 
 //	for(int kk = 0; kk<20; kk++)	//VW
 //	for(int kk = 0; kk<19; kk++)	//US
-//	for(int kk = 0; kk<3; kk++)	//Honda
-	for(int kk = 0; kk<11; kk++)//Airport2
+	for(int kk = 0; kk<10; kk++)	//Honda3
+//	for(int kk = 0; kk<11; kk++)//Airport2
 //	for(int kk = 0; kk<3; kk++)
 	
 	{
 		VideoCapture capture;
 		FILE* gpsFile;
 
+        //capture.open("F:/Honda20150831_selected/H1/1.mp4");
+        //gpsFile = fopen("F:/Honda20150831_selected/H1/1.txt","r");
+        //capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+        if (ChooseVideo==Honda3)
+        {
+            gpsFile = getHonda3(capture, videoIndex);
+        }
 		if (ChooseVideo==Airport2)
-		{	
-			/*getline(fingps,gpsname);									
-			gpsname = "F:/Airport2/"+gpsname;
-			const char* c_s = gpsname.c_str();
-			gpsFile = fopen(c_s,"r");
-			getline(finvideo,videoname);									
-			videoname = "F:/Airport2/"+videoname;
-			capture.open(videoname);
-			capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);	*/
-
+		{				
 			if (videoIndex%11 == 0)
 			{
 				capture.open("F:/Airport2/cam_20150811111511.mp4");
 				gpsFile = fopen("F:/Airport2/list_20150811111511.txt","r");
-
-				//capture.open("F:/fengyang/b.avi");
-				//gpsFile = fopen("F:/fengyang/b.txt","r");
-
-
 				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
 			}
 			else if (videoIndex%11 == 1)
@@ -197,132 +189,6 @@ int main(void)
                 capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
             }
 
-			/*if (videoIndex%20 == 0)
-				{
-					capture.open("F:/VW_Data_Selected/statler/statler-7200-8821.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/statler/statler-7200-8821.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 1)
-				{
-					capture.open("F:/VW_Data_Selected/statler/statler-9823-10055.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/statler/statler-9823-10055.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 2)
-				{
-					capture.open("F:/VW_Data_Selected/statler/statler-10808-11692.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/statler/statler-10808-11692.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 3)
-				{
-					capture.open("F:/VW_Data_Selected/statler/statler-14601-15101.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/statler/statler-14601-15101.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 4)
-				{
-					capture.open("F:/VW_Data_Selected/statler/statler-15439-15766.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/statler/statler-15439-15766.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-
-				else if (videoIndex%20 == 5)
-				{
-					capture.open("F:/VW_Data_Selected/Waldorf/part1/1.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/Waldorf/part1/gps1.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-
-				else if (videoIndex%20 == 6)
-				{
-					capture.open("F:/VW_Data_Selected/Waldorf/part2/2.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/Waldorf/part2/gps2.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 7)
-				{
-					capture.open("F:/VW_Data_Selected/Waldorf/part3/3.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/Waldorf/part3/gps3.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 8)
-				{
-					capture.open("F:/VW_Data_Selected/Waldorf/part4/4.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/Waldorf/part4/gps4.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 9)
-				{
-					capture.open("F:/VW_Data_Selected/Waldorf/part5/5.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/Waldorf/part5/gps5.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-
-				else if (videoIndex%20 == 10)
-				{
-					capture.open("F:/VW_Data_Selected/Wanda/part1/1.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/Wanda/part1/gps1.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-
-				else if (videoIndex%20 == 11)
-				{
-					capture.open("F:/VW_Data_Selected/Wanda/part2/2.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/Wanda/part2/gps2.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 12)
-				{
-					capture.open("F:/VW_Data_Selected/Wanda/part3/3.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/Wanda/part3/gps3.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 13)
-				{
-					capture.open("F:/VW_Data_Selected/Wanda/part4/4.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/Wanda/part4/gps4.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 14)
-				{
-					capture.open("F:/VW_Data_Selected/Wanda/part5/5.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/Wanda/part5/gps5.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-
-				else if (videoIndex%20 == 15)
-				{
-					capture.open("F:/VW_Data_Selected/wayne/wayne-561-1907.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/wayne/wayne-561-1907.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-
-				else if (videoIndex%20 == 16)
-				{
-					capture.open("F:/VW_Data_Selected/wayne/wayne-2259-3038.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/wayne/wayne-2259-3038.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 17)
-				{
-					capture.open("F:/VW_Data_Selected/wayne/wayne-3376-3858.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/wayne/wayne-3376-3858.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 18)
-				{
-					capture.open("F:/VW_Data_Selected/wayne/wayne-7590-8074.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/wayne/wayne-7590-8074.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}
-				else if (videoIndex%20 == 19)
-				{
-					capture.open("F:/VW_Data_Selected/wayne/wayne-10546-11861.mp4");
-					gpsFile = fopen("F:/VW_Data_Selected/wayne/wayne-10546-11861.txt","r");
-					capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
-				}*/
 		}
 		else if(ChooseVideo==Ford)
 		{
@@ -615,7 +481,7 @@ int main(void)
 	    vector<gpsInformationAndInterval> GPSAndInterval;
         
 		////////////////////////////////////////////////////////////////////////////
-		Mat history = Mat::zeros(S.height *HH*SCALE,S.width, CV_8UC1);
+		Mat history = Mat::zeros(S.height *HH*SCALE,S.width, CV_8UC3);
 
 		Point2d *GPS_Points;
 		//GPS_Points = new Point2d [S.height *HH*SCALE];
@@ -632,7 +498,7 @@ int main(void)
         gpsInformationAndInterval gpsAndInterval;
 		Mat image;
 		int intrtmp=0;
-		int frames = 350;
+		int frames = 300;
 		vector<Point2d> gps_points;
 		
 		while(!feof(gpsFile))
@@ -640,14 +506,10 @@ int main(void)
 			fscanf(gpsFile,"%lf,%lf\n",&GPS_next.x,&GPS_next.y);
 			gps_points.push_back(GPS_next);
 		}
-	//	capture.set(CV_CAP_PROP_POS_FRAMES, 3100);
-	//	number_of_frames=1300;
-
-	
-		for (int n=14;n<150;n++)
+		for (int n=1;n<150;n++)
 		{
 
-            cout<<"video="<<videoIndex<<endl;
+             cout<<"video="<<videoIndex<<endl;
 			cout<<"interval="<<n<<endl;
 			if (n*frames+1>number_of_frames)
 			{
@@ -663,41 +525,33 @@ int main(void)
 				if (image.data&& n*frames+index+1<gps_points.size())
 				{
 					roadImageGen(image, history, &rowIndex, &gps_points[n*frames+index], &gps_points[n*frames+index+1], &gpsAndInterval, &intrtmp, inParam);
-					if (gpsAndInterval.intervalOfInterception)
-					{
-						GPSAndInterval.push_back(gpsAndInterval);
-					}
-					if(index==frames-1||n*frames+index+1==gps_points.size())
-					{
-						rowIndex -= GPSAndInterval[GPSAndInterval.size()-1].intervalOfInterception;
-					}
+                       
+                    if (gpsAndInterval.intervalOfInterception)
+                    {
+                        GPSAndInterval.push_back(gpsAndInterval);
+                    }
+                    if(index==frames-1||n*frames+index+1==gps_points.size())
+                    {
+                        if (GPSAndInterval.size()>0)
+                        {
+                            rowIndex -= GPSAndInterval[GPSAndInterval.size()-1].intervalOfInterception;
+                        }                      
+                    }
+					                  
 				}
 				else
 					break;
 			}
 			Mat historyROI = history(Rect(0,rowIndex,history.cols,history.rows-rowIndex));
 			imwrite("historyroi.png",historyROI);
-			
-
+      
 		rowIndex=0;
 		intrtmp=0;
 		roadImageProc2(historyROI, GPSAndInterval, roadPaintData, inParam);
-		history = Mat::zeros(S.height *HH*SCALE,S.width, CV_8UC1);
+		history = Mat::zeros(S.height *HH*SCALE,S.width, CV_8UC3);
     
 		int H = historyROI.rows;
-		
-		/*ofstream outFile0("GPS_0.txt");
-		for(int i = 0; i<roadPaintData.size(); i++)
-		{
-			double distance = sqrt(pow(roadPaintData[i].Left_Middle_RelGPS.x-roadPaintData[i].Right_Middle_RelGPS.x,2.0)+pow(roadPaintData[i].Left_Middle_RelGPS.y-roadPaintData[i].Right_Middle_RelGPS.y,2.0));
 	
-			outFile0<<setprecision(20)<<distance<<endl;
-		}
-		outFile0.close();*/
-
-
-		
-
 		for(int i = 0; i<roadPaintData.size(); i++)
 		{
 			roadPaintDataALL.push_back(roadPaintData[i]);
@@ -732,6 +586,10 @@ int main(void)
 		{
 			sprintf(texname,"dataStruct_%d.txt",videoIndex%11);
 		}
+        else if (ChooseVideo == Honda3)
+        {
+            sprintf(texname,"dataStruct_%d.txt",videoIndex%10);
+        }
 		ofstream dataStruct(texname);
 		dataStruct<<setprecision(20)<<inParam.GPSref.x<<" "<<inParam.GPSref.y<<endl;
 
@@ -759,10 +617,83 @@ int main(void)
 		dataStruct.close();
 		roadPaintDataALL.clear();
 
-
+//}
 		videoIndex++;
 		
 		//system("pause");
 		//waitKey(-1);
 	}
+}
+
+
+
+
+FILE * getHonda3(VideoCapture &capture,int &videoIndex)
+{
+    FILE* gpsFile;
+
+    if (videoIndex%10 == 0)
+    {
+        capture.open("F:/Honda20150831_selected/H1/1.mp4");
+        gpsFile = fopen("F:/Honda20150831_selected/H1/1.txt","r");
+        capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+    }
+    else if (videoIndex%10 == 1)
+    {
+        capture.open("F:/Honda20150831_selected/H1/2.mp4");
+        gpsFile = fopen("F:/Honda20150831_selected/H1/2.txt","r");
+        capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+    }
+    else if (videoIndex%10 == 2)
+    {
+        capture.open("F:/Honda20150831_selected/H1/3.mp4");
+        gpsFile = fopen("F:/Honda20150831_selected/H1/3.txt","r");
+        capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+    }
+    else if (videoIndex%10 == 3)
+    {
+        capture.open("F:/Honda20150831_selected/H1/4.mp4");
+        gpsFile = fopen("F:/Honda20150831_selected/H1/4.txt","r");
+        capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+    }
+    else if (videoIndex%10 == 4)
+    {
+        capture.open("F:/Honda20150831_selected/H1/5.mp4");
+        gpsFile = fopen("F:/Honda20150831_selected/H1/5.txt","r");
+        capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+    }
+
+    else if (videoIndex%10 == 5)
+    {
+        capture.open("F:/Honda20150831_selected/H1/6.mp4");
+        gpsFile = fopen("F:/Honda20150831_selected/H1/6.txt","r");
+        capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+    }
+
+    else if (videoIndex%10 == 6)
+    {
+        capture.open("F:/Honda20150831_selected/H1/7.mp4");
+        gpsFile = fopen("F:/Honda20150831_selected/H1/7.txt","r");
+        capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+    }
+    else if (videoIndex%10 == 7)
+    {
+        capture.open("F:/Honda20150831_selected/H1/8.mp4");
+        gpsFile = fopen("F:/Honda20150831_selected/H1/8.txt","r");
+        capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+    }
+    else if (videoIndex%10 == 8)
+    {
+        capture.open("F:/Honda20150831_selected/H1/9.mp4");
+        gpsFile = fopen("F:/Honda20150831_selected/H1/9.txt","r");
+        capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+    }
+    else if (videoIndex%10 == 9)
+    {
+        capture.open("F:/Honda20150831_selected/H1/10.mp4");
+        gpsFile = fopen("F:/Honda20150831_selected/H1/10.txt","r");
+        capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+    }
+    return gpsFile;
+
 }

@@ -21,12 +21,15 @@ void determineBirdViewLocation(Mat &invertH, Point &pixelLocationOriginalImage, 
 	pixelLocationBirdView = Point(int((xx+0.5)/ww), int((yy+0.5)/ww));
 }
 
-void getRefGPSLocationOfEveryPixelInRoadScanImage(Mat &imageIn, int stretchRate, Point2d GPS_current, Point2d GPS_next, Point2d GPS_reference, Point pixelLocationBirdView, double distancePerPixel, Point2d &refGPSOriginalImage)
+void getRefGPSLocationOfEveryPixelInRoadScanImage(Mat &imageIn, int stretchRate, Point2d GPS_current, Point2d GPS_next, Point2d GPS_reference, Point pixelLocationBirdView, double distancePerPixel,float offsetDist, Point2d &refGPSOriginalImage)
 {
 
 	Point2d GPS1, GPS2;
 	coordinateChange(GPS_current, GPS_reference, GPS1);
 	coordinateChange(GPS_next, GPS_reference, GPS2);
+
+    // correct the distance offset
+    resetGPSOffset(offsetDist, GPS1, GPS2);
 
 	refGPSOriginalImage = Point2d(-1.0, -1.0);
 

@@ -16,6 +16,8 @@ using namespace ns_database;
     #define IMAGE_BUFFER_DEPTH          400
 #elif (RD_LOCATION == RD_US_DETROIT)
     #define IMAGE_BUFFER_DEPTH          400
+#elif (RD_LOCATION == RD_US_PALO_ALTO)
+    #define IMAGE_BUFFER_DEPTH          400
 #else
     #define IMAGE_BUFFER_DEPTH          1500
 #endif

@@ -134,6 +134,8 @@ namespace ns_database
 
         bool saveRoadVecToFile(IN std::string fileName);
 
+        bool saveRoadVecAndFurToKml(IN std::string fileName);
+
         void convBgRoadVecToTlv(IN std::list<backgroundSectionData> &bgVec, 
                                 OUT uint8 *tlvBuf, 
                                 OUT int *bufLen);

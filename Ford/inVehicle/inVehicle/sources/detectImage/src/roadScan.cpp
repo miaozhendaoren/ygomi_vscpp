@@ -23,6 +23,7 @@
 #include <iomanip>
 #include <fstream>
 #include "AppInitCommon.h" // H
+#include "configure.h"
 
 using namespace std;
 using namespace cv;
@@ -46,20 +47,24 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
 
 	Size Rsize = Size(imageIn.cols*inParam.imageScaleWidth, imageIn.rows*inParam.imageScaleHeight);
 	//Size Rsize = Size(640,400);//for honda data
-	image = Mat(Rsize,CV_8UC3);
-	resize(imageIn, image,Rsize);
+    
+//	image = Mat(Rsize,CV_8UC1);
+    cvtColor(imageIn, image, COLOR_RGB2GRAY);
+//	resize(imageIn, image,Rsize);
 
 	medianBlur(image,image,3) ;
 
     ColorImage = image;
-    cvtColor(image, image, COLOR_RGB2GRAY);
+//    cvtColor(image, image, COLOR_RGB2GRAY);
     /*
 	image.convertTo(image_32f,CV_32F);
 	processNoise(image_32f,image);
 	image.convertTo(ColorImage,CV_8UC1);
 	cvtColor(ColorImage, ColorImage, COLOR_GRAY2RGB);
     */
-    //imshow("iniImage",image);
+#ifdef ROAD_SCAN_UT
+    imshow("iniImage",image);
+#endif
 
     int w = image.cols;
     int h = image.rows;
@@ -97,9 +102,9 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
 	//imwrite("birds_image.png",birds_image);
 
     Mat birdEye;
-
-    cvtColor(birds_image, birdEye, COLOR_RGB2GRAY);
-    birdEye.convertTo(birdEye,CV_8UC1,1);
+    birdEye = birds_image;
+//    cvtColor(birds_image, birdEye, COLOR_RGB2GRAY);
+//    birdEye.convertTo(birdEye,CV_8UC1,1);
     
 	Point2d GPS_rel, GPS_rel2;
 
@@ -127,7 +132,7 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
 		Mat imageROI = birdEye(Rect(0,floor(startLocation)-Interval+1,birdEye.cols,Interval));
 
 		//Interval = ceil(Interval/inParam.downSampling);
-
+        Interval = ceil(Interval/2.0);
 		if (Interval>=1)
 		{
 			resize(imageROI,imageROI,Size(birdEye.cols,Interval));
@@ -163,9 +168,11 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
 	*intrtmp = Interval;
 
 	//(*rowIndex) = (*rowIndex)-Interval;
-
-	//imshow( "Birds View", birdEye );
+#ifdef ROAD_SCAN_UT
+	imshow( "Birds View", birdEye );
+#endif
 	waitKey(1);
+
 	return 0;
 }
 
@@ -179,9 +186,22 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 #ifdef ROAD_SCAN_UT
     double startT = static_cast<double>(cv::getTickCount());
 #endif
+//    Mat longLaneRGB = longLane;
+//    Mat longLaneHSV;    
+    //cvtColor(longLaneRGB,longLaneHSV,COLOR_BGR2HSV_FULL);
+    //longLaneRGB.convertTo(longLaneHSV,COLOR_BGR2HSV);
+    //cvtColor(longLane,longLane,COLOR_RGB2GRAY);
 
+//    Mat longLaneGray;
+//    cvtRGB2Gray(longLaneRGB, longLaneGray);
 
-	vector<laneMarker> lanemarker;
+    shadowProcess(longLane, longLane);
+    
+#ifdef ROAD_SCAN_UT
+    imwrite("longLaneGray.png",longLaneGray);
+    imwrite("longLane.png",longLane);
+#endif
+	vector<landMark> landMark;
 	int W = longLane.cols;
 	int H = longLane.rows;
 
@@ -251,11 +271,12 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 			histThres = (hisLeftTh + hisRightTh)/2;
 		histThres = max(hisLeftTh,hisRightTh);
 	
-		//	circleDection(longLane_cut,lanemarker,histThres);	
-		laneMarkerDetection(longLane_cut,lanemarker,histThres+20);
-		//arrowDetection(longLane,lanemarker);
-		//stopLineDetection(longLane_cut,lanemarker,histThres);
-
+#if 0
+//		circleDection(longLane_cut,landMark,histThres);	
+		landMarkDetection(longLane_cut,landMark,histThres+20);
+		//arrowDetection(longLane,landMark);
+		//stopLineDetection(longLane_cut,landMark,histThres);
+#endif
         
 ///////shadow and no shadow ,process respectively
 		Mat allUnitKapa(h,w,CV_8UC1);
@@ -273,11 +294,7 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 #endif
        
         Mat lineLinkOut;
-		linkPaintLine(allUnitContous,lanemarker,lineLinkOut);
-
-
-
-
+		linkPaintLine(allUnitContous,landMark,lineLinkOut);
 
 		//step3: find the left and right lane.
 		int w1 = allUnitContous.cols;
@@ -323,6 +340,8 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 					}
 					if (left>-1 ) 
 					{
+//                        int hue = longLaneHSV.at<Vec3b>(i,left)[0];
+//                        int v   = longLaneHSV.at<Vec3b>(i,left)[2];
 						int dataMiddle = allUnitContous.at<uchar>(i,left);
 						if(dataMiddle!=0)
 						{
@@ -331,14 +350,14 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 							middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].leftPoint.y = i+(kk-1)*CUT;
 							middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].isPaint_Left = 1;
 
-//							calPaintEdgePos(kapa2, i, left, middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].left_Edge_XY[0], middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].left_Edge_XY[1]);
-
+//							calPaintEdgePos(kapa2, i, left, middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].left_Edge_XY[0], middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].left_Edge_XY[1]);                           
 							circle(roadDraw3, Point(left,i),0,CV_RGB(255, 0, 0),4);
 						}
 					}
 
 					if (right< w1) 
 					{
+//                        int hue = longLaneHSV.at<Vec3b>(i,right)[0];
 						int dataMiddle = allUnitContous.at<uchar>(i,right);
 						if(dataMiddle!=0)
 						{
@@ -401,10 +420,6 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 
 	}
 
-
-
-
-
 	//change line
 #if 1
 	sort(changeLP.begin(),changeLP.end());
@@ -460,8 +475,8 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 	if(changelinePoint!=-1)
 	{
 		//line change
-		int sP = changelinePoint-1000;
-		int eP = changelinePoint+1000;
+		int sP = changelinePoint-300;
+		int eP = changelinePoint+300;
 
         if(sP < 0)
 		{
@@ -532,13 +547,13 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 		}
 	}
 	
-	if (lanemarker.size())
+	if (landMark.size())
 	{
-		for (int i=0;i<lanemarker.size();i++)
+		for (int i=0;i<landMark.size();i++)
 		{
-			findGPSInterval(gpsAndInterval,lanemarker[i].landMarkWeight,longLane,inParam,lanemarker[i].landMarkWeightRel);
-		//	cout<<lanemarker[i].landMarkWeight.x<<" ,"<<lanemarker[i].landMarkWeight.y<<endl;
-		//	cout<<lanemarker[i].landMarkWeightRel.x<<" ,"<<lanemarker[i].landMarkWeightRel.y<<endl;
+			findGPSInterval(gpsAndInterval,landMark[i].landMarkWeight,longLane,inParam,landMark[i].landMarkWeightRel);
+		//	cout<<landMark[i].landMarkWeight.x<<" ,"<<landMark[i].landMarkWeight.y<<endl;
+		//	cout<<landMark[i].landMarkWeightRel.x<<" ,"<<landMark[i].landMarkWeightRel.y<<endl;
 
 		}
     }
@@ -618,6 +633,9 @@ bool readParamRoadScan(char* paramFileName, Parameters& inParam)
         }else if(str == "discardRoadDataAfterLaneChange:")
 		{
 			readParam>>inParam.discardRoadDataAfterLaneChange;
+        }else if(str == "offsetDistance:")
+        {
+            readParam>>inParam.offsetDist;
         }else
         {
             //cout<<"Undefined parameter"<<endl;

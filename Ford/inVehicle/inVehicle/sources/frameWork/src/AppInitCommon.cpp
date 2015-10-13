@@ -31,8 +31,6 @@
 #include "configure.h"
 #include "utils.h"
 #include "getSectionID.h" // readSectionConfig
-#include "configParse.h" //config xml file parse
-
 
 HANDLE g_readySema_GPS;
 HANDLE g_readySema_DiffDet;
@@ -44,7 +42,7 @@ ImageBufferAll imageBuffer;
 
 SOCKET sockServer;
 SOCKET sockClient;
-//SOCKADDR_IN serverAddr;
+SOCKADDR_IN serverAddr;
 
 int g_SocketLen;
 
@@ -59,12 +57,6 @@ cv::Mat H, invertH;
 
 int g_CameraPort = 0;
 
-#if(RD_USE_CAMERA == OFF) 
-//char aviNames[50][100];
-//char gpsNames[50][100];
-AviAndGpsFiles  g_aviAndgpsfilelist;
-#endif
-netWorkConfig g_NetworkConfig;
 //#if(RD_SIGN_DETECT == RD_SIGN_DETECT_COLOR)
 //    ns_detection::Detector_colored *trafficSignDetector;
 //#elif(RD_SIGN_DETECT == RD_SIGN_DETECT_WHITE_BLACK)
@@ -86,51 +78,6 @@ void trySetConnectSocket(bool flag)
 		ReleaseMutex(socketMutex);
 	}
 }
-
-//bool configParameterInit(string cfgfilename)
-bool configParameterInit(void)
-{
-
-#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
-	configParse cfgParser("./config/DE_Airport_ParamConfig.xml");
-#elif (RD_LOCATION == RD_GERMAN_LEHRE)
-    configParse cfgParser("./config/DE_Lehre_ParamConfig.xml"); 
-#elif (RD_LOCATION == RD_GERMAN_LEHRE2)
-    configParse cfgParser("./config/DE_Lehre2_ParamConfig.xml");
-#elif (RD_LOCATION == RD_US_DETROIT)
-	configParse cfgParser("./config/US_Detroit_ParamConfig.xml"); 
-#elif (RD_LOCATION == RD_US_PALO_ALTO)
-	configParse cfgParser("./config/US_Palo_ParamConfig.xml"); 
-#endif
-	
-	if(!cfgParser.isLoad())
-	{
-		cout<<"fail to load config file"<<endl;
-		return false;
-	}
-    
-	//load config parameter
-	if(!cfgParser.GetNetWorkCfg(g_NetworkConfig))
-	return false;
-
-	if(!cfgParser.getAlgorithmCfg(inParam))
-	return false;
-
-	if(!cfgParser.getOverViewPoint(serverEyeInfo[0]))
-	return false;
-
-		
-	if(!cfgParser.getCameraPort(g_CameraPort))
-	return false;
-
-	#if(RD_USE_CAMERA == OFF) 
-	if(!cfgParser.getAviGpsFileList(g_aviAndgpsfilelist))
-	return false;
-	#endif
-
-	return true;
-}
-
 
 void appInitEvents(void)
 {
@@ -184,18 +131,8 @@ bool readOverViewPoint(char* fileName,eyeLookAt_t &eye)
 int detectorInit()
 {
     string segFilePath;
-    
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
     segFilePath = "./config/DE_Airport_manualSeg.txt";
-#elif (RD_LOCATION == RD_GERMAN_LEHRE)
-    segFilePath = "./config/DE_Lehre_manualSeg.txt";
-#elif (RD_LOCATION == RD_GERMAN_LEHRE2)
-    segFilePath = "./config/DE_Lehre_manualSeg.txt";	
-#endif
-   
-/*
-#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
-    
     bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Airport2.txt", inParam);
 	readStatus &= readOverViewPoint("./config/DE_Airport_overViewPoint.txt",serverEyeInfo[0]);
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
@@ -211,6 +148,7 @@ int detectorInit()
 	bool readStatus = ns_roadScan::readParamRoadScan("./config/US_Detroit.txt", inParam);
 	readStatus &= readOverViewPoint("./config/US_Detroit_overViewPoint.txt",serverEyeInfo[0]);
 #elif (RD_LOCATION == RD_US_PALO_ALTO)
+    segFilePath = "./config/US_Palo_Alto_manualSeg.txt";
 	bool readStatus = ns_roadScan::readParamRoadScan("./config/US_Palo_Alto.txt", inParam);
 	readStatus &= readOverViewPoint("./config/US_Palo_Alto_overViewPoint.txt",serverEyeInfo[0]);
 #endif
@@ -219,21 +157,18 @@ int detectorInit()
     if((!readStatus) || (!segInfoFlag))
     {
         return -1;
-    }
-	else
-*/
-    bool segInfoFlag = readSectionConfig(segFilePath,g_segCfgList);
-    if(!segInfoFlag)
+    }else
     {
-        return -1;
-    }  
-       		
-    {
-#if(RD_SIGN_DETECT == RD_SIGN_DETECT_COLOR)
-        trafficSignDetector = new ns_detection::Detector_colored(0.5,inParam.distancePerPixel,300);
-#elif(RD_SIGN_DETECT == RD_SIGN_DETECT_WHITE_BLACK)
-        trafficSignDetector = new ns_detection::Detector_blackWhite(0.5,inParam.distancePerPixel,250);
-#elif(RD_SIGN_DETECT == RD_SIGN_DETECT_OFF)
+#if(RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+        trafficSignDetector = new ns_detection::Detector_colored(0.5,inParam.distancePerPixel,300); // 300: airport2
+#elif(RD_LOCATION == RD_GERMAN_LEHRE || RD_LOCATION == RD_GERMAN_LEHRE2)
+        trafficSignDetector = new ns_detection::Detector_colored(0.5,inParam.distancePerPixel,100);
+#elif(RD_LOCATION == RD_US_DETROIT)
+        trafficSignDetector = new ns_detection::Detector_blackWhite(0.5,inParam.distancePerPixel,260); // 260: detroit
+#elif(RD_LOCATION == RD_US_PALO_ALTO)
+        // left blank
+#else
+        // left blank
 #endif
         // Calculate H and H inverse for road scan and traffic sign detection
         ns_roadScan::calHAndInvertH(inParam, H, invertH);
@@ -253,7 +188,7 @@ bool startSocket()
 {
     SOCKADDR_IN clientAddr;
 	int sockLen = sizeof(clientAddr);
-    //FILE* fp = fopen("./config//NewcoVehicleConfig.txt", "r");   
+    FILE* fp = fopen("./config//NewcoVehicleConfig.txt", "r");   
     int nRet;
 
     // Initialize WinSock and check version  
@@ -285,7 +220,7 @@ bool startSocket()
 
 	g_SocketLen = sizeof(clientAddr);
 	// get the serverIP and port, GPS port and vehicle ID
-	/*while(!feof(fp))
+	while(!feof(fp))
 	{
 		char tempBuff[100];
 		serverAddr.sin_family           = AF_INET;
@@ -329,10 +264,9 @@ bool startSocket()
 			 cPort = atoi(&tempBuff[strlen("emulatorPort:")]);
 			 g_EmulatorPort = htons(cPort);
 		}
-
 	}
-	
-	fclose(fp);*/
+
+	fclose(fp);
     //open the UDP socket client, connect to server side
     sockClient = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockClient == INVALID_SOCKET)  
@@ -349,9 +283,8 @@ bool startSocket()
     //    return -1;  
     //} 
 
-	
-	//nRet = connect(sockClient,(struct sockaddr *)&serverAddr,sizeof(serverAddr));
-	nRet = connect(sockClient,(struct sockaddr *)&(g_NetworkConfig.serverAddr),sizeof(g_NetworkConfig.serverAddr));
+
+	nRet = connect(sockClient,(struct sockaddr *)&serverAddr,sizeof(serverAddr));
 	if(nRet == SOCKET_ERROR)
 	{
 		int errorCode = WSAGetLastError();
@@ -370,8 +303,7 @@ unsigned int __stdcall Thread_ReconnectSocket(void *data)
 	{
 		WaitForSingleObject(g_readyEvent_ConnectSocket, INFINITE);
 		WaitForSingleObject(socketMutex,INFINITE);
-		//while(SOCKET_ERROR == connect(sockClient,(struct sockaddr *)&serverAddr,sizeof(serverAddr)))
-		while(SOCKET_ERROR == connect(sockClient,(struct sockaddr *)&(g_NetworkConfig.serverAddr),sizeof(g_NetworkConfig.serverAddr)))
+		while(SOCKET_ERROR == connect(sockClient,(struct sockaddr *)&serverAddr,sizeof(serverAddr)))
 		{
 			int errorCode = WSAGetLastError();
 			if(errorCode == 10056 || errorCode == 10038)
@@ -396,15 +328,14 @@ unsigned int __stdcall Thread_ReconnectSocket(void *data)
 void sendDatabaseVersion()
 {
 	
-	//int sendLen;		
+	//int sendLen;
  
 	#define SEND_MAX_BYTE_NUM 10000
 	char sendBuff[SEND_MAX_BYTE_NUM];
 	messageProcessClass statusMessage;
 	diffRptMsg_t* statusRptMsgPtr = statusMessage.getDiffRptMsg();
 	uint16 headerLen = sizeof(statusRptMsgPtr->msgHeader) + sizeof(statusRptMsgPtr->payloadHeader.pduHeader[0]);
-	//statusMessage.setMsgHeader((uint32*)statusRptMsgPtr,STATUS_UPDATE_RPT_MSG,g_VehicleID,highLevel_e,0,1,headerLen);
-	statusMessage.setMsgHeader((uint32*)statusRptMsgPtr,STATUS_UPDATE_RPT_MSG,g_NetworkConfig.VehicleID,highLevel_e,0,1,headerLen);
+	statusMessage.setMsgHeader((uint32*)statusRptMsgPtr,STATUS_UPDATE_RPT_MSG,g_VehicleID,highLevel_e,0,1,headerLen);
 	statusRptMsgPtr->payloadHeader.tlvArray[0].tag = 3;
 	statusRptMsgPtr->payloadHeader.tlvArray[0].len = 2;
 	statusRptMsgPtr->payloadHeader.tlvArray[0].value = 0xfffe;

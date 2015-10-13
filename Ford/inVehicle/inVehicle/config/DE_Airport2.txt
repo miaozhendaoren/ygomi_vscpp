@@ -27,7 +27,7 @@ stretchRate:
 2
 
 downSampling:
-12
+6
 
 distancePerPixel:
 1.2138

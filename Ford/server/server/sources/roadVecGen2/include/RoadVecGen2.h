@@ -19,401 +19,451 @@
 #pragma once
 
 #include "apiDataStruct.h"
-#include "ExtractSection.h"
 #include "SecRptData.h"
 #include <string>
 
 namespace ns_database
 {
-    class CExtractSection;
 
-    class CRoadVecGen2
-    {
-    public:
-        CRoadVecGen2(void);
-        CRoadVecGen2(string configFilePath);
-        ~CRoadVecGen2(void);
+class CRoadVecGen2
+{
+public:
+    CRoadVecGen2(void);
+    CRoadVecGen2(string configFilePath);
+    ~CRoadVecGen2(void);
 
-        CRoadVecGen2(const CRoadVecGen2&) {}
-        CRoadVecGen2& operator = (const CRoadVecGen2& ) {}
+    CRoadVecGen2(const CRoadVecGen2&) {}
+    CRoadVecGen2& operator = (const CRoadVecGen2& ) {}
 
-        
-        /*
-        * @FUNC
-        *     Update road sections data with new reported data from vehicle.
-        *
-        * @PARAMS
-        *     rptData - road lines of the lane vehicle reported.
-        *     fgData  - updated data of road. there may be multiple sections, iterate
-        *               one by one from first list. The second list stands for lane
-        *               number and vector stands for lines of each lane.
-        *               There may by empty items in the output.
-        *
-        */
-        bool roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
-                             OUT list<list<vector<point3D_t>>> &fgData);
 
-        /*
-        * @FUNC
-        *     Update road sections data without new reported data from vehicle.
-        *     Just generate foreground database from background data.
-        *
-        * @PARAMS
-        *     fgData  - updated data of road. there may be multiple sections, iterate
-        *               one by one from first list. The second list stands for lane
-        *               number and vector stands for lines of each lane.
-        *               There may by empty items in the output.
-        *
-        */
-        bool roadSectionsGen(OUT list<list<vector<point3D_t>>> &fgData);
+    /*
+    * @FUNC
+    *     Update road sections data with new reported data from vehicle.
+    *
+    * @PARAMS
+    *     rptData - road lines of the lane vehicle reported.
+    *     fgData  - updated data of road. there may be multiple sections, iterate
+    *               one by one from first list. The second list stands for lane
+    *               number and vector stands for lines of each lane.
+    *               There may by empty items in the output.
+    *
+    */
+    bool roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
+        OUT list<list<vector<point3D_t>>> &fgData);
 
-        /*
-        * @FUNC
-        *     Set road section configuration file path in order to get configuration
-        *     data
-        *
-        * @PARAMS
-        *     filename - full path of configuration file.
-        *
-        */
-        void setSectionConfigPath(IN string filename, OUT list<segAttributes_t> &segConfigList);
+    /*
+    * @FUNC
+    *     Update road sections data without new reported data from vehicle.
+    *     Just generate foreground database from background data.
+    *
+    * @PARAMS
+    *     fgData  - updated data of road. there may be multiple sections, iterate
+    *               one by one from first list. The second list stands for lane
+    *               number and vector stands for lines of each lane.
+    *               There may by empty items in the output.
+    *
+    */
+    bool roadSectionsGen(OUT list<list<vector<point3D_t>>> &fgData);
 
-        /*
-        * @FUNC
-        *     Given a point, get the section ID of this point.
-        *
-        * @PARAMS
-        *     p  - input point.
-        *
-        */
-        uint32 getSectionId(IN point3D_t p);
+    /*
+    * @FUNC
+    *     Set road section configuration file path in order to get configuration
+    *     data
+    *
+    * @PARAMS
+    *     filename - full path of configuration file.
+    *
+    */
+    void setSectionConfigPath(IN string filename, OUT list<segAttributes_t> &segConfigList);
 
-        /*
-        * @FUNC
-        *     Get road lines moved distance after merging.
-        *
-        * @PARAMS
-        *     dist - shift distance of each line when doing data merging. The first
-        *            value corresponds to the leftmost line, and the last value is
-        *            the rightmost line, ...
-        *
-        */
-        void getShitDist(OUT vector<double> &dist);
+    /*
+    * @FUNC
+    *     Given a point, get the section ID of this point.
+    *
+    * @PARAMS
+    *     p  - input point.
+    *
+    */
+    uint32 getSectionId(IN point3D_t p);
 
-        /*
-        * @FUNC
-        *     Reset database. Release all background and foreground database data.
-        *
-        * @PARAMS
-        *     No input/output parameters.
-        *
-        */
-        void resetDatabase();
-        
-        /*
-        * @FUNC
-        *     Load predefined section data for special sections.
-        *
-        * @PARAMS
-        *     segId    - which section to used pre-load data.
-        *     filename - pre-load data, format is TXT.
-        *
-        */
-        bool loadDefaultSegData(IN uint32 segId, IN string filename);
+    /*
+    * @FUNC
+    *     Get road lines moved distance after merging.
+    *
+    * @PARAMS
+    *     dist - shift distance of each line when doing data merging. The first
+    *            value corresponds to the leftmost line, and the last value is
+    *            the rightmost line, ...
+    *
+    */
+    void getShitDist(OUT vector<double> &dist);
 
-        /*
-        * @FUNC
-        *     Output back ground road vector list
-        *
-        * @PARAMS
-        *     bgVecOut - output road vector list
-        *
-        */
-        void getBgRoadVec(OUT std::list<backgroundSectionData> &bgVecOut);
+    /*
+    * @FUNC
+    *     Reset database. Release all background and foreground database data.
+    *
+    * @PARAMS
+    *     No input/output parameters.
+    *
+    */
+    void resetDatabase();
 
-        /*
-        * @FUNC
-        *     Set back ground DB using input road vector list
-        *
-        * @PARAMS
-        *     bgVecIn - input vector to set DB
-        *
-        */
-        void setBgRoadVec(IN std::list<backgroundSectionData> &bgVecIn);
+    /*
+    * @FUNC
+    *     Load predefined section data for special sections.
+    *
+    * @PARAMS
+    *     segId    - which section to used pre-load data.
+    *     filename - pre-load data, format is TXT.
+    *
+    */
+    bool loadDefaultSegData(IN uint32 segId, IN string filename);
 
-    protected:
-        CExtractSection               _extractSecObj;
-        CSecRptData                   _secRptDataObj;
-        std::string                   _configPath;
+    /*
+    * @FUNC
+    *     Output back ground road vector list
+    *
+    * @PARAMS
+    *     bgVecOut - output road vector list
+    *
+    */
+    void getBgRoadVec(OUT std::list<backgroundSectionData> &bgVecOut);
 
-        bool                          _bCircleRoad;
-        uint32                        _curSecId;       // current section ID
-        vector<int>                   _secLaneNum;     // number of lanes for section
-        vector<int>                   _secBodyStInd;   // section body data start index
-        vector<int>                   _secBodyEdInd;   // section body data end index
-        vector<double>                _secRotAngle;    // rotation angle for sections
-        list<vector<point3D_t>>       _secLeftData;    // section left line sample data
-        list<vector<point3D_t>>       _secRightData;   // section right line sample data
-        list<vector<int>>             _secLaneType;    // section lane type
-        list<vector<int>>             _secLaneConn;    // adjacent section connection relationship
+    /*
+    * @FUNC
+    *     Set back ground DB using input road vector list
+    *
+    * @PARAMS
+    *     bgVecIn - input vector to set DB
+    *
+    */
+    void setBgRoadVec(IN std::list<backgroundSectionData> &bgVecIn);
 
-        list<segAttributes_t>         _segConfigList;  // section configurations
-        list<backgroundSectionData>   _bgDatabaseList; // background database
-        list<foregroundSectionData>   _fgDatabaseList; // foreground database
-        list<foregroundSectionData>   _fgOutputList;   // foreground output data
+protected:
+    CSecRptData                   _secRptDataObj;
+    std::string                   _configPath;
 
-        HANDLE                        _hMutexMerging;  // mutex handle for reset
+    bool                          _bCircleRoad;
+    uint32                        _curSecId;       // current section ID
+    vector<int>                   _secLaneNum;     // number of lanes for section
+    vector<int>                   _secBodyStInd;   // section body data start index
+    vector<int>                   _secBodyEdInd;   // section body data end index
+    vector<double>                _secRotAngle;    // rotation angle for sections
+    list<vector<point3D_t>>       _secLeftData;    // section left line sample data
+    list<vector<point3D_t>>       _secRightData;   // section right line sample data
+    list<vector<int>>             _secLaneType;    // section lane type
+    list<vector<int>>             _secLaneConn;    // adjacent section connection relationship
 
-        /*
-        * @FUNC
-        *     Read section configuration file from input full path. The configuration
-        *     is stored in _segConfigList.
-        *
-        * @PARAMS
-        *
-        */
-        void readSecConfig(OUT list<segAttributes_t> &segCfgList);
+    list<segAttributes_t>         _segConfigList;  // section configurations
+    list<backgroundSectionData>   _bgDatabaseList; // background database
+    list<backgroundSectionData>   _bgRevDirList;   // reverse direction background database
+    list<foregroundSectionData>   _fgDatabaseList; // foreground database
+    list<foregroundSectionData>   _fgRevDirList;   // reverse direction foreground database
+    list<foregroundSectionData>   _fgAllDirList;   // foreground all direction database
+    list<foregroundSectionData>   _fgOutputList;   // foreground output data
 
-        /*
-        * @FUNC
-        *     Initialize background and foreground database according to section
-        *     configuration.
-        *
-        * @PARAMS
-        */
-        void initDatabase();
+    HANDLE                        _hMutexMerging;  // mutex handle for reset
 
-        /*
-        * @FUNC
-        *     Re-sample input line data by using interpolation.
-        *
-        * @PARAMS
-        *     soureLine   - source line data of x, y.
-        *     sampledLine - sample data of input line, x is used to calculate
-        *                   corresponding y values.
-        *
-        */
-        void interpolationSample(IN    vector<point3D_t> &sourceLine,
-                                 INOUT vector<point3D_t> &sampledLine);
+    /*
+    * @FUNC
+    *     Read section configuration file from input full path. The configuration
+    *     is stored in _segConfigList.
+    *
+    * @PARAMS
+    *
+    */
+    void readSecConfig(OUT list<segAttributes_t> &segCfgList);
 
-        /*
-        * @FUNC
-        *     Calculate each section line rotation angle and X data range
-        *     according to section full configuration. The angle is the line
-        *     from start points to end points.
-        *
-        * @PARAMS
-        *     No input parameters. All used variables are class members.
-        *     _secDataRange is used to store full section X data.
-        *     _secBodyStInd is used to store each section body start index.
-        *     _secBodyEdInd is used to store each section body end index.
-        *     The size of _secDataRange, _secBodyStInd and _secBodyEdInd should
-        *     be the same as _segConfigList.
-        *
-        */
+    /*
+    * @FUNC
+    *     Initialize background and foreground database according to section
+    *     configuration.
+    *
+    * @PARAMS
+    */
+    void initDatabase();
 
-        void calcRotAngleAndRange();
+    /*
+    * @FUNC
+    *     Re-sample input line data by using interpolation.
+    *
+    * @PARAMS
+    *     soureLine   - source line data of x, y.
+    *     sampledLine - sample data of input line, x is used to calculate
+    *                   corresponding y values.
+    *
+    */
+    void interpolationSample(IN vector<point3D_t> &sourceLine,
+        INOUT vector<point3D_t> &sampledLine);
 
-        /*
-        * @FUNC
-        *     Rotate input line according to rotation angle.
-        *
-        * @PARAMS
-        *     sourceLine  - source line data of X, Y.
-        *     theta       - rotation angle.
-        *     rotatedLine - returned rotated line.
-        *
-        */
-        void lineRotation(IN  vector<point3D_t> &sourceLine,
-                          IN  double             theta,
-                          OUT vector<point3D_t> &rotatedLine);
+    /*
+    * @FUNC
+    *     Calculate each section line rotation angle and X data range
+    *     according to section full configuration. The angle is the line
+    *     from start points to end points.
+    *
+    * @PARAMS
+    *     No input parameters. All used variables are class members.
+    *     _secDataRange is used to store full section X data.
+    *     _secBodyStInd is used to store each section body start index.
+    *     _secBodyEdInd is used to store each section body end index.
+    *     The size of _secDataRange, _secBodyStInd and _secBodyEdInd should
+    *     be the same as _segConfigList.
+    *
+    */
 
-        /*
-        * @func
-        *     Background database update, update each lane separately.
-        *
-        * @params
-        *     reportData     - reported data from vehicle, including lines of
-        *                      the lane vehicle running.
-        *     bgDatabaseData - background database data of current section,
-        *                      stored lane by lane.
-        *
-        */
-        bool mergeSectionLane(IN    reportSectionData     &reportData,
-                              INOUT backgroundSectionData *bgDatabaseData);
+    void calcRotAngleAndRange();
 
-        /*
-        * @func
-        *     Foreground database update. Merge common line of two adjacent lanes
-        *     for all section data in background database.
-        *
-        * @params
-        *     there is no input parameters as all are class members.
-        *
-        */
-        bool stitchSectionLanes();
+    /*
+    * @FUNC
+    *     Rotate input line according to rotation angle.
+    *
+    * @PARAMS
+    *     sourceLine  - source line data of X, Y.
+    *     theta       - rotation angle.
+    *     rotatedLine - returned rotated line.
+    *
+    */
+    void lineRotation(IN  vector<point3D_t> &sourceLine,
+        IN  double             theta,
+        OUT vector<point3D_t> &rotatedLine);
 
-        /*
-        * @FUNC
-        *     Get corresponding section configuration data and background database
-        *     data according to current section ID.
-        *
-        * @PARAMS
-        *     bgSegData     - output extracted background data of input section
-        *
-        */
-        void getDatabaseData(OUT backgroundSectionData        **bgSegData);
+    /*
+    * @func
+    *     Background database update, update each lane separately.
+    *
+    * @params
+    *     reportData     - reported data from vehicle, including lines of
+    *                      the lane vehicle running.
+    *
+    */
+    bool mergeSectionLane(IN reportSectionData &reportData);
 
-        /*
-        * @FUNC
-        *     Get dash line start and end index from line data.
-        *
-        * @PARAMS
-        *     lineData      - input line data to check dash line paint index.
-        *     dotBlkIndexSt - output of all dash line start index.
-        *     dotBlkIndexEd - output of all dash line end index.
-        *
-        */
-        void dotLineBlockIndex(IN  vector<point3D_t> &lineData,
-                               OUT vector<int>       &dotBlkIndexSt,
-                               OUT vector<int>       &dotBlkIndexEd);
+    /*
+    * @func
+    *     Foreground database update. Merge common line of two adjacent lanes
+    *     for all section data in background database.
+    *
+    * @params
+    *     bRevDir - stitch forward or backward database
+    *
+    */
+    bool stitchSectionLanes(IN bool bRevDir = false);
 
-        /*
-        * @FUNC
-        *     Combine dash line block index if the length is within threshold.
-        *
-        * @PARAMS
-        *     dotBlkIndexSt - all dash line start index. output merged start index.
-        *     dotBlkIndexEd - all dash line end index. output merged end index.
-        */
-        void blockCombine(INOUT vector<int> &dotBlkIndexSt,
-                          INOUT vector<int> &dotBlkIndexEd);
+    /*
+    * @func
+    *     Foreground database update. Merge common line of two adjacent lanes
+    *     for all section data in background database.
+    *
+    * @params
+    *     bNeedMerge - whether the shared line should be merged
+    *
+    */
+    bool stitchSharedLines(IN bool bNeedMerge = false);
 
-        /*
-        * @FUNC
-        *     Polynomial curve line fitting for input line.
-        *
-        * @PARAMS
-        *     soureLine  - input source line, X, Y is used to do polynomial fitting.
-        *     fittedLine - output fitted line, X is used to calculate Y values.
-        *
-        */
-        void polynomialFitting(IN    vector<point3D_t> &sourceLine,
-                               INOUT vector<point3D_t> &fittedLine);
+    /*
+    * @FUNC
+    *     Get corresponding section configuration data and background database
+    *     data according to current section ID.
+    *
+    * @PARAMS
+    *     bgSegData     - output extracted background data of input section
+    *
+    */
+    void getBgDatabaseData(OUT backgroundSectionData **bgSegData,
+        IN  bool revDirFlag = false);
 
-        /*
-        * @FUNC
-        *     Get paint information for input line.
-        *
-        * @PARAMS
-        *     sourceline - input line data.
-        *     destline   - destination line of output data with paint information
-        *                  added. input X is used to do sample
-        *
-        */
-        void getLinePaintInfo(IN  vector<point3D_t> &sourceline,
-                              OUT vector<point3D_t> &destline);
+    /*
+    * @FUNC
+    *     Get corresponding section configuration data and foreground database
+    *     data according to current section ID.
+    *
+    * @PARAMS
+    *     fgSegData     - output extracted foreground data of input section
+    *
+    */
+    void getFgDatabaseData(OUT foregroundSectionData  **fgSegData,
+        IN  bool revDirFlag = false);
 
-        /*
-        * @FUNC
-        *     Get foreground database line data according to input and rotation
-        *     angle.
-        *
-        * @PARAMS
-        *     bgline   - background database line data.
-        *     theta    - section rotation angle
-        *     fgline   - normalized paint information foreground base line
-        *
-        */
-        void getFGLine(IN  vector<point3D_t> &bgline,
-                       double                 theta,
-                       OUT vector<point3D_t> &fgline);
+    /*
+    * @FUNC
+    *     Get corresponding section configuration data and foreground database
+    *     data according to current section ID.
+    *
+    * @PARAMS
+    *     fgSegData     - output extracted foreground data of input section
+    *
+    */
+    void getFgAllDatabaseData(OUT foregroundSectionData  **fgSegData);
 
-        /*
-        * @FUNC
-        *     Preprocessing for input lane data(two lines).
-        *
-        * @PARAMS
-        *     lanelines   - input lane data, which contains two lines.
-        *     matchedLane - matched lane number of current section.
-        *     leftline    - output left line data, X is re-sampled input.
-        *     rightline   - output right line data, X is re-sampled input.
-        *
-        */
-        bool LaneDataPreprocessing(IN  list<vector<point3D_t>> &lanelines,
-                                   OUT int                     &matchedLane,
-                                   OUT vector<point3D_t>       &leftline,
-                                   OUT vector<point3D_t>       &rightline);
+    /*
+    * @FUNC
+    *     Get corresponding section configuration data and output foreground
+    *     database data according to current section ID.
+    *
+    * @PARAMS
+    *     fgOutSegData  - output extracted foreground data of input section
+    *
+    */
+    void getFgOutDatabaseData(OUT foregroundSectionData **fgOutSegData);
 
-        /*
-        * @FUNC
-        *     Estimate lane number of two input lines. Mean and standard
-        *     derivation of dash line length(start/end) are used to decide
-        *     line type. The correlation between left and right line is also
-        *     used to judge lane type.
-        *
-        * @PARANS
-        *     leftline     - left line of input lane data, X is re-sampled
-        *     rightline    - right line of input lane data, X is re-sampled
-        *     matchedLane  - matched lane number.
-        *
-        */
-        void laneNumberEst(IN  vector<point3D_t> &leftline,
-                           IN  vector<point3D_t> &rightline,
-                           OUT int               &matchedLane);
 
-        /*
-        * @FUNC
-        *     Remove foreground database section overlap and output lines.
-        *
-        * @PARAMS
-        *     fgData - output line data of foreground database without overlap.
-        *
-        */
-        void removeOverlap(OUT list<list<vector<point3D_t>>> &fgData);
+    /*
+    * @FUNC
+    *     Get dash line start and end index from line data.
+    *
+    * @PARAMS
+    *     lineData      - input line data to check dash line paint index.
+    *     dotBlkIndexSt - output of all dash line start index.
+    *     dotBlkIndexEd - output of all dash line end index.
+    *
+    */
+    void dotLineBlockIndex(IN  vector<point3D_t> &lineData,
+        OUT vector<int>       &dotBlkIndexSt,
+        OUT vector<int>       &dotBlkIndexEd);
 
-        /*
-        * @FUNC
-        *     Remove foreground database section overlap and output lines.
-        *
-        * @PARAMS
-        *
-        */
-        void removeOverlap();
+    /*
+    * @FUNC
+    *     Combine dash line block index if the length is within threshold.
+    *
+    * @PARAMS
+    *     dotBlkIndexSt - all dash line start index. output merged start index.
+    *     dotBlkIndexEd - all dash line end index. output merged end index.
+    */
+    void blockCombine(INOUT vector<int> &dotBlkIndexSt,
+        INOUT vector<int> &dotBlkIndexEd);
 
-        /*
-        * @FUNC
-        *    Process adjacent section connection data.
-        *
-        * @PARAMS
-        *    fgData - output line data of foreground database after processing
-        *             connection part.
-        *
-        */
-        void jointProcessing(OUT list<list<vector<point3D_t>>> &fgData);
+    /*
+    * @FUNC
+    *     Polynomial curve line fitting for input line.
+    *
+    * @PARAMS
+    *     soureLine  - input source line, X, Y is used to do polynomial fitting.
+    *     fittedLine - output fitted line, X is used to calculate Y values.
+    *
+    */
+    void polynomialFitting(IN    vector<point3D_t> &sourceLine,
+        INOUT vector<point3D_t> &fittedLine);
 
-        /*
-        * @FUNC
-        *    Check whether current road is circle based on adjacent section
-        *    connection relationship.
-        *
-        * @PARAMS
-        *    save the value in member _bCircleRoad.
-        *
-        */
-        void checkCircleRoad(void);
+    /*
+    * @FUNC
+    *     Get paint information for input line.
+    *
+    * @PARAMS
+    *     sourceline - input line data.
+    *     destline   - destination line of output data with paint information
+    *                  added. input X is used to do sample
+    *
+    */
+    void getLinePaintInfo(IN  vector<point3D_t> &sourceline,
+        OUT vector<point3D_t> &destline);
 
-        /*
-        * @FUNC
-        *    Matched current section lines with previous section lines.
-        *
-        * @PARAMS
-        *    segId      - previous section Id.
-        *    matchedInd - matched section line index.
-        *
-        */
-        void getMatchedLineInd(IN uint32 segId, OUT vector<int> &matchedInd);
+    /*
+    * @FUNC
+    *     Get foreground database line data according to input and rotation
+    *     angle.
+    *
+    * @PARAMS
+    *     bgline   - background database line data.
+    *     theta    - section rotation angle
+    *     fgline   - normalized paint information foreground base line
+    *
+    */
+    void getFGLine(IN  vector<point3D_t> &bgline,
+        double                 theta,
+        OUT vector<point3D_t> &fgline);
 
-    };
+    /*
+    * @FUNC
+    *     Preprocessing for input lane data(two lines).
+    *
+    * @PARAMS
+    *     lanelines   - input lane data, which contains two lines.
+    *     matchedLane - matched lane number of current section.
+    *     leftline    - output left line data, X is re-sampled input.
+    *     rightline   - output right line data, X is re-sampled input.
+    *
+    */
+    bool LaneDataPreprocessing(IN  list<vector<point3D_t>> &lanelines,
+        OUT int                     &matchedLane,
+        OUT vector<point3D_t>       &leftline,
+        OUT vector<point3D_t>       &rightline);
+
+    /*
+    * @FUNC
+    *     Estimate lane number of two input lines. Mean and standard
+    *     derivation of dash line length(start/end) are used to decide
+    *     line type. The correlation between left and right line is also
+    *     used to judge lane type.
+    *
+    * @PARANS
+    *     leftline     - left line of input lane data, X is re-sampled
+    *     rightline    - right line of input lane data, X is re-sampled
+    *     matchedLane  - matched lane number.
+    *
+    */
+    void laneNumberEst(IN  vector<point3D_t> &leftline,
+        IN  vector<point3D_t> &rightline,
+        OUT int               &matchedLane);
+
+    /*
+    * @FUNC
+    *     Remove foreground database section overlap and output lines.
+    *
+    * @PARAMS
+    *     fgData - output line data of foreground database without overlap.
+    *
+    */
+    void removeOverlap(OUT list<list<vector<point3D_t>>> &fgData);
+
+    /*
+    * @FUNC
+    *     Remove foreground database section overlap and output lines.
+    *
+    * @PARAMS
+    *
+    */
+    void removeOverlap();
+
+    /*
+    * @FUNC
+    *    Process adjacent section connection data.
+    *
+    * @PARAMS
+    *    fgData - output line data of foreground database after processing
+    *             connection part.
+    * bCommLinesMerged - whether forward and backward direction shared lines
+    *                    is merged or not.
+    *
+    */
+    void jointProcessing(OUT list<list<vector<point3D_t>>> &fgData,
+        IN bool bCommLinesMerged);
+
+    /*
+    * @FUNC
+    *    Check whether current road is circle based on adjacent section
+    *    connection relationship.
+    *
+    * @PARAMS
+    *    save the value in member _bCircleRoad.
+    *
+    */
+    void checkCircleRoad(void);
+
+    /*
+    * @FUNC
+    *    Matched current section lines with previous section lines.
+    *
+    * @PARAMS
+    *    matchedInd  - matched section line index.
+    *    segId       - previous section Id.
+    *    bHasRevData - whether contains reverse direction data.
+    *
+    */
+    void getMatchedLineInd(OUT vector<int> &matchedInd,
+        IN uint32 segId,
+        IN bool   bHasRevData);
+
+};
 
 }

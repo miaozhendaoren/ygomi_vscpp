@@ -28,8 +28,8 @@ cv::Mat H, invertH;
 int main(void)
 {
 	Parameters inParam;
-	//DE_Airport2--US_Detroit
-	bool readStatus = readParamRoadScan("../../../../Ford/inVehicle/inVehicle/config/US_Detroit.txt", inParam);
+	//	DE_Airport2 -- US_Detroit -- DE_Lehre2
+	bool readStatus = readParamRoadScan("../../../../Ford/inVehicle/inVehicle/config/DE_Airport.txt", inParam);
 
 	// Calculate H and H inverse for road scan and traffic sign detection
 	ns_roadScan::calHAndInvertH(inParam, H, invertH);
@@ -40,11 +40,12 @@ int main(void)
 		return -1;
 	}
 
-	int ChooseVideo = Ford;
+	int ChooseVideo = Airport;
 	int videoIndex = 0;
 
 	int locNum[2], holeNum[2];
 
+	for(int kk = 0; kk < 6; kk++)	//	Airport2
 	{
 		VideoCapture capture;
 		FILE* gpsFile;
@@ -57,13 +58,75 @@ int main(void)
 				gpsFile = fopen("F:/roadDB/Airport 2/gps/list_20150811111511.txt","r");
 				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
 			}
+			else if (videoIndex == 1)
+			{
+				capture.open("F:/roadDB/Airport 2/cam_20150811112010.mp4");
+				gpsFile = fopen("F:/roadDB/Airport 2/gps/list_20150811112010.txt","r");
+				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+			}
+			else if (videoIndex == 2)
+			{
+				capture.open("F:/roadDB/Airport 2/cam_20150811112510.mp4");
+				gpsFile = fopen("F:/roadDB/Airport 2/gps/list_20150811112510.txt","r");
+				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+			}
+			else if (videoIndex == 3)
+			{
+				capture.open("F:/roadDB/Airport 2/cam_20150811113010.mp4");
+				gpsFile = fopen("F:/roadDB/Airport 2/gps/list_20150811113010.txt","r");
+				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+			}
+			else if (videoIndex == 4)
+			{
+				capture.open("F:/roadDB/Airport 2/cam_20150811113510.mp4");
+				gpsFile = fopen("F:/roadDB/Airport 2/gps/list_20150811113510.txt","r");
+				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+			}
+
+			else if (videoIndex == 5)
+			{
+				capture.open("F:/roadDB/Airport 2/cam_20150811114010.mp4");
+				gpsFile = fopen("F:/roadDB/Airport 2/gps/list_20150811114010.txt","r");
+				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+			}
+
+			else if (videoIndex == 6)
+			{
+				capture.open("F:/roadDB/Airport 2/cam_20150811114510.mp4");
+				gpsFile = fopen("F:/roadDB/Airport 2/gps/list_20150811114510.txt","r");
+				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+			}
+			else if (videoIndex == 7)
+			{
+				capture.open("F:/roadDB/Airport 2/cam_20150811115010.mp4");
+				gpsFile = fopen("F:/roadDB/Airport 2/gps/list_20150811115010.txt","r");
+				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+			}
+			else if (videoIndex == 8)
+			{
+				capture.open("F:/roadDB/Airport 2/cam_20150811115510.mp4");
+				gpsFile = fopen("F:/roadDB/Airport 2/gps/list_20150811115510.txt","r");
+				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+			}
+			else if (videoIndex == 9)
+			{
+				capture.open("F:/roadDB/Airport 2/cam_20150811120010.mp4");
+				gpsFile = fopen("F:/roadDB/Airport 2/gps/list_20150811120010.txt","r");
+				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+			}
+			else if (videoIndex == 10)
+			{
+				capture.open("F:/roadDB/Airport 2/cam_20150811120510.mp4");
+				gpsFile = fopen("F:/roadDB/Airport 2/gps/list_20150811120510.txt","r");
+				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
+			}
 		}
 		else if(ChooseVideo == Airport)
 		{
 			if (videoIndex == 0)
 			{
-				capture.open("F:/roadDB/Airport/cam_20150806103420.mp4");
-				gpsFile = fopen("F:/roadDB/Airport/gps/list_20150806113420.txt","r");
+				capture.open("F:/roadDB/Airport/cam_20150806120920.mp4");
+				gpsFile = fopen("F:/roadDB/Airport/gps/list_20150806120920.txt","r");
 				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
 			}
 		}
@@ -72,7 +135,7 @@ int main(void)
 			if (videoIndex == 0)
 			{
 				capture.open("F:/roadDB/Ford/NewcoData/MKS360_20130722_003_Uncompressed.avi");
-				gpsFile = fopen("F:/roadDB/Ford/NewcoData/gps_003 - 副本.txt","r");
+				gpsFile = fopen("F:/roadDB/Ford/NewcoData/gps_003.txt","r");
 				capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
 			}
 		}
@@ -121,7 +184,7 @@ int main(void)
         gpsInformationAndInterval gpsAndInterval;
 		Mat image;
 		int intrtmp = 0;
-		int frames = 100;
+		int frames = 350;
 		vector<Point2d> gps_points;
 		
 		while(!feof(gpsFile))
@@ -152,7 +215,7 @@ int main(void)
 						GPSAndInterval.push_back(gpsAndInterval);
 					}
 					
-					if((index == (frames - 1)) || ((n*frames + index + 1) == gps_points.size()))
+					if(((index == (frames - 1)) || ((n*frames + index + 1) == gps_points.size())) && ( !GPSAndInterval.empty()))
 					{
 						rowIndex -= GPSAndInterval[GPSAndInterval.size()-1].intervalOfInterception;
 					}
@@ -226,17 +289,40 @@ int main(void)
 				<<roadPaintDataALL[i].Right_Paint_Edge[0].x<<" "<<roadPaintDataALL[i].Right_Paint_Edge[0].y<<" "
 				<<roadPaintDataALL[i].Right_Paint_Edge[1].x<<" "<<roadPaintDataALL[i].Right_Paint_Edge[1].y<<" "
 				<<roadPaintDataALL[i].Right_Area_Pixel_Mean<<endl;
-
-			/*double left_paint = sqrt(pow(roadPaintDataALL[i].Left_Paint_Edge[0].x-roadPaintDataALL[i].Left_Paint_Edge[1].x,2.0)
-				+pow(roadPaintDataALL[i].Left_Paint_Edge[0].y-roadPaintDataALL[i].Left_Paint_Edge[1].y,2.0));
-			double right_paint = sqrt(pow(roadPaintDataALL[i].Right_Paint_Edge[0].x-roadPaintDataALL[i].Right_Paint_Edge[1].x,2.0)
-				+pow(roadPaintDataALL[i].Right_Paint_Edge[0].y-roadPaintDataALL[i].Right_Paint_Edge[1].y,2.0));*/
 		}
+
+		////output real middle real GPS
+		//vector<Point2d> actualGPS;
+		//for(int index = 0; index < roadPaintDataALL.size(); index++)
+		//{
+		//	Point2d middleRealGPS = Point2d(0.0, 0.0);
+
+		//	//calculate real GPS
+
+		//	if(roadPaintDataALL[index].isPaint_Right == 1)
+		//	{
+		//		calActualGPSFromRef(roadPaintDataALL[index].Right_Middle_RelGPS, inParam.GPSref, middleRealGPS);
+		//	}
+		//	else
+		//	{
+		//		calActualGPSFromRef(roadPaintDataALL[index].Middle_RelGPS, inParam.GPSref, middleRealGPS);
+		//	}
+
+		//	actualGPS.push_back(middleRealGPS);
+		//}
+
+		//ofstream realGPS("realGPS.txt");
+		//for(int index = 0; index < actualGPS.size(); index++)
+		//{
+		//	realGPS<<setprecision(20)<<actualGPS[index].y<<","<<actualGPS[index].x<<","<<0<<endl;
+		//}
+		//realGPS.close();
+		////end output
 
 		cout<<"output finish"<<endl;
 		dataStruct.close();
 		roadPaintDataALL.clear();
 
-		//waitKey(-1);
+		videoIndex++;
 	}
 }

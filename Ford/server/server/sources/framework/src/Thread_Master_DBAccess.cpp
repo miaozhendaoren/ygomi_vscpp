@@ -18,7 +18,6 @@
 #include "databaseServer.h" // databaseServer
 #include "appInitCommon.h"
 #include "laneQueueClass.h"
-#include "RoadVecGen.h" // CRoadVecGen
 #include "RoadVecGen2.h" // CRoadVecGen2
 #include "LogInfo.h"  // logPrintf
 #include "configure.h"
@@ -123,6 +122,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 									{
                                         database_gp->saveRoadVecToFile("log/roadVecSave.bin");
                                         database_gp->saveFurToFile("log/furnitureSave.bin");
+                                        database_gp->saveRoadVecAndFurToKml("log/roadVec_furniture.kml");
 									}else if(2 == value) //load
 									{
                                         // Load pre-stored data
@@ -460,11 +460,7 @@ bool processLaneBuffer()
         list<list<vector<point3D_t>>> fgData;
 
         bool flag = false;
-#if RD_MERGING_ALGO_VER==2
         flag = roadVecGen2_gp->roadSectionsGen(newDataList, fgData);
-#else
-        flag = roadVecGen_gp->roadSectionsGen(newDataList, fgData);
-#endif
 
         if (flag == false)
         {
