@@ -46,7 +46,7 @@ int main(void)
 
 	int ChooseVideo = Honda3;
 
-	int videoIndex = 1;
+	int videoIndex = 0;
 
 	int locNum[2], holeNum[2];
 
@@ -481,7 +481,7 @@ int main(void)
 	    vector<gpsInformationAndInterval> GPSAndInterval;
         
 		////////////////////////////////////////////////////////////////////////////
-		Mat history = Mat::zeros(S.height *HH*SCALE,S.width, CV_8UC3);
+		Mat history = Mat::zeros(S.height *HH*SCALE,S.width, CV_8UC1);
 
 		Point2d *GPS_Points;
 		//GPS_Points = new Point2d [S.height *HH*SCALE];
@@ -498,7 +498,7 @@ int main(void)
         gpsInformationAndInterval gpsAndInterval;
 		Mat image;
 		int intrtmp=0;
-		int frames = 300;
+		int frames = 1000;
 		vector<Point2d> gps_points;
 		
 		while(!feof(gpsFile))
@@ -506,7 +506,7 @@ int main(void)
 			fscanf(gpsFile,"%lf,%lf\n",&GPS_next.x,&GPS_next.y);
 			gps_points.push_back(GPS_next);
 		}
-		for (int n=1;n<150;n++)
+		for (int n=3;n<150;n++)
 		{
 
              cout<<"video="<<videoIndex<<endl;
@@ -517,6 +517,8 @@ int main(void)
 				break;
 				
 			}
+            Point2d GPS_stop = Point2d(0,0);
+            bool stopFlg = false;
 			capture.set(CV_CAP_PROP_POS_FRAMES, n*frames+1);
 			for(int index = 0; index < frames; index++)//number_of_frames
 			{
@@ -524,7 +526,7 @@ int main(void)
 				capture >> image;
 				if (image.data&& n*frames+index+1<gps_points.size())
 				{
-					roadImageGen(image, history, &rowIndex, &gps_points[n*frames+index], &gps_points[n*frames+index+1], &gpsAndInterval, &intrtmp, inParam);
+					roadImageGen(image, history, &rowIndex, &gps_points[n*frames+index], &gps_points[n*frames+index+1], &gpsAndInterval, &intrtmp, inParam, GPS_stop,stopFlg);
                        
                     if (gpsAndInterval.intervalOfInterception)
                     {
@@ -548,7 +550,7 @@ int main(void)
 		rowIndex=0;
 		intrtmp=0;
 		roadImageProc2(historyROI, GPSAndInterval, roadPaintData, inParam);
-		history = Mat::zeros(S.height *HH*SCALE,S.width, CV_8UC3);
+		history = Mat::zeros(S.height *HH*SCALE,S.width, CV_8UC1);
     
 		int H = historyROI.rows;
 	
@@ -626,16 +628,14 @@ int main(void)
 }
 
 
-
-
 FILE * getHonda3(VideoCapture &capture,int &videoIndex)
 {
     FILE* gpsFile;
 
     if (videoIndex%10 == 0)
     {
-        capture.open("F:/Honda20150831_selected/H1/1.mp4");
-        gpsFile = fopen("F:/Honda20150831_selected/H1/1.txt","r");
+        capture.open("F:/Honda20150831_selected/H2/1.mp4");
+        gpsFile = fopen("F:/Honda20150831_selected/H2/1.txt","r");
         capture.set(CV_CAP_PROP_POS_AVI_RATIO, 1);
     }
     else if (videoIndex%10 == 1)

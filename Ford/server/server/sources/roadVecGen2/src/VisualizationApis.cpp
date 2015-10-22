@@ -231,7 +231,7 @@ void saveListVec(list<vector<point3D_t>> &dataInput, char *filename)
             vector<point3D_t>::iterator pnt = line->begin();
             for (; pnt != line->end(); pnt++)
             {
-                fprintf_s(fp, "%lf, %lf, %f\n", pnt->lon, pnt->lat, pnt->paintFlag);
+                fprintf_s(fp, "%lf, %lf, %f, %f\n", pnt->lon, pnt->lat, pnt->paintFlag, pnt->paintLength);
             }
         }
         line++;

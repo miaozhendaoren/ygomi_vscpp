@@ -4,6 +4,7 @@
 #include <iostream>
 #include "utils.h"
 #include "AppInitCommon.h"
+#include "configure.h"
 
 using namespace cv;
 using namespace std;
@@ -179,6 +180,105 @@ void getGPSLocationOfEveryPixelInRoadScanImage(Point2d GPS1,Point2d GPS2,Point2d
 	GPSFinal.y = x2 * sin(t) + y2 * cos(t) + GPS1.y;
 }
 
+
+
+/*
+ * @FUNC
+ *     cal ridge image for roadScan image, to extract white painting ;     
+ *
+ * @PARAMS
+ *     image_f   -  input image;
+ *     Kapa      -  output ridge image;
+ *     sigma1    -  Gaussian param;
+ *     sigma2    -  Gaussian param 
+ *
+ */
+void ridgeDetectX(Mat &image_f,Mat &Kapa, double sigma1, double sigma2)
+{
+	Mat image_f2;
+
+	//Step1: Gaussian filter
+	double sigma = sigma1;
+	int ksize = ((sigma - 0.8)/0.3 +1)*2 + 1; 
+	Mat gaussKernelx =  getGaussianKernel(ksize, sigma); 
+	sepFilter2D(image_f, image_f2, CV_32F, gaussKernelx , gaussKernelx);
+
+	//Step2: Compute the Gradient Vector Field
+	Mat KernelX = (Mat_<float>(1, 3) << -0.1, 0, 0.1);
+	Mat KernelY = (Mat_<float>(3, 1) << -0.5, 0, 0.5);
+
+	Mat fx,fy;
+	filter2D(image_f2,fx,-1,KernelX);
+	filter2D(image_f2,fy,-1,KernelY);
+
+	//Step3: 
+	Mat xx,xy,yy;
+	multiply(fx, fx, xx, 1./255);
+	multiply(fx, fy, xy, 1./255);
+	multiply(fy, fy, yy, 1./255);
+
+	//Step4: Gaussian filter
+	{
+		double sigma = sigma2;
+		int ksize = ((sigma - 0.8)/0.3 +1)*2 + 1; 
+		Mat gaussKernelx =  getGaussianKernel( ksize, sigma); 
+
+		sepFilter2D(xx, xx, CV_32F, gaussKernelx , gaussKernelx);
+		sepFilter2D(xy, xy, CV_32F, gaussKernelx , gaussKernelx);
+		sepFilter2D(yy, yy, CV_32F, gaussKernelx , gaussKernelx);
+	}
+
+	//Step5:eigen value and eigen vector.
+	int w = image_f.cols;
+	int h = image_f.rows;
+
+	Mat u(h, w, CV_32F);
+	Mat v(h, w, CV_32F);
+
+	{
+		for (int i = 0; i< w; i++)
+		{
+			for (int j = 0; j< h; j++)
+			{
+				float a = xx.at<float>(j,i);
+				float b = xy.at<float>(j,i);
+				float c = b;
+				float d = yy.at<float>(j,i);
+
+				float T = a+d;
+				float D = a*d - c*b;
+				float L1 = T/2.0 + sqrt(T*T/4.0 - D);
+
+				float ex = L1-d;
+				float ey = c;
+				float norm = sqrt(ex*ex + ey*ey);
+
+				ex = L1*ex/norm;
+				ey = L1*ey/norm;
+
+				float sign ;
+
+				if ((ex*fx.at<float>(j,i) + ey*fy.at<float>(j,i))> 0)
+					sign = +1;
+				else
+					sign = -1;
+
+				u.at<float>(j,i) = sign *ex;
+				v.at<float>(j,i) = sign *ey;
+			}
+		}
+	}
+	{
+		Mat fu,fv;
+		filter2D(u,fu,-1,KernelX);
+		filter2D(v,fv,-1,KernelY);
+
+		add(fu, fv,Kapa);
+		Kapa = Kapa*-1.0;
+	}
+}
+
+
 /*
  * @FUNC
  *     cal ridge image for roadScan image, to extract white painting ;     
@@ -335,7 +435,7 @@ void getInformationOfEveryLine(gpsInformationAndInterval &GPSAndInterval,Mat &ro
 	coordinateChange(GPSAndInterval.GPS_now,inParam.GPSref,GPS_1);
 	coordinateChange(GPSAndInterval.GPS_next,inParam.GPSref,GPS_2);
 	// calculate offset of GPS
-	resetGPSOffset(inParam.offsetDist, GPS_1, GPS_2);
+	//resetGPSOffset(inParam.offsetDist, GPS_1, GPS_2);
 
     //middle
     Point2d Pixel = Point2d(0.0, lineNum-startPoint);
@@ -1628,6 +1728,7 @@ int imageAdjust(Mat &src, Mat &dst,
  */
 void shadowProcess(Mat &src, Mat &dst)
 {
+#if (RD_LOCATION == RD_US_PALO_ALTO)
     Mat element1 = getStructuringElement(MORPH_ELLIPSE,Size(10,10));
     Mat openDst1;
     morphologyEx(src,openDst1,MORPH_CLOSE,element1,Point(-1,-1),2);
@@ -1635,8 +1736,14 @@ void shadowProcess(Mat &src, Mat &dst)
 	Mat element = getStructuringElement(MORPH_ELLIPSE,Size(15,15));
 	Mat openDst;
 	morphologyEx(openDst1,openDst,MORPH_OPEN,element,Point(-1,-1),2);
-	
 	Mat dst1 = abs(openDst1-openDst);
+#else
+	Mat element = getStructuringElement(MORPH_ELLIPSE,Size(15,15));
+	Mat openDst1;
+	morphologyEx(src,openDst1,MORPH_OPEN,element,Point(-1,-1),2);	
+	Mat dst1 = abs(src-openDst1);	
+#endif
+
 	int s = imageAdjust(dst1,dst,0,0.3,0,0.7,1);
 #ifdef ROAD_SCAN_UT
     imwrite("close.png",openDst1);
@@ -2002,12 +2109,12 @@ void blockCalRidge(Mat &longLane_cut, Parameters& inParam, Mat &allUnitKapa,
                  unithisLeftTh  = 0;
                  unithisRightTh = 0;
              }
-             if (sline.upoint.x<w/2&&meanvalue>unithisLeftTh&&dst>100)
+             if (sline.upoint.x<w/2&&meanvalue>unithisLeftTh&&dst>50)
              {
                  drawContours(unitTSline, unitcontours, i, Scalar(255), -1, 8, unithierarchy, 0);
              }
 
-             if (sline.upoint.x>=w/2&&meanvalue>unithisRightTh&&dst>100)
+             if (sline.upoint.x>=w/2&&meanvalue>unithisRightTh&&dst>50)
              {
                  drawContours(unitTSline, unitcontours, i, Scalar(255), -1, 8, unithierarchy, 0);
              }
@@ -2346,7 +2453,7 @@ void linkPaintLine(Mat allUnitContous,vector<landMark> &landmark,Mat &Tline_link
             continue;
         }
 
-        if (dst>600)//delete the hight less than 600
+        if (dst>500)//delete the hight less than 500
         {	
             drawContours(Tline_link_out, contours4, i, Scalar(255), 1, 8, hierarchy4, 0);
         }
@@ -2486,13 +2593,22 @@ void arrowDetection(Mat &longLane,Mat &longLaneBW,vector<landMark> &arrows,Mat &
  *     detect stop lines.
  * @PARAMS
  *     src           -  input src gray image;
- *     stopLine      -  stop lines weight points and boundary;
- *     dst           -  image, which doesn't contain stop line;
+ *     stopLineLoc       -  coordinate(x,y) in image;
  */
-void stopLineDetection(Mat &src, vector<landMark> &stopLine, Mat &dst)
+void stopLineDetection(Mat &src, vector<Point> &stopLineLoc)
 {
-    Mat binaryImg;
-    gray2BW(src,binaryImg);
+    Mat stopKapa,stopKapaBin;
+    stopKapa.convertTo(stopKapa,CV_32F);
+    ridgeDetectX(src,stopKapa,5,5);   
+    stopKapa.convertTo(stopKapa,CV_8UC1,1024); 
+    threshold(stopKapa,stopKapaBin,5,255,0);
+#ifdef DEBUG_ROAD_SCAN
+    imwrite("stopKapaBin.png",stopKapaBin);
+    imwrite("stopKapa.png",stopKapa);
+#endif
+    
+
+
 
 }
 

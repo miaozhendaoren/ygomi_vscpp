@@ -26,16 +26,16 @@
 #include "Thread_DBUpdate.h"
 #include "Thread_DiffDetRpt.h"
 #include "Thread_ImageSensorCollector.h"
-
 #include "Visualization.h"
 #include "VisualizeControl.h"
-
+#include "TimeStamp.h"
 
 #pragma comment(lib, "ws2_32.lib") 
 
 int main(int argc, char* argv[])
 {
 	//do some system initialation
+	RD_TS_INIT();
 	appInitEvents();
     databaseInit();
     int status = detectorInit();
@@ -98,6 +98,7 @@ int main(int argc, char* argv[])
 	CloseHandle(threadHandle[3]);
 	CloseHandle(threadHandle[4]);
 
+	RD_TS_EXIT();
 	delete3DEngine();
 	WSACleanup();
 	return 0;

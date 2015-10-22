@@ -178,11 +178,18 @@ void Detector::positionMeasure(Parameters &inParam, Point2d &GPS_current, Point2
     Point2d &GPS_reference = inParam.GPSref;
 
     Mat imageOut;
-
+#if (RD_LOCATION == RD_GERMAN_LEHRE)
+    int imageWidthTemp = imageIn.cols;
+    int imageHeightTemp = imageIn.rows;
+    inParam.imageScaleWidth = 1.0;
+    inParam.imageScaleHeight = 1.0;
+#else
     int imageWidthTemp = imageIn.cols * inParam.imageScaleWidth;
     int imageHeightTemp = imageIn.rows * inParam.imageScaleHeight;
 
     resize(imageIn,imageOut,Size(imageWidthTemp,imageHeightTemp));
+#endif
+    
 
     for(int idx = 0;  idx < numSigns; idx++)
     {
@@ -197,7 +204,7 @@ void Detector::positionMeasure(Parameters &inParam, Point2d &GPS_current, Point2
             int yPixel = (int)((target.trafficSign[idx].center.y + target.trafficSign[idx].rect.height * 0.5 + signHeight) * inParam.imageScaleHeight + 0.5); // the first 0.5 means the half height of traffic sign.
             Point buttomPixel = Point(xPixel,yPixel);
 
-            circle(imageOut,buttomPixel,2,Scalar(0,0,255),1);
+            //circle(imageOut,buttomPixel,2,Scalar(0,0,255),1);
 
             // if the pixel is out of the image, stop process
             if(yPixel > imageHeightTemp)
@@ -205,10 +212,10 @@ void Detector::positionMeasure(Parameters &inParam, Point2d &GPS_current, Point2
                 break;
             }
             // if the pixel is above the horizontal line ,skip it.
-            if(yPixel < _HORIZON_LINE_PIEXL) // FIXME:230 
-            {
-                continue;
-            }
+            //if(yPixel < _HORIZON_LINE_PIEXL) // FIXME:230 
+            //{
+            //    continue;
+            //}
 
             Point pixelLocationBirdView;
             Point2d refGPSOriginalImage;

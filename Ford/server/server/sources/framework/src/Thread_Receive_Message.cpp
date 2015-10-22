@@ -20,6 +20,7 @@
 #include "appInitCommon.h"
 #include "LogInfo.h"
 #include <sstream> // for debugging
+#include "TimeStamp.h"
 
 using namespace std;
 
@@ -36,6 +37,16 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 	fd_set read_fds;
 	fd_set exception_fds;
 
+    
+#if SERVER_LOG_DIFF_MSG==1
+    {
+        // Clear existing messages.bin file
+        std::stringstream fileName;
+        fileName << "log/messages.bin";
+        FILE *fpOut = fopen(fileName.str().c_str(), "wb");
+        fclose(fpOut);
+    }
+#endif
 
 	while(1)
 	{
@@ -45,6 +56,7 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 		struct timeval timeout;
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
+		//RD_ADD_TS(tsFunId_eThread_Recevie,1);
 		if(clientList.size() != 0)
 		{
 			list<sockInfo_t>::iterator clientListIdx = clientList.begin();
@@ -55,6 +67,7 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 				++clientListIdx;
 			}
 
+			//RD_ADD_TS(tsFunId_eThread_Recevie,2);
 		    int ret = select(sockClient+1, &read_fds, NULL, &exception_fds,&timeout);
 			if(ret < 0)
 			{
@@ -62,6 +75,7 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 			}
 
 			clientListIdx = clientList.begin();
+			
 			while(clientListIdx != clientList.end())
 			{
 				if(FD_ISSET(clientListIdx->sockClient, &read_fds))
@@ -73,6 +87,7 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 						clientListIdx->client.sin_addr.S_un.S_un_b.s_b4,
 						clientListIdx->client.sin_port
 						);
+					RD_ADD_TS(tsFunId_eThread_Recevie,3);
 					int   len = sizeof(struct sockaddr);
 					SOCKET sockTemp = clientListIdx->sockClient;
 					sockaddr_in from;
@@ -85,10 +100,18 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 					{
 						int ret = recv(sockTemp,(char*)recvBuffP,sizeof(recvHeader->msgHeader.headerLen),0);
 						//int ret = recvfrom(sockServer,(char*)recvBuffP,sizeof(recvHeader->headerLen),0,(SOCKADDR*)&from,&len);
-						if(ret  == INVALID_SOCKET)
+						//if(ret  == INVALID_SOCKET)
+						if(ret  == INVALID_SOCKET || ret == 0)
 						{
 							int errorCode = WSAGetLastError();
-							logPrintf(logLevelError_e,"RECEIVE_MSG","Receive message header length failed!");
+							if(ret == 0) //qiuheng
+							{
+								logPrintf(logLevelError_e,"RECEIVE_MSG","Receive message header length:the client side socket closed.");
+							}	
+							else
+							{
+								logPrintf(logLevelError_e,"RECEIVE_MSG","Receive message header length failed!");
+							}
 							//shutdown(clientListIdx->sockClient,2);
 							
 							//close socket file
@@ -107,6 +130,8 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 						{
 							headerLen += ret;
 							recvBuffP += ret;
+							//test
+							//logPrintf(logLevelInfo_e,"RECEIVE_MSG","Receive message header length!");
 						}
 					}
 					// receive one message header length.
@@ -118,11 +143,19 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 					{
 						int ret = recv(sockTemp,(char*)recvBuffP,recvHeader->msgHeader.headerLen - recvAllSize - sizeof(recvHeader->msgHeader.headerLen),0);
 						//int ret = recvfrom(sockServer,(char*)recvBuffP,headerLen - recvAllSize,0,(SOCKADDR*)&from,&len); 
-						if(ret == INVALID_SOCKET)
+						//if(ret  == INVALID_SOCKET)
+						if(ret  == INVALID_SOCKET || ret == 0)
 						{ 
 							int errorCode = WSAGetLastError();
-							logPrintf(logLevelError_e,"RECEIVE_MSG","Receive message header failed!"); 
-							
+							if(ret == 0) 
+							{
+								logPrintf(logLevelError_e,"RECEIVE_MSG","Receive message header:the client side socket closed."); 
+							}
+							else
+							{
+								logPrintf(logLevelError_e,"RECEIVE_MSG","Receive message header failed!"); 
+							}
+
 							struct linger so_linger;
 							so_linger.l_onoff = 1;
 							so_linger.l_linger = 300;
@@ -135,8 +168,11 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 						}
 						else
 						{
+							
 							recvAllSize += ret;
 							recvBuffP += ret;
+							//test
+							//logPrintf(logLevelInfo_e,"RECEIVE_MSG","Receive message header!");
 						}
 					}
 					// all the message header has been received.
@@ -159,10 +195,19 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 						{
 							int ret = recv(sockTemp,(char*)paylaodPtr,recvHeader->msgHeader.payloadLen - paylaodSize,0);
 							//int ret = recvfrom(sockServer,(char*)paylaodPtr,recvHeader->payloadLen - paylaodSize,0,(SOCKADDR*)&from,&len); 
-							if(ret == INVALID_SOCKET)
+							//if(ret  == INVALID_SOCKET)
+							if(ret  == INVALID_SOCKET || ret == 0)
 							{ 
 								int errorCode = WSAGetLastError();
-								logPrintf(logLevelError_e,"RECEIVE_MSG","Receive message payload failed!"); 
+								if(ret == 0) 
+								{
+									logPrintf(logLevelError_e,"RECEIVE_MSG","Receive message payload:the client side socket closed.");
+								}
+								else
+								{
+									logPrintf(logLevelError_e,"RECEIVE_MSG","Receive message payload failed!"); 
+								}
+
 								delete recvDiffMsg->payload;
 								recvDiffMsg->payload = NULL;
 								
@@ -180,6 +225,9 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 							{
 								paylaodSize += ret;
 								paylaodPtr += ret;
+								//test
+								//logPrintf(logLevelInfo_e,"RECEIVE_MSG","Receive message payload!");
+							
 							}
 						}
 					}
@@ -203,8 +251,10 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
                     }
 #endif
 #if SERVER_PLAY_BACK_MODE==0
+					RD_ADD_TS(tsFunId_eThread_Recevie,10);
 					messageQueue_gp->push(&recvMsg);
 					ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
+					RD_ADD_TS(tsFunId_eThread_Recevie,11);
 #endif
 
 				}
@@ -218,12 +268,11 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 RESTART_LABEL:
 				;
 			}
-
-
-
-
 		}
-
+		//RD_ADD_TS(tsFunId_eThread_Recevie,14);
 	}  //end while(1)
+
+	//test
+	logPrintf(logLevelInfo_e,"RECEIVE_MSG","Receive message process exit!");
 	return 0;
 }

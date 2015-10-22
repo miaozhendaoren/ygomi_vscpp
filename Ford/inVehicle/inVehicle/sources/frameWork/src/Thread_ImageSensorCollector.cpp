@@ -32,6 +32,8 @@
 #include "Signal_Thread_Sync.h"
 #include "Thread_ImageSensorCollector.h"
 #include "LogInfo.h"
+#include "VisualizeControl.h"
+#include "TimeStamp.h"
 
 using namespace ns_database;
 using namespace cv;
@@ -59,6 +61,8 @@ char gpsNames[50][100];
 
 #if(RD_MODE == RD_CAMERA_MODE)
 
+cv::Size showSize;
+
 unsigned int getSysTimeMs(void)
 {
 	SYSTEMTIME sysTime;
@@ -84,6 +88,8 @@ bool openImageSensor_Cam(int device,VideoCapture& capture ,int &numFrame)
 		capture.set(CV_CAP_PROP_FPS ,30);
 		capture.set(CV_CAP_PROP_FRAME_WIDTH ,1280);
 		capture.set(CV_CAP_PROP_FRAME_HEIGHT ,720);
+		showSize.height = 360;
+		showSize.width  = 640;
 	}
 	return true;
 }
@@ -133,6 +139,7 @@ void WINAPI imageTimer(UINT wTimerID, UINT msg, DWORD dwUser, DWORD dw1, DWORD d
 {
 	if(11 == dwUser)
 	{
+		static int imageCount = 0;
 		imageCamera_t tempImage;
 		//glutTimerFunc((unsigned int)(33),&imageTimer,3);
 
@@ -145,12 +152,20 @@ void WINAPI imageTimer(UINT wTimerID, UINT msg, DWORD dwUser, DWORD dw1, DWORD d
 			cacheBuffer.addImage(tempImage);
 			cacheBuffer.releaseCacheBuffer();
 
-			//cv::namedWindow("image");
-			//cv::imshow("image",tempImage.image);
-			//cv::waitKey(1);
+			imageCount++;
+			if(2 == imageCount)
+			{
+				imageCount = 0;
+				cv::namedWindow("image",CV_WINDOW_NORMAL);
+				cv::resize(tempImage.image,tempImage.image,showSize);
+				cv::imshow("image",tempImage.image);
+				cv::waitKey(1);
+			}
+			RD_ADD_TS(tsFunId_eImageTimerIsr,1);
 		}else
 		{
 			cacheBuffer.releaseCacheBuffer();
+			RD_ADD_TS(tsFunId_eImageTimerIsr,2);
 		}
 	}
 }
@@ -207,6 +222,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	bool init = true;
 	point3D_t currentGps;
 	point3D_t preGps;
+	RD_ADD_TS(tsFunId_eThread_ImageCollect,1);
 
 	if(!openImageSensor_Cam(g_CameraPort,capture ,numFrame))
 	{
@@ -227,12 +243,13 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	//glutTimerFunc((unsigned int)(50),&imageTimer,3);
 	MMRESULT timer_id;
 	timer_id = timeSetEvent(50,1,(LPTIMECALLBACK)imageTimer, DWORD(11),TIME_PERIODIC);
-
+	RD_ADD_TS(tsFunId_eThread_ImageCollect,2);
 	while(1)
 	{
 		//recevie the GPS information
+		RD_ADD_TS(tsFunId_eThread_ImageCollect,3);
 		gpsSensorCollect_UDP();
-
+		RD_ADD_TS(tsFunId_eThread_ImageCollect,4);
 		if(init)
 		{
 			preGps.alt = gGpsInfo.altitude;
@@ -295,9 +312,9 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 				preGps.lon = gGpsInfo.dLongitude;
 				continue;
 			}
-			cv::namedWindow("image",CV_WINDOW_NORMAL);
-			cv::imshow("image",(*imageTempVec->begin()).image);
-			cv::waitKey(1);
+			//cv::namedWindow("image",CV_WINDOW_NORMAL);
+			//cv::imshow("image",(*imageTempVec->begin()).image);
+			//cv::waitKey(1);
 
 			for(std::vector<imageCamera_t>::iterator imageIter = imageTempVec->begin();
 				imageIter != imageTempVec->end();
@@ -317,6 +334,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 
 				preGps = currentGps;
 			}
+			RD_ADD_TS(tsFunId_eThread_ImageCollect,14);
 		}//end if(init)
 
 	}//end while(1)
@@ -439,6 +457,7 @@ void WINAPI imageTimer(UINT wTimerID, UINT msg, DWORD dwUser, DWORD dw1, DWORD d
 {
 	if(11 == dwUser)
 	{
+		RD_ADD_TS(tsFunId_eImageTimerIsr,1);
 		ReleaseSemaphore(g_readySema_VideoReader, 1 ,NULL);
 	}
 }
@@ -449,12 +468,15 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	int idxFile = 0;
 	int numFrame;
 	int totalNumFrame;
+	int videoSpeedCnt = 0;
 	double fps;
 	int counter = 0;
 	point3D_t currentGps;
 	point3D_t preGps;
 	g_readySema_VideoReader = CreateSemaphore(NULL,0,10,"semaphore_VideoReader");
 	cv::Size showSize;
+	cv::Mat image;
+	RD_ADD_TS(tsFunId_eThread_ImageCollect,1);
 
 	InitTimeOffsetSocket_UDP();
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
@@ -517,11 +539,11 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 
     const int MAX_FRAME_INTERVAL = 1;
     int frameInterval = 0;
-
+	RD_ADD_TS(tsFunId_eThread_ImageCollect,2);
 	while(1)
 	{
-		cv::Mat image;
-		
+		//cv::Mat image;
+		RD_ADD_TS(tsFunId_eThread_ImageCollect,3);
 		if(numFrame <= 0)
 		{
 
@@ -557,8 +579,10 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 			{
 				imageBuffer.setReadyFlag();
 			}
+			RD_ADD_TS(tsFunId_eThread_ImageCollect,4);
 		}
 
+		RD_ADD_TS(tsFunId_eThread_ImageCollect,5);
 		WaitForSingleObject(g_readySema_VideoReader, INFINITE);
 		//send the information to server side
 		{
@@ -601,8 +625,38 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 			}
 			counter++;			
 		}
+
 		//get one frame image and GPS
+		RD_ADD_TS(tsFunId_eThread_ImageCollect,6);
 		{
+			if(VideoPlayEnum_pause == videoPlaySpeed)
+			{
+				if (frameInterval <= 0)
+				{
+					frameInterval = MAX_FRAME_INTERVAL;
+
+					cv::namedWindow("image",CV_WINDOW_NORMAL);
+					cv::resize(image,image,showSize);
+					cv::imshow("image",image);
+					cv::waitKey(1);
+				}else
+				{
+					frameInterval--;
+				}
+				continue;
+			}else
+			{
+				int totalLimit = (1<<(int)(videoPlaySpeed));
+				videoSpeedCnt++;
+				if( videoSpeedCnt < totalLimit)
+				{
+					continue;
+				}else
+				{
+					videoSpeedCnt = 0;
+				}
+			}
+
 			if(!readImageAndGps(capture, gpsFile, image, currentGps))
 			{
 				numFrame--;
@@ -641,6 +695,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
         {
             frameInterval--;
         }
+		RD_ADD_TS(tsFunId_eThread_ImageCollect,14);
 	}//end while(1)
 	timeKillEvent(timer_id); 
 }
@@ -656,6 +711,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	double fps;
 	int counter = 0;
 
+	RD_ADD_TS(tsFunId_eThread_ImageCollect,1);
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
     FILE* fp = fopen("./config/DE_Airport2_aviGpsFiles.txt", "r");
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
@@ -693,7 +749,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 		imageBuffer.addVideoAndGpsName(aviNames[Idx],gpsNames[Idx]);
 	}
 	imageBuffer.addVideoFinish();
-
+	RD_ADD_TS(tsFunId_eThread_ImageCollect,2);
 	while(1)
 	{
 		Sleep(10000000);

@@ -37,7 +37,7 @@ using namespace std;
 
 // use this macro to control image show or saving for debug purpose
 #define VISUALIZATION_ON     0
-#define SAVE_DATA_ON         0
+#define SAVE_DATA_ON         1
 
 const double MaxLength = 1000.0;
 const double MinLength = 0.0;

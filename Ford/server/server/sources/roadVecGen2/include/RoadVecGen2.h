@@ -125,9 +125,11 @@ public:
     *
     * @PARAMS
     *     bgVecOut - output road vector list
+    *     bRevDir  - save forward or backward direction database
     *
     */
-    void getBgRoadVec(OUT std::list<backgroundSectionData> &bgVecOut);
+    void getBgRoadVec(OUT std::list<backgroundSectionData> &bgVecOut,
+        IN bool bRevDir = false);
 
     /*
     * @FUNC
@@ -135,14 +137,18 @@ public:
     *
     * @PARAMS
     *     bgVecIn - input vector to set DB
+    *     bRevDir - set forward or backward direction DB
     *
     */
-    void setBgRoadVec(IN std::list<backgroundSectionData> &bgVecIn);
+    void setBgRoadVec(IN std::list<backgroundSectionData> &bgVecIn,
+        IN bool bRevDir = false);
 
 protected:
     CSecRptData                   _secRptDataObj;
     std::string                   _configPath;
 
+    bool                          _bHasRevDirData; // whether contains reverse data
+    bool                          _bHasChanged;    // whether _bHasRevDirData be set
     bool                          _bCircleRoad;
     uint32                        _curSecId;       // current section ID
     vector<int>                   _secLaneNum;     // number of lanes for section
@@ -458,11 +464,13 @@ protected:
     *    matchedInd  - matched section line index.
     *    segId       - previous section Id.
     *    bHasRevData - whether contains reverse direction data.
+    *    bCommLinesMerged - whether share lines be merged.
     *
     */
     void getMatchedLineInd(OUT vector<int> &matchedInd,
         IN uint32 segId,
-        IN bool   bHasRevData);
+        IN bool   bHasRevData,
+        IN bool   bCommLinesMerged);
 
 };
 

@@ -62,6 +62,15 @@ namespace ns_database
         *distInMeter = sqrt(distX * distX + distY * distY);
     }
 
+    void calcRelDistance(IN pointRelative3D_t* gpsPre, IN pointRelative3D_t* gpsCurr, OUT double* distInMeter)
+    {
+        double distX = gpsPre->y - gpsCurr->y;
+        double distY = gpsPre->x - gpsCurr->x;
+        //double distZ = (gpsPre->alt - gpsCurr->alt);
+
+        *distInMeter = sqrt(distX * distX + distY * distY);
+    }
+
     void calcRelativeLocation(IN point3D_t* standPoint, IN point3D_t* changePoint, OUT pointRelative3D_t* outPoint)
     {
 	    double dif_x = changePoint->lon - standPoint->lon;
@@ -223,7 +232,29 @@ namespace ns_database
 		projectPointP->alt = 0.0;
 	}
 
-	void calcGpsBackOnLine(IN point3D_t* gpsLinePointMP, 
+	void calcRelBackOnLine(IN pointRelative3D_t* gpsLinePointMP, 
+						   IN pointRelative3D_t* gpsLinePointNP, 
+						   IN double     backDist, 
+						   OUT pointRelative3D_t* gpsOutP)
+	{
+		// Calculate the GPS point on line MN, and a certain distance from N
+		double xM = gpsLinePointMP->x;
+		double yM = gpsLinePointMP->y;
+		double xN = gpsLinePointNP->x;
+		double yN = gpsLinePointNP->y;
+
+        double distMN;
+
+        calcRelDistance(gpsLinePointMP, gpsLinePointNP, &distMN);
+
+        double distNP = backDist;
+
+		gpsOutP->y = (yM - yN) * distNP / distMN + yN;
+		gpsOutP->x = (xM - xN) * distNP / distMN + xN;
+		gpsOutP->z = 0;
+	}
+
+    void calcRelBackOnLine(IN point3D_t* gpsLinePointMP, 
 						   IN point3D_t* gpsLinePointNP, 
 						   IN double     backDist, 
 						   OUT point3D_t* gpsOutP)
@@ -464,5 +495,81 @@ namespace ns_database
 
 		return 1;
 	}
+
+    bool lookAheadOnTrackPoint(IN vector<point3D_t> &locVec, 
+                               IN int startLocIdx, 
+                               IN double distanceAhead, 
+                               OUT point3D_t &locAhead)
+    {
+        // Look ahead
+        double distanceSum = 0;
+        int pointIdx = startLocIdx;
+        bool status = true;
+
+        point3D_t locTempPre, locTempNext;
+
+        if(distanceAhead == 0)
+        {
+            if(pointIdx < locVec.size())
+            {
+                locAhead = locVec[pointIdx];
+            }else
+            {
+                status = false;
+            }
+        }else
+        {
+            while(distanceSum < distanceAhead)
+            {
+                if((pointIdx+1) >= locVec.size())
+                {
+                    // pointIdx+1 is out of the input vector
+                    status = false;
+                    break;
+                }
+
+                locTempPre = locVec[pointIdx];
+                locTempNext = locVec[pointIdx+1];
+
+                double dist;
+                calcGpsDistance(&locTempPre, &locTempNext, &dist);
+
+                ++pointIdx;
+                distanceSum += dist;
+            }
+
+            if (status)
+            {
+                // Back
+                double distBack = distanceSum - distanceAhead;
+
+                pointRelative3D_t relLocPre, relLocNext, relLocAhead;
+
+                calcRelativeLocation(&locTempPre, &locTempPre, &relLocPre);
+                calcRelativeLocation(&locTempPre, &locTempNext, &relLocNext);
+
+                calcRelBackOnLine(&relLocPre, &relLocNext, distBack, &relLocAhead);
+
+                calcGpsFromRelativeLocation(&locTempPre, &relLocAhead, &locAhead);
+            }
+        }
+
+        return status;
+    }
+
+    void lookAheadOnTrack(IN vector<point3D_t> &locVec, 
+                          IN double distanceAhead, 
+                          OUT vector<point3D_t> &locVecAhead)
+    {
+        locVecAhead.clear();
+        point3D_t locAhead;
+        int locIdx = 0;
+
+        while(lookAheadOnTrackPoint(locVec, locIdx, distanceAhead, locAhead))
+        {
+            locVecAhead.push_back(locAhead);
+            ++locIdx;
+        }
+    }
 }
 

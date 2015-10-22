@@ -21,6 +21,7 @@
 #include "RoadVecGen2.h" // CRoadVecGen2
 #include "LogInfo.h"  // logPrintf
 #include "configure.h"
+#include "TimeStamp.h"
 
 #pragma comment(lib,"winmm.lib")
 
@@ -85,7 +86,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 
 		cout << "message Count = " << msgCount++ << endl;
 #endif
-
+		RD_ADD_TS(tsFunId_eThread_DBUpdate,1);
         // check message queue is empty
         if( !messageQueue_gp->empty())
         {
@@ -104,6 +105,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
             diffRptMsg_t* updateMsgPtr = sendMsg.getUpdateRptMsg();
             memcpy((void*)updateMsgPtr,(void*)diffMsgPtr,sizeof(diffMsgHeader_t));
 
+			RD_ADD_TS(tsFunId_eThread_DBUpdate,2);
             if( (msgType & 0x1000) == 0x0000)
             {
                 int pduIdx;
@@ -111,6 +113,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
                 {
 					case STATUS_UPDATE_RPT_MSG:
 					{    
+						RD_ADD_TS(tsFunId_eThread_DBUpdate,3);
 						for(pduIdx = 0;pduIdx < diffRptMsgPtr->msgHeader.numPDUs;pduIdx++)
 						{
 							int8 tag = diffRptMsgPtr->payloadHeader.tlvArray[pduIdx].tag;
@@ -121,12 +124,14 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 									if(1 == value) //save
 									{
                                         database_gp->saveRoadVecToFile("log/roadVecSave.bin");
+                                        database_gp->saveRoadVecToFile("log/roadVecRevDirSave.bin", true);
                                         database_gp->saveFurToFile("log/furnitureSave.bin");
                                         database_gp->saveRoadVecAndFurToKml("log/roadVec_furniture.kml");
 									}else if(2 == value) //load
 									{
                                         // Load pre-stored data
                                         database_gp->loadRoadVecFromFile("log/roadVec.bin");
+                                        database_gp->loadRoadVecFromFile("log/roadVecRevDir.bin", true);
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
                                         roadVecGen2_gp->loadDefaultSegData(11, "log/section11.txt");// 11: empty section ID
 #endif
@@ -223,6 +228,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 						bool laneProcessFlag = false;
                         vector<furAttributes_t> furUpdateVec;
                         vector<furAttributes_t> furDeleteVec;
+						RD_ADD_TS(tsFunId_eThread_DBUpdate,4);
 
 						updateMsgPtr->msgHeader.vehicleID = 0xFFFFFFFF;
 						for(pduIdx = 0;pduIdx < diffRptMsgPtr->msgHeader.numPDUs;pduIdx++)
@@ -419,6 +425,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 				diffRptMsgPtr->payload = NULL;
             }
         }
+		RD_ADD_TS(tsFunId_eThread_DBUpdate,14);
     }
     return 0;
 }

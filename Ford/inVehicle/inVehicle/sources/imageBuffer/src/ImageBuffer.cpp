@@ -1,8 +1,12 @@
+
+#include "AppInitCommon.h" // inParam.offsetDist // FIXME: do not change the order of this header file
+
 #include <opencv2\core\core.hpp>
 #include <opencv2\highgui\highgui.hpp>
 #include <opencv2\imgproc\imgproc.hpp>
 #include "ImageBuffer.h"
 #include "Signal_Thread_Sync.h"
+#include "database.h"   // lookAheadOnTrack
 
 #if(RD_MODE == RD_VIDEO_LOAD_MODE)
 ImageBuffer::ImageBuffer()
@@ -88,6 +92,42 @@ bool ImageBuffer::openReadFiles()
 		}
 		readFileFlag = true;
 	}
+
+    // Distance compensation to minimize systematic error
+    //if (0)
+    {
+        // read existing location from file
+        std::vector<point3D_t> locVec, locVecAhead;
+
+        for(int idx = 0; idx < bufferSize; idx++)
+        {
+            point3D_t locPoint;
+
+            fscanf(readFp,"%lf,%lf\n",&locPoint.lat, &locPoint.lon);
+
+            locVec.push_back(locPoint);
+        }
+
+        fclose(readFp);
+
+        // look ahead
+        ns_database::lookAheadOnTrack(locVec, inParam.offsetDist, locVecAhead);
+
+        // write new location to file
+        readFp = fopen("c.txt", "wt");
+
+        for(int idx = 0; idx < locVecAhead.size(); idx++)
+        {
+            point3D_t locPoint;
+
+            fprintf(readFp, "%.14lf,%.14lf\n",locVecAhead[idx].lat, locVecAhead[idx].lon);
+        }
+
+        fclose(readFp);
+        readFp = fopen("c.txt", "rt");
+
+        bufferSize = locVecAhead.size();
+    }
 	return true;
 }
 

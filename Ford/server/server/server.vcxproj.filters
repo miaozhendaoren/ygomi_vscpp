@@ -111,6 +111,9 @@
     <ClCompile Include="sources\roadVecGen2\src\SecRptData.cpp">
       <Filter>Source Files\roadVecGen</Filter>
     </ClCompile>
+    <ClCompile Include="sources\log\src\TimeStamp.cpp">
+      <Filter>Source Files\log</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sources\database\include\database.h">
@@ -169,6 +172,9 @@
     </ClInclude>
     <ClInclude Include="include\configure.h">
       <Filter>Header Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\log\include\TimeStamp.h">
+      <Filter>Header Files\log</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

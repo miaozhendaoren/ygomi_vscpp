@@ -23,6 +23,7 @@
 #include "LogInfo.h"
 #include "AppInitCommon.h"
 #include "saveLinePointInSafe.h"
+#include "TimeStamp.h"
 
 #pragma comment(lib, "ws2_32.lib") 
 
@@ -43,6 +44,7 @@ RESTART_LABEL:
 		// receive message header length
 		int headerLen = 0;
 		uint8* recvBuffP = (uint8*)recvHeader; 
+		RD_ADD_TS(tsFunId_eThread_Update,1);
 		while( headerLen < sizeof(recvHeader->msgHeader.headerLen))
 		{
 			int nRet = recv(sockClient,(char*)recvBuffP,sizeof(recvHeader->msgHeader.headerLen) - headerLen,0);
@@ -62,6 +64,7 @@ RESTART_LABEL:
 			//logPrintf(logLevelError_e, "DB_UPDATE", "Receive message header length from socket OK!");
 		}
 
+		RD_ADD_TS(tsFunId_eThread_Update,2);
 		//receive message header
 		int headerSize = 0;
 		headerLen = recvHeader->msgHeader.headerLen;
@@ -81,7 +84,7 @@ RESTART_LABEL:
 		} 
 		//memcpy((void*)recvHeader,(void*)recvBuff,headerLen);
 		//receive message payload
-		
+		RD_ADD_TS(tsFunId_eThread_Update,3);
 		if(recvHeader->msgHeader.payloadLen != 0)
 		{
 			int paylaodSize = 0;
@@ -105,7 +108,7 @@ RESTART_LABEL:
 				}
 			}
 		}
-
+		RD_ADD_TS(tsFunId_eThread_Update,4);
         // This is the flag to indicate if the PDU is the first PDU of ADD_ALL_FURNITURE
         bool firstAddAllFurPduFlag = true;
 
@@ -119,6 +122,7 @@ RESTART_LABEL:
             {
 				case STATUS_UPDATE_RPT_MSG:
 				{
+					RD_ADD_TS(tsFunId_eThread_Update,5);
 					for(pduIdx = 0;pduIdx < recvHeader->msgHeader.numPDUs;pduIdx++)
 					{
 						int8 tag = recvHeader->payloadHeader.tlvArray[pduIdx].tag;
@@ -147,6 +151,7 @@ RESTART_LABEL:
 				}
 				case UPDATE_REQ_MSG:
                 {
+					RD_ADD_TS(tsFunId_eThread_Update,6);
                     for(pduIdx = 0;pduIdx < recvHeader->msgHeader.numPDUs;pduIdx++)
                     {
                         int pduLen;
@@ -194,7 +199,8 @@ RESTART_LABEL:
             }
 			delete recvHeader->payload;
 			recvHeader->payload = NULL;
+			RD_ADD_TS(tsFunId_eThread_Update,14);
         }
-    }
+    }//end while(1)
     return 0;
 }

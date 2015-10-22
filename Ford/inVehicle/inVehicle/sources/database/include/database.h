@@ -367,6 +367,8 @@ namespace ns_database
 
 	void calcRelDistance(IN point3D_t* gpsPre, IN point3D_t* gpsCurr, OUT double* distInMeter);
 
+    void calcRelDistance(IN pointRelative3D_t* gpsPre, IN pointRelative3D_t* gpsCurr, OUT double* distInMeter);
+
     void calcRelativeLocation(IN point3D_t* standPoint, IN point3D_t* changePoint, OUT pointRelative3D_t* outPoint);
 
     void calcGpsFromRelativeLocation(IN point3D_t* standPoint, IN pointRelative3D_t* relPoint, OUT point3D_t* outGpsPoint);
@@ -381,10 +383,15 @@ namespace ns_database
 								IN point3D_t* gpsPointPP, 
 								OUT point3D_t* projectPointP);
 
-	void calcGpsBackOnLine(IN point3D_t* gpsLinePointMP, 
-							IN point3D_t* gpsLinePointNP, 
+	void calcRelBackOnLine(IN pointRelative3D_t* gpsLinePointMP, 
+							IN pointRelative3D_t* gpsLinePointNP, 
 							IN double     backDist, 
-							OUT point3D_t* gpsOutP);
+							OUT pointRelative3D_t* gpsOutP);
+
+    void calcRelBackOnLine(IN point3D_t* gpsLinePointMP, 
+						   IN point3D_t* gpsLinePointNP, 
+						   IN double     backDist, 
+						   OUT point3D_t* gpsOutP);
 
     void calcGpsRoadSide(IN point3D_t* gpsPre, 
                          IN point3D_t* gpsCurr, 
@@ -399,6 +406,15 @@ namespace ns_database
                        IN  double distanceInMeterR,
                        OUT point3D_t *gpsOutL,
                        OUT point3D_t *gpsOutR);
+
+    bool lookAheadOnTrackPoint(IN std::vector<point3D_t> &locVec, 
+                               IN int startLocIdx, 
+                               IN double distanceAhead, 
+                               OUT point3D_t &locAhead);
+
+    void lookAheadOnTrack(IN std::vector<point3D_t> &locVec, 
+                          IN double distanceAhead, 
+                          OUT std::vector<point3D_t> &locVecAhead);
 
 }
 

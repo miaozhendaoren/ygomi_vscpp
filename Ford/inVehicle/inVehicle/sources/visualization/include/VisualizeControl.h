@@ -18,8 +18,18 @@
 
 #include "Visualization.h"
 
+typedef enum
+{
+	VideoPlayEnum_normal = 0,
+	VideoPlayEnum_1_2,
+	VideoPlayEnum_1_4,
+	VideoPlayEnum_1_8,
+	VideoPlayEnum_pause
+}VideoPlayEnum;
+
 extern OPENGL_3D_ENGINE *engine3DPtr;
 extern eyeLookAt_t serverEyeInfo[];
+extern VideoPlayEnum videoPlaySpeed;
 
 #define DEFAULT_WINDOW_HEIGHT 400
 #define DEFAULT_WINDOW_WIDTH  600

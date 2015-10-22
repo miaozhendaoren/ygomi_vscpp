@@ -64,6 +64,7 @@ void getInformationOfEveryLine(gpsInformationAndInterval &GPSAndInterval,Mat &ro
 void calThread(Mat &Inimg, int &hisTH,Mat &dstImage);
 int calRidgePar(Mat &Inimg);
 void ridgeDetect(Mat &image_f,Mat &Kapa, double sigma1, double sigma2);
+void ridgeDetectX(Mat &image_f,Mat &Kapa, double sigma1, double sigma2);
 
 void calThread(Mat &Inimg, int &hisTH, Mat&dstImage);
 int calRidgePar(Mat &Inimg);
@@ -77,7 +78,7 @@ int searchRegularPolygon(Mat &src,Mat &dxImg, Mat &dyImg,vector<int> &radusVec,i
 
 void landMarkDetection(Mat &Inimage,vector<landMark> &landmark,int histThres);
 void arrowDetection(Mat &longLane,Mat &longLaneBW,vector<landMark> &arrows,Mat &laneBW);
-
+void stopLineDetection(Mat &src, vector<Point> &stopLineLoc);
 
 int imageAdjust(Mat &src, Mat &dst,double low, double high, double bottom, double top, 	double gamma );
 void shadowProcess(Mat &src, Mat &dst);
@@ -99,6 +100,7 @@ void polyFitting(Mat &longLane, Mat &fittingImg);
 void linkFittingLine(Mat fittingImage,Mat &Tline_link_out);
 
 void cvtRGB2Gray(Mat &longLaneRGB, Mat &longLaneGray);
+
 
 void resetGPSOffset(double offsetDistance, Point2d &GPS_1, Point2d &GPS_2);
 }

@@ -24,6 +24,7 @@
 
 #include "svm.h"
 #include "detection_blackWhite.h"
+#include "configure.h"
 
 using namespace cv;
 using namespace std;
@@ -31,8 +32,8 @@ using namespace std;
 namespace ns_detection
 {
 
-Detector_blackWhite::Detector_blackWhite(float highStep, double dist_per_piexl,int horizon_line) :Detector(highStep,dist_per_piexl,horizon_line),
-				_MAX_NUM_FEATURES(1500)
+Detector_blackWhite::Detector_blackWhite(float highStep, double dist_per_piexl,int horizon_line, int featureNum) :Detector(highStep,dist_per_piexl,horizon_line),
+				_MAX_NUM_FEATURES(featureNum)
 {
     _sw = 32;
     _d.winSize = Size(_sw, _sw);
@@ -43,11 +44,73 @@ Detector_blackWhite::Detector_blackWhite(float highStep, double dist_per_piexl,i
 
     _kernel_size = 3;
 
-    _MAX_NUM_SIGN_PER_IMG = 3;
-    _MIN_DISTANCE = 400.0;
-    _START_ROW = 120;
+#if(RD_LOCATION == RD_GERMAN_LEHRE)
+    
+
+    _MAX_NUM_SIGN_PER_IMG = 10;
+    _MIN_DISTANCE = 130.0;
+    _START_ROW = 160;
     _END_ROW = 320;
-    _THESHOLD = 0.35;
+    _THESHOLD = 3;
+    _START_COL = 384;
+    _MAX_RADUS = 18;
+    _MIN_RADUS = 6;
+    _STEP_RADUS = 1;
+
+    _image.push_back(imread("./resource/Germany/png/10100.png"));
+    _image.push_back(imread("./resource/Germany/png/12300.png"));
+    _image.push_back(imread("./resource/Germany/png/13100.png"));
+    _image.push_back(imread("./resource/Germany/png/13310.png"));
+    _image.push_back(imread("./resource/Germany/png/13810.png"));
+    _image.push_back(imread("./resource/Germany/png/20500.png"));
+    _image.push_back(imread("./resource/Germany/png/20600.png"));
+    _image.push_back(imread("./resource/Germany/png/20930.png"));
+    _image.push_back(imread("./resource/Germany/png/21500.png"));
+    _image.push_back(imread("./resource/Germany/png/22220.png"));
+    _image.push_back(imread("./resource/Germany/png/22400.png"));
+    _image.push_back(imread("./resource/Germany/png/23700.png"));
+    _image.push_back(imread("./resource/Germany/png/23900.png"));
+    _image.push_back(imread("./resource/Germany/png/24000.png"));
+    _image.push_back(imread("./resource/Germany/png/25000.png"));
+    _image.push_back(imread("./resource/Germany/png/25900.png"));
+    _image.push_back(imread("./resource/Germany/png/26100.png"));
+    _image.push_back(imread("./resource/Germany/png/26210.png"));
+    _image.push_back(imread("./resource/Germany/png/27452.png"));
+    _image.push_back(imread("./resource/Germany/png/27453.png"));
+    _image.push_back(imread("./resource/Germany/png/27454.png"));
+    _image.push_back(imread("./resource/Germany/png/27455.png"));
+    _image.push_back(imread("./resource/Germany/png/27456.png"));
+    _image.push_back(imread("./resource/Germany/png/27458.png"));
+    _image.push_back(imread("./resource/Germany/png/28300.png"));
+    _image.push_back(imread("./resource/Germany/png/28600.png"));
+    _image.push_back(imread("./resource/Germany/png/30100.png"));
+    _image.push_back(imread("./resource/Germany/png/30600.png"));
+    _image.push_back(imread("./resource/Germany/png/31400.png"));
+    _image.push_back(imread("./resource/Germany/png/33100.png"));
+    _image.push_back(imread("./resource/Germany/png/33600.png"));
+    _image.push_back(imread("./resource/Germany/png/35010.png"));
+    _image.push_back(imread("./resource/Germany/png/99900.png"));
+    _image.push_back(imread("./resource/Germany/png/20910.png"));
+    _image.push_back(imread("./resource/Germany/png/25400.png"));
+    _image.push_back(imread("./resource/Germany/png/26700.png"));
+    _image.push_back(imread("./resource/Germany/png/31401.png"));
+    _image.push_back(imread("./resource/Germany/png/27600.png"));
+    _image.push_back(imread("./resource/Germany/png/44100.png"));
+    _image.push_back(imread("./resource/Germany/png/44200.png"));
+
+    _cir_model = svm_load_model("./resource/Germany/svmLehre/cir_model.txt"); 
+
+    loadFeat(_feat_cir, "./resource/Germany/svmLehre/CIRfeat.txt");
+#elif(RD_LOCATION == RD_US_PALO_ALTO)
+    _MAX_NUM_SIGN_PER_IMG = 4;
+    _MIN_DISTANCE = 100.0;
+    _START_ROW = 100;
+    _END_ROW = 240;
+    _THESHOLD = 1.6;
+    _START_COL = 400;
+    _MAX_RADUS = 28;
+    _MIN_RADUS = 10;
+    _STEP_RADUS = 2;
 
     _image.push_back(imread("./resource/US/png/1.png"));
     _image.push_back(imread("./resource/US/png/2.png"));
@@ -57,17 +120,255 @@ Detector_blackWhite::Detector_blackWhite(float highStep, double dist_per_piexl,i
     _image.push_back(imread("./resource/US/png/6.png"));
     _image.push_back(imread("./resource/US/png/7.png"));
     _image.push_back(imread("./resource/US/png/8.png"));
+    _image.push_back(imread("./resource/US/png/35.png"));
 
-    _cir_model = svm_load_model("./resource/US/svm/cir_model.txt");
-    _rec_model = svm_load_model("./resource/US/svm/rec_model.txt");
+    _rec_model = svm_load_model("./resource/US/svm/Palo_Alto/rec_model.txt");
+    loadFeat(_feat_rec, "./resource/US/svm/Palo_Alto/RECfeat.txt");
+#else
+    _MAX_NUM_SIGN_PER_IMG = 3;
+    _MIN_DISTANCE = 400.0;
+    _START_ROW = 120;
+    _END_ROW = 320;
+    _THESHOLD = 1.05;
+	_START_COL = 0;
+    _MAX_RADUS = 42;
+    _MIN_RADUS = 10;
+    _STEP_RADUS = 4;
+	
+    _image.push_back(imread("./resource/US/png/1.png"));
+    _image.push_back(imread("./resource/US/png/2.png"));
+    _image.push_back(imread("./resource/US/png/3.png"));
+    _image.push_back(imread("./resource/US/png/4.png"));
+    _image.push_back(imread("./resource/US/png/5.png"));
+    _image.push_back(imread("./resource/US/png/6.png"));
+    _image.push_back(imread("./resource/US/png/7.png"));
+    _image.push_back(imread("./resource/US/png/8.png"));
 
-    loadFeat(_feat_cir, "./resource/US/svm/CIRfeat.txt");
-    loadFeat(_feat_rec, "./resource/US/svm/RECfeat.txt");
+    _cir_model = svm_load_model("./resource/US/svm/Detroit/cir_model.txt");
+    _rec_model = svm_load_model("./resource/US/svm/Detroit/rec_model.txt");
+
+    loadFeat(_feat_cir, "./resource/US/svm/Detroit/CIRfeat.txt");
+    loadFeat(_feat_rec, "./resource/US/svm/Detroit/RECfeat.txt");
+#endif
 }
 
 Mat Detector_blackWhite::ID2Image(int target) 
 {
-    Mat s;
+   Mat s;
+#if((RD_LOCATION&RD_NATION_MASK) == RD_GERMAN)
+    switch (target)
+    {
+	case 10100:
+		{
+			s = _image[0];
+			break;
+		}
+	case 12300:
+		{
+			s = _image[1];
+			break;
+		}
+	case 13100:
+		{
+			s = _image[2];
+			break;
+		}
+	case 13310:
+		{
+			s = _image[3];
+			break;
+		}
+	case 13810:
+		{
+			s = _image[4];
+			break;
+		}
+	case 20500:
+		{
+			s = _image[5];
+			break;
+		}
+	case 20600:
+		{
+			s = _image[6];
+			break;
+		}
+	case 20930:
+		{
+			s = _image[7];
+			break;
+		}
+	case 21500:
+		{
+			s = _image[8];
+			break;
+		}
+	case 22200:
+		{
+			s = _image[9];
+			break;
+		}
+	case 22400:
+		{
+			s = _image[10];
+			break;
+		}
+	case 23700:
+		{
+			s = _image[11];
+			break;
+		}
+	case 23900:
+		{
+			s = _image[12];
+			break;
+		}
+	case 24000:
+		{
+			s = _image[13];
+			break;
+		}
+	case 25000:
+		{
+			s = _image[14];
+			break;
+		}
+	case 25900:
+		{
+			s = _image[15];
+			break;
+		}
+	case 26100:
+		{
+			s = _image[16];
+			break;
+		}
+	case 26210:
+		{
+			s = _image[17];
+			break;
+		}
+	case 27452:
+    case 27552:
+		{
+			s = _image[18];
+			break;
+		}
+	case 27453:
+    case 27553:
+		{
+			s = _image[19];
+			break;
+		}
+	case 27454:
+    case 27554:
+		{
+			s = _image[20];
+			break;
+		}
+	case 27455:
+    case 27555:
+		{
+			s = _image[21];
+			break;
+		}
+	case 27456:
+    case 27556:
+		{
+			s = _image[22];
+			break;
+		}
+	case 27458:
+    case 27558:
+		{
+			s = _image[23];
+			break;
+		}
+	case 28300:
+		{
+			s = _image[24];
+			break;
+		}
+	case 28600:
+		{
+			s = _image[25];
+			break;
+		}
+	case 30100:
+		{
+			s = _image[26];
+			break;
+		}
+	case 30600:
+		{
+			s = _image[27];
+			break;
+		}
+	case 31400:
+		{
+			s = _image[28];
+			break;
+		}
+	case 33100:
+		{
+			s = _image[29];
+			break;
+		}
+	case 33600:
+		{
+			s = _image[30];
+			break;
+		}
+	case 35010:
+		{
+			s = _image[31];
+			break;
+		}
+	case 99900:
+		{
+			s = _image[32];
+			break;
+		}
+    case 20910:
+        {
+            s = _image[33];
+            break;
+        }
+    case 25400:
+        {
+            s = _image[34];
+            break;
+        }
+    case 26700:
+        {
+            s = _image[35];
+            break;
+        }
+    case 31401:
+        {
+            s = _image[36];
+            break;
+        }
+    case 27600:
+        {
+            s = _image[37];
+            break;
+        }
+    case 44100:
+        {
+            s = _image[38];
+            break;
+        }
+    case 44200:
+        {
+            s = _image[39];
+            break;
+        }
+
+	default:
+		break;
+        }
+#else
     switch (target)
     {
     case 1:
@@ -110,10 +411,16 @@ Mat Detector_blackWhite::ID2Image(int target)
             s = _image[7];
             break;
         }
+    case 35:
+        {
+            s = _image[8];
+            break;
+        }
     default:
         s = _image[0];
         break;
     }
+#endif
     return s;
 }
 
@@ -267,7 +574,7 @@ double Detector_blackWhite::searchFixedRadusShape(Mat &dxImg, Mat &dyImg,Mat &Sr
         float* dxInRow = (float*)(dxImg.data + rowIdx*dxImg.step);
         float* dyInRow = (float*)(dyImg.data + rowIdx*dyImg.step);
 
-        for(int colIdx = 0;colIdx < dxImg.cols;colIdx++)
+        for(int colIdx = _START_COL;colIdx < dxImg.cols;colIdx++)
         {
             float *dxIn = dxInRow + colIdx;
             float *dyIn = dyInRow + colIdx;
@@ -398,7 +705,7 @@ double Detector_blackWhite::searchFixedRadusShape(Mat &dxImg, Mat &dyImg,Mat &Sr
         float* dxInRow = (float*)(dxImg.data + rowIdx*dxImg.step);
         float* dyInRow = (float*)(dyImg.data + rowIdx*dyImg.step);
 
-        for(int colIdx = 0;colIdx < dxImg.cols;colIdx++)
+        for(int colIdx = _START_COL;colIdx < dxImg.cols;colIdx++)
         {
             float *dxIn = dxInRow + colIdx;
             float *dyIn = dyInRow + colIdx;
@@ -529,7 +836,7 @@ double Detector_blackWhite::searchFixedRadusShape(Mat &dxImg, Mat &dyImg,Mat &Sr
 
     float pow2 = 2.0*radus*w *2.0*radus*w;
 
-    for(int rowIdx = 0;rowIdx < QrAndBr.rows;rowIdx++)
+    for(int rowIdx = _START_ROW - _MAX_RADUS;rowIdx < QrAndBr.rows;rowIdx++)
     {
         float* inDataRow = (float*)(QrAndBr.data + rowIdx*QrAndBr.step); 
         float* srInPtr = (float*)(Sr.data + rowIdx*Sr.step);
@@ -632,8 +939,8 @@ int Detector_blackWhite::searchRegularPolygon(Mat &src,Mat &dxImg, Mat &dyImg,ve
         dst += Sr;
     }
         //Mat dstTemp;
-    dst.copyTo(dstTemp);
-    // look up the 3 maximum value location
+      dst.copyTo(dstTemp);
+    // look up the 10 maximum value location
     vector<Point> maxLoc3;
     vector<double> valVec;
     unsigned int counter = 0;
@@ -647,52 +954,34 @@ int Detector_blackWhite::searchRegularPolygon(Mat &src,Mat &dxImg, Mat &dyImg,ve
         
         if(maxVal1 == 0.0)
             return 0;
-        dst.at<float>(maxValLoc1.y,maxValLoc1.x) = 0.0;
-
-        if(counter == 2)
+        dst.at<float>(maxValLoc1.y,maxValLoc1.x) = -9e-10;
+        bool findFlag = true;
+        for(int ii = 0; ii < maxLoc3.size();++ii)
         {
-            int dX1 = maxValLoc1.x - maxLoc3[1].x;
-            int dY1 = maxValLoc1.y - maxLoc3[1].y;
+            int dX1 = maxValLoc1.x - maxLoc3[ii].x;
+            int dY1 = maxValLoc1.y - maxLoc3[ii].y;
             int dist1 = dX1*dX1 + dY1*dY1;
-
-            int dX2 = maxValLoc1.x - maxLoc3[0].x;
-            int dY2 = maxValLoc1.y - maxLoc3[0].y;
-            int dist2 = dX2*dX2 + dY2*dY2;
-
-            if((dist1> _MIN_DISTANCE) && (dist2 > _MIN_DISTANCE))
+            if(dist1 < _MIN_DISTANCE)
             {
-                maxLoc3.push_back(maxValLoc1);
-                valSum += maxVal1;
-                valVec.push_back(maxVal1);
-                counter++;
+                dst.at<float>(maxValLoc1.y,maxValLoc1.x) = -9e-10;
+                findFlag = false;
+                break;
             }
         }
-        else if(counter == 1)
+        if(findFlag)
         {
-            int dX = maxValLoc1.x - maxLoc3[0].x;
-            int dY = maxValLoc1.y - maxLoc3[0].y;
-            if((dX*dX + dY*dY) > _MIN_DISTANCE)
-            {
-                maxLoc3.push_back(maxValLoc1);
-                valSum += maxVal1;
-                valVec.push_back(maxVal1);
-                counter++;
-            }
-        }
-        else
-        {
+            dst.at<float>(maxValLoc1.y,maxValLoc1.x) = -9e-10;
+            maxLoc3.push_back(maxValLoc1);
             valSum += maxVal1;
             valVec.push_back(maxVal1);
-            maxLoc3.push_back(maxValLoc1);
-            counter++;
+            ++counter;
         }
     }
-
     for(int index = 0;index < _MAX_NUM_SIGN_PER_IMG;index++)
     {
-        if( valVec[index] > _THESHOLD*valSum)
+        if( valVec[index] > _THESHOLD*valSum/_MAX_NUM_SIGN_PER_IMG)
         {
-            float minDist = 90000.0;
+            float minDist = 9e+10;
             int minIdx = radusNum + 1;
             for(int radusIdx = 0; radusIdx < radusNum; radusIdx++)
             {
@@ -735,6 +1024,9 @@ int Detector_blackWhite::searchRegularPolygon(Mat &src,Mat &dxImg, Mat &dyImg,ve
                 {
                     int type;
                     // identify the stop traffic sign
+#if(RD_LOCATION == RD_GERMAN_LEHRE)                      
+                    type = targetClassify(src(roi),_feat_cir,_cir_model);
+#else
                     if(nSide == 8)
                     {
                         type = targetClassify(src(roi),_feat_cir,_cir_model); 
@@ -748,6 +1040,7 @@ int Detector_blackWhite::searchRegularPolygon(Mat &src,Mat &dxImg, Mat &dyImg,ve
                         /*sprintf_s( currFileName, 1000, "D:/Newco/testImage0620/rectangle/square/%06d.png",squareID++);
                         imwrite(currFileName,src(roi));*/
                     }
+#endif
                     if((type != 0) && (type != 2) && (type != 3) && (type != 4))
                     {
                         TS_Structure::TS_element detectSign;
@@ -794,14 +1087,20 @@ void Detector_blackWhite::trafficSignDetect(Mat image, TS_Structure &target)
     calculateGradient(image,dxImg,dyImg);
 
     vector<int> radus;
-    for(int kk = 10; kk < 41; kk += 4)
+    for(int kk = _MIN_RADUS; kk <= _MAX_RADUS; kk += _STEP_RADUS)
     {
         radus.push_back(kk);
     }
 
     Mat dst1,dst2;
+#if(RD_LOCATION == RD_GERMAN_LEHRE)
+    searchRegularPolygon(image,dxImg,dyImg,radus,12,target,dst1); // 12: circle
+#elif(RD_LOCATION == RD_US_PALO_ALTO)
+    searchRegularPolygon(image,dxImg,dyImg,radus,4,target,dst2);  // 4: rectangle
+#else
     searchRegularPolygon(image,dxImg,dyImg,radus,8,target,dst1);
     searchRegularPolygon(image,dxImg,dyImg,radus,4,target,dst2);
+#endif
 
     Mat background(image.rows,4*image.cols/3, CV_8UC3,Scalar(128,128,128));    
 
@@ -862,7 +1161,7 @@ void Detector_blackWhite::trafficSignDetect(Mat image, TS_Structure &target)
     
     rectangle(background,Rect(0,2*image.rows/3,image.cols/3,image.rows/3),Scalar(255,255,255), 1,8);
     rectangle(background,Rect(image.cols/3,0,image.cols,image.rows),Scalar(255,255,255), 1,8);
-    namedWindow("trafficSign",WINDOW_NORMAL);
+    namedWindow("trafficSign",CV_WINDOW_NORMAL);
     imshow("trafficSign",background);
     waitKey(1);
 }

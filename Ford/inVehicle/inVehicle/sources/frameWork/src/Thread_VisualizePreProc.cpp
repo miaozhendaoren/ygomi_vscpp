@@ -30,6 +30,7 @@
 #include "saveLinePointInSafe.h"
 #include "configure.h"
 #include "getSectionID.h"
+#include "TimeStamp.h"
 
 using namespace ns_database;
 using namespace std;
@@ -373,6 +374,7 @@ void WINAPI gpsTimer(UINT wTimerID, UINT msg, DWORD dwUser, DWORD dw1, DWORD dw2
 {
 	if(10 == dwUser)
 	{
+		RD_ADD_TS(tsFunId_eVisualPreTimerIsr,1);
 		ReleaseSemaphore(g_readySema_GPS, 1 ,NULL);
 		//glutTimerFunc((unsigned int)(1000),&gpsTimer,2);
 	}
@@ -551,12 +553,14 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 	engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
 	engine3DPtr->SwapServerEyeBuffer();
-
+	RD_ADD_TS(tsFunId_eThread_Visual_Pre,2);
 
 	while(1)
 	{
 		//wait for GPS thread to get GPS signal
+		RD_ADD_TS(tsFunId_eThread_Visual_Pre,3);
 		WaitForSingleObject(g_readySema_GPS, INFINITE); 
+		RD_ADD_TS(tsFunId_eThread_Visual_Pre,4);
 
         point3D_t orgPoint;
         orgPoint.lat = gGpsInfo.dLatitude;
@@ -569,7 +573,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 			list<list<lineAttributes_t>> lineAttr; // segment list / vector list / attributes
 			//database_gp->getAllVectors(allLines, lineAttr);
             bool dataAccess = database_gp->getAllVectorsAsync(allLines, lineAttr);
-
+			RD_ADD_TS(tsFunId_eThread_Visual_Pre,5);
 			//cout<<"accessFlag = " <<dataAccess<<endl;
 			//point3D_t standPoint = (*(*allLines.begin()).begin())[0];
             if(dataAccess == true)
@@ -593,6 +597,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 					    int lineIdx = 0;
 						point3DFloat_t lastPos;
 				        int drawNum;
+						RD_ADD_TS(tsFunId_eThread_Visual_Pre,6);
 
 					    if(lineNum >= 2)
 					    {
@@ -603,7 +608,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 						    int numberPoint = (*lineAttrIter).numPoints;
 						    point3DFloat_t tempPoint;
-
+							RD_ADD_TS(tsFunId_eThread_Visual_Pre,7);
 						    for(int pointIdx = 0; pointIdx < numberPoint; pointIdx++)
 						    {
 							    //coordinateChange(&standPoint,&(*lineIter)[pointIdx], &(pointVecBuf[pointIdx]));
@@ -733,6 +738,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 			{
                 uint32 secId;
                 int lineId;           
+				RD_ADD_TS(tsFunId_eThread_Visual_Pre,8);
 
                 getSectionId(newPointD, g_segCfgList,secId);
 
@@ -749,6 +755,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 			}
         }
 
+		RD_ADD_TS(tsFunId_eThread_Visual_Pre,10);
 		//For all the furnitures
 		{
 			vector<signInfo_t> signInfo;
@@ -770,6 +777,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
             }
 		}
 
+		RD_ADD_TS(tsFunId_eThread_Visual_Pre,11);
 		//update the car position and look ahead direction
 		{
 			//point3D_t oldPointD;
@@ -804,6 +812,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 			//update look ahead figure. TBD
 
 		}
+		RD_ADD_TS(tsFunId_eThread_Visual_Pre,12);
 
 	}
 

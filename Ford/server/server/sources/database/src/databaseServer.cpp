@@ -1187,7 +1187,8 @@ namespace ns_database
         return true;
     }
 
-    bool databaseServer::loadRoadVecFromFile(IN string fileName)
+    bool databaseServer::loadRoadVecFromFile(IN string fileName,
+        IN bool bRevDir/* = false*/)
     {
         // Load furnitures from file
         int32 totalBufLen = _MAX_ROAD_POINT_BYTES;
@@ -1214,7 +1215,7 @@ namespace ns_database
         // Reset furnitures in DB
         if (status)
         {
-            roadVecGen2_gp->setBgRoadVec(bgVec);
+            roadVecGen2_gp->setBgRoadVec(bgVec, bRevDir);
         }
 
         delete payloadFromDb;
@@ -1222,7 +1223,8 @@ namespace ns_database
         return true;
     }
 
-    bool databaseServer::saveRoadVecToFile(IN string fileName)
+    bool databaseServer::saveRoadVecToFile(IN string fileName,
+        IN bool bRevDir/* = false*/)
     {
         // Get all vectors
         int32 totalBufLen = _MAX_ROAD_POINT_BYTES;
@@ -1236,7 +1238,7 @@ namespace ns_database
         int32 outBuffOffset = 0;
         
         list<backgroundSectionData> bgVecOut;
-        roadVecGen2_gp->getBgRoadVec(bgVecOut);
+        roadVecGen2_gp->getBgRoadVec(bgVecOut, bRevDir);
 
         // Convert back ground vectors to TLV
         convBgRoadVecToTlv(bgVecOut, payloadFromDb, &outBuffOffset);
@@ -1280,6 +1282,10 @@ namespace ns_database
         // kml file header tags: <xml>, <kml>, <Document>
         fprintf(fp, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<kml>\n<Document>\n");
 
+        // tags: <Style>, <StyleMap>
+        fprintf(fp, "    <Style id=\"greenLineStyle\"><LineStyle><color>ff00ff00</color></LineStyle></Style>\n");
+        fprintf(fp, "    <StyleMap id=\"greenLine\"><Pair><key>normal</key><styleUrl>#greenLineStyle</styleUrl></Pair></StyleMap>\n");
+
         point3D_t standPoint;
 #if (RD_LOCATION == RD_US_DETROIT)
         standPoint.lat = 42.296855933108084;
@@ -1311,6 +1317,9 @@ namespace ns_database
                 // tags: <Placemark>, <name>
                 fprintf(fp, "    <Placemark>\n        <name>Section-%d-Line-%d</name>\n", sectionIdx, lineIdx);
                 
+                // tag: styleUrl
+                fprintf(fp, "        <styleUrl>#greenLine</styleUrl>\n");
+
                 // tag: <LineString>
                 fprintf(fp, "        <LineString>\n");
 

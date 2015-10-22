@@ -59,6 +59,7 @@
     <ClCompile Include="sources\interface\src\NEMA_GPGGA_Proc.cpp" />
     <ClCompile Include="sources\interface\src\saveLinePointInSafe.cpp" />
     <ClCompile Include="sources\log\src\LogInfo.cpp" />
+    <ClCompile Include="sources\log\src\TimeStamp.cpp" />
     <ClCompile Include="sources\visualization\src\getSectionID.cpp" />
     <ClCompile Include="sources\visualization\src\Loader3DS.cpp" />
     <ClCompile Include="sources\visualization\src\Visualization.cpp" />
@@ -92,6 +93,7 @@
     <ClInclude Include="sources\interface\include\NEMA_GPGGA_Proc.h" />
     <ClInclude Include="sources\interface\include\saveLinePointInSafe.h" />
     <ClInclude Include="sources\log\include\LogInfo.h" />
+    <ClInclude Include="sources\log\include\TimeStamp.h" />
     <ClInclude Include="sources\visualization\include\3dsId.h" />
     <ClInclude Include="sources\visualization\include\getSectionID.h" />
     <ClInclude Include="sources\visualization\include\Loader3DS.h" />
@@ -285,7 +287,8 @@ xcopy "$(ProjectDir)\resource" "$(OutDir)\resource" /s/y</Command>
       <AdditionalDependencies>opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(OutDir)\config" md "$(OutDir)\config"
+      <Command>if not exist "$(OutDir)\log" md "$(OutDir)\log"
+if not exist "$(OutDir)\config" md "$(OutDir)\config"
 if not exist "$(OutDir)\resource" md "$(OutDir)\resource"
 if not exist "$(OutDir)\resource\carModel" md "$(OutDir)\resource\carModel"
 if not exist "$(OutDir)\resource\DHD" md "$(OutDir)\resource\DHD"
@@ -314,7 +317,8 @@ xcopy "$(ProjectDir)\resource\Germany" "$(OutDir)\resource\Germany" /s/y</Comman
       <AdditionalDependencies>opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(OutDir)\config" md "$(OutDir)\config"
+      <Command>if not exist "$(OutDir)\log" md "$(OutDir)\log"
+if not exist "$(OutDir)\config" md "$(OutDir)\config"
 if not exist "$(OutDir)\resource" md "$(OutDir)\resource"
 if not exist "$(OutDir)\resource\carModel" md "$(OutDir)\resource\carModel"
 if not exist "$(OutDir)\resource\DHD" md "$(OutDir)\resource\DHD"
@@ -343,7 +347,8 @@ xcopy "$(ProjectDir)\resource\Germany" "$(OutDir)\resource\Germany" /s/y</Comman
       <AdditionalDependencies>opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(OutDir)\config" md "$(OutDir)\config"
+      <Command>if not exist "$(OutDir)\log" md "$(OutDir)\log"
+if not exist "$(OutDir)\config" md "$(OutDir)\config"
 if not exist "$(OutDir)\resource" md "$(OutDir)\resource"
 if not exist "$(OutDir)\resource\carModel" md "$(OutDir)\resource\carModel"
 if not exist "$(OutDir)\resource\DHD" md "$(OutDir)\resource\DHD"
@@ -372,7 +377,8 @@ xcopy "$(ProjectDir)\resource\Germany" "$(OutDir)\resource\Germany" /s/y</Comman
       <AdditionalDependencies>opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(OutDir)\config" md "$(OutDir)\config"
+      <Command>if not exist "$(OutDir)\log" md "$(OutDir)\log"
+if not exist "$(OutDir)\config" md "$(OutDir)\config"
 if not exist "$(OutDir)\resource" md "$(OutDir)\resource"
 if not exist "$(OutDir)\resource\carModel" md "$(OutDir)\resource\carModel"
 if not exist "$(OutDir)\resource\DHD" md "$(OutDir)\resource\DHD"
@@ -401,7 +407,8 @@ xcopy "$(ProjectDir)\resource\US" "$(OutDir)\resource\US" /s/y</Command>
       <AdditionalDependencies>opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(OutDir)\config" md "$(OutDir)\config"
+      <Command>if not exist "$(OutDir)\log" md "$(OutDir)\log"
+if not exist "$(OutDir)\config" md "$(OutDir)\config"
 if not exist "$(OutDir)\resource" md "$(OutDir)\resource"
 if not exist "$(OutDir)\resource\carModel" md "$(OutDir)\resource\carModel"
 if not exist "$(OutDir)\resource\DHD" md "$(OutDir)\resource\DHD"
@@ -430,7 +437,8 @@ xcopy "$(ProjectDir)\resource\Germany" "$(OutDir)\resource\Germany" /s/y</Comman
       <AdditionalDependencies>opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(OutDir)\config" md "$(OutDir)\config"
+      <Command>if not exist "$(OutDir)\log" md "$(OutDir)\log"
+if not exist "$(OutDir)\config" md "$(OutDir)\config"
 if not exist "$(OutDir)\resource" md "$(OutDir)\resource"
 if not exist "$(OutDir)\resource\carModel" md "$(OutDir)\resource\carModel"
 if not exist "$(OutDir)\resource\DHD" md "$(OutDir)\resource\DHD"

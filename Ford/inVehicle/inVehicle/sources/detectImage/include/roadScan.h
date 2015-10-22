@@ -208,7 +208,8 @@ struct landMark
 	Point dPoint;
 };
 
-int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Point2d *GPS_next, gpsInformationAndInterval *gpsAndInterval, int *intrtmp, Parameters inParam);
+int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Point2d *GPS_next, 
+    gpsInformationAndInterval *gpsAndInterval, int *intrtmp, Parameters inParam,Point2d &GPS_stop,bool &stopFlg);
 void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &GPSAndInterval, vector<dataEveryRow> &roadPaintData, Parameters &inParam);
 bool readParamRoadScan(char* paramFileName, Parameters& inParam);
 

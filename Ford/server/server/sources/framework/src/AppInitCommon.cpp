@@ -23,6 +23,7 @@
 #include "appInitCommon.h"
 #include "VisualizeControl.h"
 #include "configure.h" // 
+#include "TimeStamp.h"
 
 SOCKET sockServer;			// socket
 SOCKET sockClient = 0;
@@ -224,6 +225,7 @@ unsigned int __stdcall startSocket(void *data)
 	{
 		int length = sizeof(server);
 		sockClient = accept(sockServer,(SOCKADDR*)&server,&length);
+		RD_ADD_TS(tsFunId_eThread_AcceptSocket,1);
 		if (sockClient == INVALID_SOCKET)  
 		{  
 			logPrintf(logLevelError_e,"COMM","accpet failed!");  

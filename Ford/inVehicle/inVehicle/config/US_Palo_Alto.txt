@@ -52,4 +52,4 @@ discardRoadDataAfterLaneChange:
 0
 
 offsetDistance:
-6.79
+9

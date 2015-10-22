@@ -24,6 +24,7 @@
 #include "Thread_VisualizePreProc.h"
 #include "Visualization.h"
 #include "VisualizeControl.h"
+#include "TimeStamp.h"
 
 #pragma comment(lib, "ws2_32.lib") 
 #define ON   1
@@ -32,6 +33,7 @@
 int main(int argc, char* argv[])
 {
 	HANDLE threadHandle[5];
+	RD_TS_INIT();
 	appInitEvents();
 	databaseInit();
 	msgQueueInit();
@@ -74,6 +76,8 @@ int main(int argc, char* argv[])
 	CloseHandle(threadHandle[1]);
 	CloseHandle(threadHandle[2]);
 	CloseHandle(threadHandle[3]);
+	
+	RD_TS_EXIT();
 	delete3DEngine();
 	WSACleanup();
 	return 0;

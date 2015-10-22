@@ -31,7 +31,8 @@ using namespace cv;
 namespace ns_roadScan
 {
 
-int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Point2d *GPS_next, gpsInformationAndInterval *gpsAndInterval, int *intrtmp,Parameters inParam)
+int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Point2d *GPS_next, 
+       gpsInformationAndInterval *gpsAndInterval, int *intrtmp,Parameters inParam,Point2d &GPS_stop,bool &stopFlg)
 {
     //laneInfo currlane;												//XYBLOCK
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -46,16 +47,20 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
 	}
 
 	Size Rsize = Size(imageIn.cols*inParam.imageScaleWidth, imageIn.rows*inParam.imageScaleHeight);
-	//Size Rsize = Size(640,400);//for honda data
-    
-//	image = Mat(Rsize,CV_8UC1);
-    cvtColor(imageIn, image, COLOR_RGB2GRAY);
-//	resize(imageIn, image,Rsize);
-
+    image = Mat(Rsize,CV_8UC1);
+    resize(imageIn, imageIn,Rsize);
+    int nchannel = imageIn.channels();
+    if(nchannel == 3)
+    {
+        cvtRGB2Gray(imageIn, image);
+    }
+    else
+    {
+        image = imageIn;
+    }
 	medianBlur(image,image,3) ;
-
     ColorImage = image;
-//    cvtColor(image, image, COLOR_RGB2GRAY);
+
     /*
 	image.convertTo(image_32f,CV_32F);
 	processNoise(image_32f,image);
@@ -70,16 +75,10 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
     int h = image.rows;
 
 	double startLocation;
-    Mat image_f,Kapa;
+    Mat image_f;
     image.convertTo(image_f,CV_32F);	
-
-	Point curr = Point(0,0);
-	//Size S = Size(640, 480);
-
-//	Mat MAP = Mat::zeros(600, 1000, CV_8UC3);
-
     ///////////////////////////////////////////////////////////////////////////////////////////
-    //Step5: Generate BirdView
+    //Generate BirdView
     Mat birds_image;
 
     double scale = 1;
@@ -97,21 +96,49 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
         birdSize,
         INTER_LINEAR  | WARP_INVERSE_MAP
         );
-    Mat RImage;
-
-	//imwrite("birds_image.png",birds_image);
-
     Mat birdEye;
     birdEye = birds_image;
-//    cvtColor(birds_image, birdEye, COLOR_RGB2GRAY);
-//    birdEye.convertTo(birdEye,CV_8UC1,1);
     
 	Point2d GPS_rel, GPS_rel2;
-
-	coordinateChange(*GPS_abs, *GPS_ref, GPS_rel);
-	coordinateChange(*GPS_next, *GPS_ref, GPS_rel2);
-
-	double d = sqrt((GPS_rel.x-GPS_rel2.x)*(GPS_rel.x-GPS_rel2.x)+(GPS_rel.y-GPS_rel2.y)*(GPS_rel.y-GPS_rel2.y));
+    double d = 0;
+    if (!stopFlg)
+    {
+        coordinateChange(*GPS_abs, *GPS_ref, GPS_rel);
+        coordinateChange(*GPS_next, *GPS_ref, GPS_rel2);
+        d = sqrt((GPS_rel.x-GPS_rel2.x)*(GPS_rel.x-GPS_rel2.x)+(GPS_rel.y-GPS_rel2.y)*(GPS_rel.y-GPS_rel2.y));
+        if (d < 0.20)
+        {
+            GPS_stop = *GPS_abs;
+            stopFlg = true;
+            d = 0;
+        }
+        else
+        {
+            stopFlg = false;
+            GPS_stop = Point2d(0,0);
+        }
+            
+    }
+    else
+    {
+        coordinateChange(*GPS_abs, *GPS_ref, GPS_rel);
+        coordinateChange(GPS_stop, *GPS_ref, GPS_rel2);
+        d = sqrt((GPS_rel.x-GPS_rel2.x)*(GPS_rel.x-GPS_rel2.x)+(GPS_rel.y-GPS_rel2.y)*(GPS_rel.y-GPS_rel2.y));
+        if (d > 0.20)
+        {
+            coordinateChange(*GPS_abs, *GPS_ref, GPS_rel);
+            coordinateChange(*GPS_next, *GPS_ref, GPS_rel2);
+            d = sqrt((GPS_rel.x-GPS_rel2.x)*(GPS_rel.x-GPS_rel2.x)+(GPS_rel.y-GPS_rel2.y)*(GPS_rel.y-GPS_rel2.y));
+            GPS_stop = Point2d(0,0);
+            stopFlg = false;
+        }
+        else
+        {
+            stopFlg = true;
+            d = 0;
+        }           
+    }
+	
 	int Interval =floor(d/(inParam.distancePerPixel/100)+0.5);
    
     //double roadScanStretchRate = 1;
@@ -121,8 +148,6 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
 
 		if ((*rowIndex)-Interval <=0)
 			(*rowIndex)=history.rows;
-
-		//Mat imageROI = birdEye(Rect(0,Interval/2,birdEye.cols,Interval));
 		int startLocationFloor = floor(startLocation);
 		if(((startLocationFloor-Interval+1) < 0)||(startLocationFloor + 1) > birdEye.rows)
 		{
@@ -198,10 +223,10 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
     shadowProcess(longLane, longLane);
     
 #ifdef ROAD_SCAN_UT
-    imwrite("longLaneGray.png",longLaneGray);
     imwrite("longLane.png",longLane);
 #endif
 	vector<landMark> landMark;
+    vector<Point> stopLineLoc;
 	int W = longLane.cols;
 	int H = longLane.rows;
 
@@ -270,12 +295,15 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 		else
 			histThres = (hisLeftTh + hisRightTh)/2;
 		histThres = max(hisLeftTh,hisRightTh);
+
+
+        
 	
 #if 0
 //		circleDection(longLane_cut,landMark,histThres);	
 		landMarkDetection(longLane_cut,landMark,histThres+20);
-		//arrowDetection(longLane,landMark);
-		//stopLineDetection(longLane_cut,landMark,histThres);
+        stopLineDetection(longLane_cut,stopLineLoc);
+
 #endif
         
 ///////shadow and no shadow ,process respectively

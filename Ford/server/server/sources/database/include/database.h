@@ -63,6 +63,7 @@ namespace ns_database
         double alt;
         float  paintFlag;
         int    count;
+        float  paintLength;
     };
 
 	struct point2D_t

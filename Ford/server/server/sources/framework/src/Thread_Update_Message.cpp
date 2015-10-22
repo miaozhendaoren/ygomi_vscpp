@@ -19,6 +19,7 @@
 #include "appInitCommon.h"
 #include "databaseServer.h" // databaseServer
 #include "LogInfo.h"
+#include "TimeStamp.h"
 
 void onTimer(diffRptMsg_t* updateMsgPtr)
 {
@@ -36,7 +37,9 @@ unsigned int __stdcall Thread_Update_Message(void *data)
     {
         uint32 vehicleId;      
         //wait for dataBase access thread to get modificaiton signal
+		RD_ADD_TS(tsFunId_eThread_Send,1);
         WaitForSingleObject(g_readySema_readDb,INFINITE);
+		RD_ADD_TS(tsFunId_eThread_Send,2);
         if(!databaseQueue_gp->empty())
         {
 						//init the read fds and exception_fds to zeros
@@ -87,12 +90,18 @@ unsigned int __stdcall Thread_Update_Message(void *data)
 					clientListIdx2++;
 					}
 				}
-				delete updateMsgPtr->payload;
-				updateMsgPtr->payload = NULL;
+				
+				if( updateMsgPtr->msgHeader.payloadLen>0 && updateMsgPtr->payload!=NULL)
+				{	
+					delete updateMsgPtr->payload;
+					updateMsgPtr->payload = NULL;
+				}
+
 				continue;
 			}
 
 			list<sockInfo_t>::iterator clientListIdx = sendclientList.begin();
+			RD_ADD_TS(tsFunId_eThread_Send,3);
 			while(clientListIdx != sendclientList.end())
 			{
 				
@@ -121,14 +130,14 @@ unsigned int __stdcall Thread_Update_Message(void *data)
 					if ((sendRet == INVALID_SOCKET)|| (sendRet == 0))
 					{ 
 						logPrintf(logLevelError_e,"UPDATE_MSG","Send message header to specified client failed!"); 
-						continue;
+						//continue;
 						//delete updateMsgPtr->payload;
 						//updateMsgPtr->payload = NULL;
 					}
 					else if(sendRet < msgTempPtr->headerLen)
 					{
 						logPrintf(logLevelError_e,"UPDATE_MSG","Send header message timeOut!");
-						continue;
+						//continue;
 					}
 					else
 					{
@@ -147,10 +156,10 @@ unsigned int __stdcall Thread_Update_Message(void *data)
 								//delete updateMsgPtr->payload;
 								//updateMsgPtr->payload = NULL;
 							}
-							else if(sendRet < msgTempPtr->headerLen)
+							else if(ret < msgTempPtr->headerLen)
 							{
 								logPrintf(logLevelError_e,"UPDATE_MSG","Send message timeOut!");
-								continue;
+								//continue;
 							}
 							else
 							{
@@ -170,9 +179,13 @@ unsigned int __stdcall Thread_Update_Message(void *data)
 			clientListIdx++;
 			}//while(clientListIdx != clientList.end())
 		}//end if(clientList.size() != 0)
-			delete updateMsgPtr->payload;
-			updateMsgPtr->payload = NULL;
+			if( updateMsgPtr->msgHeader.payloadLen>0 && updateMsgPtr->payload!=NULL)	
+			{	
+				delete updateMsgPtr->payload;
+				updateMsgPtr->payload = NULL;
+			}
 		}//end if(!databaseQueue_gp->empty())
+		RD_ADD_TS(tsFunId_eThread_Send,14);
 	}//end while(1)
 	return 0;
 }

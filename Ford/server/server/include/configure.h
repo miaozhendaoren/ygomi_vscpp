@@ -33,6 +33,8 @@
 #define RD_VIDEO_BUFFER_MODE     2
 #define RD_VIDEO_LOAD_MODE       3
 
+#define RD_TIMESTAMP             OFF
+
 #if defined(_FRANKFORT_CAMERA)
 #define RD_MODE                RD_CAMERA_MODE
 #define RD_IMAGE_BUFFER_FILE   ON
@@ -46,6 +48,7 @@
 #define RD_LOCATION            RD_GERMAN_MUNICH_AIRPORT
 #define RD_SIGN_DETECT         RD_SIGN_DETECT_COLOR
 #define RD_ROAD_DETECT         ON
+#define KML_PAINT_ONLY_FLAG    ON
 #elif defined(_DETROIT_VIDEO)
 #define RD_MODE                RD_VIDEO_BUFFER_MODE
 #define RD_IMAGE_BUFFER_FILE   ON
@@ -64,8 +67,9 @@
 #define RD_MODE                RD_VIDEO_LOAD_MODE
 #define RD_IMAGE_BUFFER_FILE   ON
 #define RD_LOCATION            RD_US_PALO_ALTO
-#define RD_SIGN_DETECT         RD_SIGN_DETECT_COLOR
+#define RD_SIGN_DETECT         OFF
 #define RD_ROAD_DETECT         ON
+#define KML_PAINT_ONLY_FLAG    ON
 #else
 #define RD_MODE                RD_VIDEO_LOAD_MODE
 #define RD_IMAGE_BUFFER_FILE   ON

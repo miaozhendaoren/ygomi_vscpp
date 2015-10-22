@@ -49,6 +49,7 @@
 
 #include <iomanip>
 #include <fstream>
+#include "TimeStamp.h"
 
 using namespace ns_database;
 using namespace ns_statistics;
@@ -63,6 +64,7 @@ double roadPixelNum = 400;
 void compareFurnitureList(furAttributesInVehicle_t *furDetIn,list<furAttributesInVehicle_t>* list2, list<furAttributesInVehicle_t>* listAddOut, list<furAttributesInVehicle_t>* listUpdateOut);
 void convertImageToFurniture(Size imageSize, ns_detection::TS_Structure &targetPtr,point3D_t* gpsInfoPtr,point3D_t* gpsInfoPrevP,point3D_t* refGps,list<furWithPosition_t>* furnListPtr);
 void filterFurToReport(Point2d refGps,point3D_t currentGps,list<statisticsFurInfo_t>* furnListInBuffPtr, list<furWithPosition_t>* furnListInDetPtr,list<furAttributesInVehicle_t>* outListPtr);
+void checkFurWhenBufferEnd(list<statisticsFurInfo_t> *furnListInBuffPtr,list<furAttributesInVehicle_t> *outListPtr);
 
 struct gpsCarInfo_t
 {
@@ -73,82 +75,6 @@ struct gpsCarInfo_t
     point3D_t gpsInfo;
     point3D_t gpsInfoPre;
 };
-
-void smoothLaneId(INOUT vector<int> &lineIdxVec)
-{
-    const int MAX_LANE_NUM = 2;
-    const int CHANGE_LANE_NUM_THRESH = 2;
-    const int CONTINUOUS_POINT_NUM_THRESH = 10;
-
-    int size = lineIdxVec.size();
-    int changeNumber = 0;
-    int preLaneId;
-
-    vector<int> statistic;
-    statistic.assign(MAX_LANE_NUM, 0);
-
-    vector<int> sectionNumVec;
-    sectionNumVec.assign(size, 0);
-
-    int sectionStartIdx = 0;
-    int sectionNum = 1; // 1 for the first point
-
-    // find statistics
-    for(int index = 0; index < size; index++)
-    {
-        int curLaneId = lineIdxVec[index];
-        statistic[curLaneId] ++;
-
-        if(index > 0)
-        {
-            if(preLaneId != curLaneId)
-            {
-                changeNumber++;
-
-                for(int idxInSec = sectionStartIdx; idxInSec < index; ++idxInSec)
-                {
-                    sectionNumVec[idxInSec] = sectionNum;
-                }
-
-                sectionStartIdx = index;
-
-                sectionNum = 1;
-            }else
-            {
-                sectionNum++;
-            }
-        }
-
-        preLaneId = curLaneId;
-    }
-
-    for(int idxInSec = sectionStartIdx; idxInSec < size; ++idxInSec)
-    {
-        sectionNumVec[idxInSec] = sectionNum;
-    }
-
-    // smooth
-    int trueLaneId;
-    if(changeNumber > CHANGE_LANE_NUM_THRESH)
-    {
-        if(statistic[0] > statistic[1])
-        {
-            trueLaneId = 0;
-        }else
-        {
-            trueLaneId = 1;
-        }
-
-        for(int index = 0; index < size; index++)
-        {
-            if((lineIdxVec[index] != trueLaneId) && 
-                (sectionNumVec[index] < CONTINUOUS_POINT_NUM_THRESH))
-            {
-                lineIdxVec[index] = trueLaneId;
-            }
-        }
-    }
-}
 
 #ifdef TRAFFIC_SIGN_TEST
 FILE *fd;
@@ -167,12 +93,13 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
     while(1)
     {
         ImageBuffer *buffer;
+		RD_ADD_TS(tsFunId_eThread_DifRpt,1);
         if(!imageBuffer.getBuffer(&buffer))
         {
-            Sleep(50);
+            Sleep(500);
             continue;
         }
-
+		RD_ADD_TS(tsFunId_eThread_DifRpt,2);
         int number = buffer->getImageNumber();
         
         // Painting detection
@@ -223,9 +150,11 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
         
             double middlePixel;
             Point2d GPS_abs, GPS_next;
+            Point2d GPS_stop = Point2d(0, 0);
+            bool stopFlg = false;
 
             int intrtmp = 0;
-
+			RD_ADD_TS(tsFunId_eThread_DifRpt,3);
             for(int index = 0; index < number; index++)
             {
                 buffer->getCurrentImage(&image);
@@ -238,7 +167,7 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
                 GPS_next.x = image.gpsInfo.lat;
                 GPS_next.y = image.gpsInfo.lon;
 
-                int flag = roadImageGen(image.image, history, &rowIndex, &GPS_abs, &GPS_next, &gpsAndInterval, &intrtmp, inParam);
+                int flag = roadImageGen(image.image, history, &rowIndex, &GPS_abs, &GPS_next, &gpsAndInterval, &intrtmp, inParam, GPS_stop, stopFlg);
                 
 				if(flag == -1)
 				{
@@ -265,6 +194,7 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
                 gpsVec.push_back(image.gpsInfo);
             }
 
+			RD_ADD_TS(tsFunId_eThread_DifRpt,4);
             char bufferTemp[32];                    
             sprintf(bufferTemp, "road_time.png");
             imwrite(bufferTemp, history );
@@ -275,12 +205,10 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
 
 				sprintf(bufferTemp, "road_time_roi.png");
 				imwrite(bufferTemp, historyROI );
-			
-				// smoothLaneId
-				smoothLaneId(lineIdxVec);
         
 				roadImageProc2(historyROI, GPSAndInterval, roadPaintData, inParam);
 
+				RD_ADD_TS(tsFunId_eThread_DifRpt,5);
 				for(int index = 0; index < roadPaintData.size(); index++)
 				{
 					if( (0 != roadPaintData[index].Left_Middle_RelGPS.x) && (0 != roadPaintData[index].Left_Middle_RelGPS.y) && 
@@ -309,6 +237,7 @@ CLEAN_ROADSCAN_BUFFER:
 		 GPSAndInterval.clear();
 #endif
 
+		 RD_ADD_TS(tsFunId_eThread_DifRpt,6);
         // Furniture detection
         list<furAttributesInVehicle_t> furInfoListAddReport;
         list<furAttributesInVehicle_t> furInfoListUpdateReport;
@@ -327,14 +256,16 @@ CLEAN_ROADSCAN_BUFFER:
             imageInfo_t image;
 
             list<statisticsFurInfo_t> furnListInBuff;
-
+			RD_ADD_TS(tsFunId_eThread_DifRpt,7);
             for(int index = 0; index < number; index += 1) // +=2: skip one frame and process one frame
             {
                 ns_detection::TS_Structure detectedTrafficSign;
 
                 //buffer->getCurrentImage(&image); // skip one frame and process one frame
                 buffer->getCurrentImage(&image);
-
+#if (RD_LOCATION == RD_GERMAN_LEHRE)
+                resize(image.image,image.image,Size(image.image.cols/2,image.image.rows/2));
+#endif
                 trafficSignDetector->trafficSignDetect(image.image, detectedTrafficSign); // detect traffic signs
                 {
                     //cout << "detected sign number: "<< detectedTrafficSign.totalNumber << endl;
@@ -402,6 +333,34 @@ CLEAN_ROADSCAN_BUFFER:
                     }
                 }
             }
+
+            // check if any fur need to be reported at the end of buffer
+            {
+                list<furAttributesInVehicle_t> furListTemp;
+
+                checkFurWhenBufferEnd(&furnListInBuff,&furListTemp);
+
+                if( furListTemp.size() > 0)
+                {
+                    list<furAttributesInVehicle_t>::iterator furListTempIdx;
+                    for(furListTempIdx = furListTemp.begin();furListTempIdx != furListTemp.end(); ++furListTempIdx)
+                    {
+#ifdef TRAFFIC_SIGN_TEST                           
+                        fprintf(fd,"====================================================================\n");	
+                        fprintf(fd,"report_%d_%d = ",furListTempIdx->type,furListTempIdx->sideFlag);
+                        fprintf(fd,"%.14f %.14f;\n",furListTempIdx->location.lon,furListTempIdx->location.lat);	
+                        fprintf(fd,"***********************************************************************\n");
+#endif
+                        list<furAttributesInVehicle_t> furInfoListInDb;
+
+                        //get the furniture info according to the GPS.
+                        database_gp->getFurnitureByGps(&(furListTempIdx->location), database_gp->_distThreshFar, furInfoListInDb);
+
+                        compareFurnitureList(&(*furListTempIdx),&furInfoListInDb,&furInfoListAddReport, &furInfoListUpdateReport);
+                    }
+                }
+            }
+
         }
 
 #ifdef TRAFFIC_SIGN_TEST
@@ -409,7 +368,7 @@ CLEAN_ROADSCAN_BUFFER:
 #endif
 
 #endif//(RD_SIGN_DETECT != RD_SIGN_DETECT_OFF)
-
+		RD_ADD_TS(tsFunId_eThread_DifRpt,8);
         // Generate message
         {
             messageProcessClass    diffMsg;
@@ -466,7 +425,7 @@ CLEAN_ROADSCAN_BUFFER:
                 furIndex++;
                 pduIdx++;
             }
-
+			RD_ADD_TS(tsFunId_eThread_DifRpt,9);
             // report the update furnitures
             furIndex = furInfoListUpdateReport.begin();
 
@@ -503,6 +462,7 @@ CLEAN_ROADSCAN_BUFFER:
                 }
             }
 
+			RD_ADD_TS(tsFunId_eThread_DifRpt,10);
             // Send message
             if(pduIdx > 0)
             {
@@ -551,6 +511,7 @@ CLEAN_ROADSCAN_BUFFER:
             laneInfoList.clear();
         }
         //ReleaseSemaphore(g_readySema_DiffDet, 1 ,NULL);
+		RD_ADD_TS(tsFunId_eThread_DifRpt,11);
     }//end while(1)
 
     return 0;
@@ -712,6 +673,126 @@ void compareFurnitureList(furAttributesInVehicle_t *furDetIn,list<furAttributesI
 
         listAddOut->push_back(*furDetIn);
     }
+}
+
+void checkFurWhenBufferEnd(list<statisticsFurInfo_t> *furnListInBuffPtr,list<furAttributesInVehicle_t> *outListPtr)
+{
+    list<statisticsFurInfo_t>::iterator furnListInBuffIdx = furnListInBuffPtr->begin();
+    while(furnListInBuffIdx != furnListInBuffPtr->end())
+    {
+        if(furnListInBuffIdx->position.size() > VAR_ACC_TIME)
+        {
+             Mat slopeMatrix(furnListInBuffIdx->position.size(),2,CV_64FC1);
+             Mat constMatrix(furnListInBuffIdx->position.size(),1,CV_64FC1);
+                        
+             for(int stepIdx1 = 0;stepIdx1 < furnListInBuffIdx->position.size(); ++stepIdx1)
+             {
+                vector<point3D_t> positionVector = furnListInBuffIdx->position[stepIdx1];
+                vector<Point2f> positionVec2d;
+                // 3d point transform to 2d.
+                for(int numIdx = 0; numIdx < positionVector.size();++numIdx)
+                {
+                    Point2f point;
+                    point.x = positionVector[numIdx].lat;
+                    point.y = positionVector[numIdx].lon;
+                    positionVec2d.push_back(point);
+                }
+                // line fitting
+                Vec4f     lineFit;
+                fitLine(positionVec2d,lineFit,CV_DIST_L2,1,0.01,0.01);
+                // Ax=b, construct the A matrix and b matrix
+                slopeMatrix.at<double>(stepIdx1,0) = lineFit[1]/lineFit[0];
+#ifdef TRAFFIC_SIGN_TEST
+                fprintf(fd,"%d_%d_K = %.14f;\n",furnListInBuffIdx->furAttri.type,furnListInBuffIdx->furAttri.sideFlag,atan2(lineFit[1],lineFit[0]));
+#endif
+                slopeMatrix.at<double>(stepIdx1,1) = -1.0;
+                constMatrix.at<double>(stepIdx1) = lineFit[1]/lineFit[0] * lineFit[2] - lineFit[3];
+             }
+             //delete the parallel lines
+            bool parallelFlag = false;
+            for(int rowIdx1 = 0;rowIdx1 < slopeMatrix.rows; ++rowIdx1)
+            {
+                int times = 0;
+                double slope1 = atan(slopeMatrix.at<double>(rowIdx1,0))*180/PI;
+
+                for(int rowIdx2 = 0; rowIdx2 < slopeMatrix.rows; ++rowIdx2)
+                {                           
+                    double slope2 = atan(slopeMatrix.at<double>(rowIdx2,0))*180/PI;
+
+                    double distS = abs(slope2 - slope1);
+  
+
+                    if(distS < PARALLEL_LINE_DEGREE)
+                    {
+                        times++;
+                    }
+                }
+                if((float)(times - 1) > slopeMatrix.rows*0.5)
+                {
+                        parallelFlag = true;
+                        break;
+                }
+            }
+            if(parallelFlag == false)
+            {
+
+                Mat slopeMat_T =  slopeMatrix.t();
+
+                Mat HermitMat = slopeMat_T*slopeMatrix;
+                Mat HermitMat_inv = HermitMat.inv(DECOMP_SVD);
+
+                Mat location = HermitMat_inv*slopeMat_T*constMatrix;
+                point3D_t  gpsReport;     
+                gpsReport.lat = location.at<double>(0,0);
+                gpsReport.lon = location.at<double>(1,0);
+
+                {
+                    // calculate the sign's height 
+                    double minDistH = MIN_DIST;
+                    float bestMuliple = 10000;
+                    vector<point3D_t> positionVector = furnListInBuffIdx->position[0];
+                    for(int stepIdx = 0;stepIdx < positionVector.size(); ++stepIdx)
+                    {
+                        double distX = positionVector[stepIdx].lat - gpsReport.lat;
+                        double distY = positionVector[stepIdx].lon - gpsReport.lon;
+                        double distH = sqrt(distX*distX + distY*distY);
+                        if(minDistH > distH)
+                        {
+                            bestMuliple = furnListInBuffIdx->offset[0][stepIdx];
+                            minDistH = distH;
+                        }
+                    }
+                    if(minDistH < MIN_DIST)
+                    {
+                        // alt: height of traffic sign, in multiple of the height of sign surface, 
+                        //      from ground to lower boundary of sign surface.
+                        gpsReport.alt = bestMuliple;
+                        furAttributesInVehicle_t reportFur;
+                        reportFur = furnListInBuffIdx->furAttri;
+                        reportFur.location = gpsReport;
+                                
+                        switch(reportFur.type)
+                        {
+                            case 27553:
+                                reportFur.type = 27453;
+                                break;
+                            case 27554:
+                                reportFur.type = 27454;
+                                break;
+                            case 27555:
+                                reportFur.type = 27455;
+                                break;
+                            case 27556:
+                                reportFur.type = 27456;
+                                break;
+                        }
+                        outListPtr->push_back(reportFur);
+                    }//end if(minDistH < MIN_DIST)
+                } // end if(dist < DIST_THREHOLD)
+            } // end if(parallelFlag == false)
+        } // end if(furnListInBuffIdx->position.size() > VAR_ACC_TIME)
+        ++furnListInBuffIdx;
+    } // end while
 }
 
 void filterFurToReport(Point2d refGps,point3D_t currentGps,list<statisticsFurInfo_t>* furnListInBuffPtr, list<furWithPosition_t>* furnListInDetPtr,list<furAttributesInVehicle_t>* outListPtr)

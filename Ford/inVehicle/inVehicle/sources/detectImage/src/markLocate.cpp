@@ -29,7 +29,7 @@ void getRefGPSLocationOfEveryPixelInRoadScanImage(Mat &imageIn, int stretchRate,
 	coordinateChange(GPS_next, GPS_reference, GPS2);
 
     // correct the distance offset
-    resetGPSOffset(offsetDist, GPS1, GPS2);
+    //resetGPSOffset(offsetDist, GPS1, GPS2);
 
 	refGPSOriginalImage = Point2d(-1.0, -1.0);
 

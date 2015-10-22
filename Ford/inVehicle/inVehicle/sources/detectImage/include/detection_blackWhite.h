@@ -37,6 +37,11 @@ private:
     int   _END_ROW;
     double _THESHOLD;
 
+    int   _START_COL;
+    int   _MAX_RADUS;
+    int   _MIN_RADUS;
+    int   _STEP_RADUS;
+
     svm_model *_cir_model;
     svm_model *_rec_model;
     
@@ -55,7 +60,7 @@ private:
     cv::Mat ID2Image(int target);
 
 public:
-    Detector_blackWhite(float highStep, double dist_per_piexl,int horizon_line);
+    Detector_blackWhite(float highStep, double dist_per_piexl,int horizon_line,int featureNum = 1500);
 
     void trafficSignDetect(cv::Mat image, TS_Structure &target);
 };

@@ -130,9 +130,11 @@ namespace ns_database
 
         bool saveFurToFile(IN std::string fileName);
 
-        bool loadRoadVecFromFile(IN std::string fileName);
+        bool loadRoadVecFromFile(IN std::string fileName,
+                                 IN bool bRevDir = false);
 
-        bool saveRoadVecToFile(IN std::string fileName);
+        bool saveRoadVecToFile(IN std::string fileName,
+                               IN bool bRevDir = false);
 
         bool saveRoadVecAndFurToKml(IN std::string fileName);
 

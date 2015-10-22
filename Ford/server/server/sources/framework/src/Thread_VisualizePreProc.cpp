@@ -23,6 +23,7 @@
 #include "appInitCommon.h"
 #include "VisualizeControl.h"
 #include "configure.h"
+#include "TimeStamp.h"
 //#include "roadSideVectorGen.h"
 
 using namespace ns_database;
@@ -397,13 +398,14 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 		list<list<vector<point3D_t>>> allLines; // segment list / vector list / point list / point
 		list<list<lineAttributes_t>> lineAttr; // segment list / vector list / attributes
 		database_gp->getAllVectors(allLines, lineAttr);
-
+		RD_ADD_TS(tsFunId_eThread_Visual_Pre,1);
 		if(allLines.size() != 0)
 		{
 			//standPoint = (*(*allLines.begin()).begin())[0];
 
 			list<list<vector<point3D_t>>>::iterator lineInSegIter = allLines.begin();
 
+			RD_ADD_TS(tsFunId_eThread_Visual_Pre,2);
 			// For each segment
 			while(lineInSegIter != allLines.end())
 			{
@@ -523,6 +525,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 		engine3DPtr->SwapRoadLineBuffer();
 		engine3DPtr->SwapServerCharBuffer();
 
+		RD_ADD_TS(tsFunId_eThread_Visual_Pre,3);
 		//get the new data to draw the paint
 		{
 			list<vector<point3D_t>> newDataVec;
@@ -574,7 +577,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 			}
 
 		}
-
+		RD_ADD_TS(tsFunId_eThread_Visual_Pre,4);
 		engine3DPtr->SwapQuadBuffer();
 		{
 			//get all the furniture
@@ -590,8 +593,9 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 			engine3DPtr->AddSignInfo(signInfo);
 			engine3DPtr->SwapSignBuffer(); 
 		}
-
+		RD_ADD_TS(tsFunId_eThread_Visual_Pre,5);
 		WaitForSingleObject(g_readySema_Redraw, INFINITE); 
+		RD_ADD_TS(tsFunId_eThread_Visual_Pre,6);
 	}//end while(1)
 
 

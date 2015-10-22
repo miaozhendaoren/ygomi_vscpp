@@ -28,6 +28,7 @@
 
 OPENGL_3D_ENGINE *engine3DPtr;
 eyeLookAt_t serverEyeInfo[2];
+VideoPlayEnum videoPlaySpeed = VideoPlayEnum_normal;
 
 int down_x;
 int down_y;
@@ -281,6 +282,16 @@ void keyboardFunc(unsigned char key, int x, int y)
 	case 88: //turn on/off traffic sign
 	case 120:
 		engine3DPtr->setSignFlag();
+		break;
+	case 83:
+	case 115:
+		if(VideoPlayEnum_pause == videoPlaySpeed)
+		{
+			videoPlaySpeed = VideoPlayEnum_normal;
+		}else
+		{
+			videoPlaySpeed = (VideoPlayEnum)((int)videoPlaySpeed + 1);
+		}
 		break;
 	default:
 		break;

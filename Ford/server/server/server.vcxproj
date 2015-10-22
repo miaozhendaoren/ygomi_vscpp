@@ -263,7 +263,7 @@ copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_US_PALO_ALTO_VIDEO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -302,6 +302,7 @@ copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib
     <ClCompile Include="sources\interface\src\messageProcessClass.cpp" />
     <ClCompile Include="sources\interface\src\messageQueueClass.cpp" />
     <ClCompile Include="sources\log\src\LogInfo.cpp" />
+    <ClCompile Include="sources\log\src\TimeStamp.cpp" />
     <ClCompile Include="sources\roadVecGen2\src\polynomialFit.cpp" />
     <ClCompile Include="sources\roadVecGen2\src\RoadVecGen2.cpp" />
     <ClCompile Include="sources\roadVecGen2\src\SecRptData.cpp" />
@@ -325,6 +326,7 @@ copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib
     <ClInclude Include="sources\interface\include\messageProcessClass.h" />
     <ClInclude Include="sources\interface\include\messageQueueClass.h" />
     <ClInclude Include="sources\log\include\LogInfo.h" />
+    <ClInclude Include="sources\log\include\TimeStamp.h" />
     <ClInclude Include="sources\visualization\include\3dsId.h" />
     <ClInclude Include="sources\visualization\include\Loader3DS.h" />
     <ClInclude Include="sources\visualization\include\Model3DS.h" />

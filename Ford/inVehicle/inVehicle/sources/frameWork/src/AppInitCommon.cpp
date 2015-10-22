@@ -31,6 +31,7 @@
 #include "configure.h"
 #include "utils.h"
 #include "getSectionID.h" // readSectionConfig
+#include "TimeStamp.h"
 
 HANDLE g_readySema_GPS;
 HANDLE g_readySema_DiffDet;
@@ -161,14 +162,16 @@ int detectorInit()
     {
 #if(RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
         trafficSignDetector = new ns_detection::Detector_colored(0.5,inParam.distancePerPixel,300); // 300: airport2
-#elif(RD_LOCATION == RD_GERMAN_LEHRE || RD_LOCATION == RD_GERMAN_LEHRE2)
+#elif(RD_LOCATION == RD_GERMAN_LEHRE)
+        trafficSignDetector = new ns_detection::Detector_blackWhite(0.5,inParam.distancePerPixel,100); // not set the horonzition line
+#elif(RD_LOCATION == RD_GERMAN_LEHRE2)
         trafficSignDetector = new ns_detection::Detector_colored(0.5,inParam.distancePerPixel,100);
 #elif(RD_LOCATION == RD_US_DETROIT)
         trafficSignDetector = new ns_detection::Detector_blackWhite(0.5,inParam.distancePerPixel,260); // 260: detroit
 #elif(RD_LOCATION == RD_US_PALO_ALTO)
-        // left blank
+        trafficSignDetector = new ns_detection::Detector_blackWhite(0.5,inParam.distancePerPixel,0,300); // not set the horonzition line
 #else
-        // left blank
+
 #endif
         // Calculate H and H inverse for road scan and traffic sign detection
         ns_roadScan::calHAndInvertH(inParam, H, invertH);
@@ -303,6 +306,8 @@ unsigned int __stdcall Thread_ReconnectSocket(void *data)
 	{
 		WaitForSingleObject(g_readyEvent_ConnectSocket, INFINITE);
 		WaitForSingleObject(socketMutex,INFINITE);
+		
+		RD_ADD_TS(tsFunId_eThread_ReConSocket,1);
 		while(SOCKET_ERROR == connect(sockClient,(struct sockaddr *)&serverAddr,sizeof(serverAddr)))
 		{
 			int errorCode = WSAGetLastError();
@@ -318,6 +323,7 @@ unsigned int __stdcall Thread_ReconnectSocket(void *data)
 			logPrintf(logLevelFatal_e, "COMM", "Connect socket failed!");
 			Sleep(50);
 		}
+		RD_ADD_TS(tsFunId_eThread_ReConSocket,2);
 
 		ResetEvent(g_readyEvent_ConnectSocket);
 		ReleaseMutex(socketMutex);

@@ -50,3 +50,6 @@ imageCols:
 
 discardRoadDataAfterLaneChange:
 0
+
+offsetDistance:
+7.5

@@ -339,7 +339,7 @@ namespace ns_database
                     // Back
                     double distBack = distSum - distanceIn;
 
-                    calcGpsBackOnLine(&gpsAhead2Tmp, &gpsAhead1Tmp, distBack, gpsAhead);
+                    calcRelBackOnLine(&gpsAhead2Tmp, &gpsAhead1Tmp, distBack, gpsAhead);
 
                     ReleaseMutex(_hMutexMemory);
                     return;
@@ -473,7 +473,7 @@ namespace ns_database
                             double distBack = distAheadSum - distanceInAhead;
 
                             point3D_t gpsAhead;
-                            calcGpsBackOnLine(&gpsAhead2Tmp, &gpsAhead1Tmp, distBack, &gpsAhead);
+                            calcRelBackOnLine(&gpsAhead2Tmp, &gpsAhead1Tmp, distBack, &gpsAhead);
 
                             // Log GPS points
                             pointInRangeList.push_back(gpsAhead);
@@ -522,7 +522,7 @@ namespace ns_database
                             double distBack = distBackSum - distanceInBack;
 
                             point3D_t gpsBack;
-                            calcGpsBackOnLine(&gpsBack1Tmp, &gpsBack2Tmp, distBack, &gpsBack);
+                            calcRelBackOnLine(&gpsBack1Tmp, &gpsBack2Tmp, distBack, &gpsBack);
 
                             // Log GPS points
                             pointInRangeList.push_front(gpsBack);

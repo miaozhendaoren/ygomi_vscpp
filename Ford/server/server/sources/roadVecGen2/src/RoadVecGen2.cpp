@@ -21,8 +21,9 @@
 #include "apiDataStruct.h"
 #include "polynomialFit.h"
 #include "RoadVecGen2.h"
+#include "configure.h"
 
-#if VISUALIZATION_ON || SAVE_DATA_ON
+#if 1 // VISUALIZATION_ON || SAVE_DATA_ON
 #include "VisualizationApis.h"
 
 extern uint32 PREVIOUS_SEGID;
@@ -34,6 +35,9 @@ extern char IMAGE_NAME_STR2[MAX_PATH];
 using namespace std;
 #endif
 
+list<list<vector<point3D_t>>> rptData_g;
+bool bInited = false;
+
 
 namespace ns_database
 {
@@ -41,7 +45,13 @@ namespace ns_database
 #define SEG_CFG_PNT_NUM           4
 
 #define MINDIST                   10
+
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+#define LINE_TYPE_TH              46
+#else
 #define LINE_TYPE_TH              40
+#endif
+
 #define SAMPLE_SPACE              0.1
 #define SINGLE_LANE               1
 #define DOUBLE_LANE               2
@@ -71,6 +81,9 @@ CRoadVecGen2::CRoadVecGen2(void)
     _configPath = "";
     _curSecId = 0;
 
+    _bHasRevDirData = false;
+    _bHasChanged = false;
+
     // create mutex
     _hMutexMerging = CreateMutex(NULL, FALSE, NULL);
     ReleaseMutex(_hMutexMerging);
@@ -80,6 +93,9 @@ CRoadVecGen2::CRoadVecGen2(void)
 CRoadVecGen2::CRoadVecGen2(string configFilePath)
 {
     _configPath = configFilePath;
+
+    _bHasRevDirData = false;
+    _bHasChanged = false;
 
     // read section configuration file
     list<segAttributes_t> segConfigList;
@@ -142,6 +158,12 @@ bool CRoadVecGen2::roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
         fgData.clear();
     }
 
+    //if (!bInited)
+    //{
+    //    rptData_g = rptData;
+    //    bInited = true;
+    //}
+
     // suppose output is list<reportSectionData> rptData;
     list<reportSectionData> secData;
 
@@ -167,6 +189,12 @@ bool CRoadVecGen2::roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
     {
         // current reported section ID
         _curSecId = secItor->sectionId;
+
+        if (_curSecId != 9)
+        {
+            secItor++;
+            continue;
+        }
 
         // merge new data with database
         mergeSectionLane(*secItor);
@@ -200,6 +228,11 @@ bool CRoadVecGen2::roadSectionsGen(OUT list<list<vector<point3D_t>>> &fgData)
 {
     WaitForSingleObject(_hMutexMerging, INFINITE);
 
+    bool bCommLinesMerged = false;
+#if defined(_DE_LEHRE_VIDEO)
+    bCommLinesMerged = true;
+#endif
+
     // generate foreground database data
     list<backgroundSectionData>::iterator bgSecItor = _bgDatabaseList.begin();
     while (bgSecItor != _bgDatabaseList.end())
@@ -207,6 +240,10 @@ bool CRoadVecGen2::roadSectionsGen(OUT list<list<vector<point3D_t>>> &fgData)
         _curSecId = bgSecItor->sectionId;
 
         stitchSectionLanes();
+        stitchSectionLanes(true);
+
+        // merge two direction shared line
+        stitchSharedLines(bCommLinesMerged);
 
         // remove section overlap and output data
         removeOverlap();
@@ -214,7 +251,7 @@ bool CRoadVecGen2::roadSectionsGen(OUT list<list<vector<point3D_t>>> &fgData)
         bgSecItor++;
     }
 
-    jointProcessing(fgData, false);
+    jointProcessing(fgData, bCommLinesMerged);
 
     ReleaseMutex(_hMutexMerging);
     return true;
@@ -357,21 +394,37 @@ void CRoadVecGen2::resetDatabase()
     ReleaseMutex(_hMutexMerging);
 }
 
-void CRoadVecGen2::getBgRoadVec(OUT list<backgroundSectionData> &bgVecOut)
+void CRoadVecGen2::getBgRoadVec(OUT list<backgroundSectionData> &bgVecOut,
+    IN bool bRevDir/* = false*/)
 {
     WaitForSingleObject(_hMutexMerging, INFINITE);
-
-    bgVecOut = _bgDatabaseList;
+    if (bRevDir)
+    {
+        bgVecOut = _bgRevDirList;
+    }
+    else
+    {
+        bgVecOut = _bgDatabaseList;
+    }
 
     ReleaseMutex(_hMutexMerging);
 }
 
-void CRoadVecGen2::setBgRoadVec(IN list<backgroundSectionData> &bgVecIn)
+void CRoadVecGen2::setBgRoadVec(IN list<backgroundSectionData> &bgVecIn,
+    IN bool bRevDir/* = false*/)
 {
     WaitForSingleObject(_hMutexMerging, INFINITE);
 
-    _bgDatabaseList.clear();
-    _bgDatabaseList = bgVecIn;
+    if (bRevDir)
+    {
+        _bgRevDirList.clear();
+        _bgRevDirList = bgVecIn;
+    }
+    else
+    {
+        _bgDatabaseList.clear();
+        _bgDatabaseList = bgVecIn;
+    }
 
     ReleaseMutex(_hMutexMerging);
 }
@@ -696,6 +749,7 @@ void CRoadVecGen2::lineRotation(IN  vector<point3D_t> &sourceLine,
         pointZ.paintFlag = (sourceLine[i].paintFlag >= 0) ? \
             sourceLine[i].paintFlag : 0;
         pointZ.count     = sourceLine[i].count;
+        pointZ.paintLength = sourceLine[i].paintLength;
 
         rotatedLine.push_back(pointZ);
     }
@@ -754,10 +808,12 @@ bool CRoadVecGen2::mergeSectionLane(IN    reportSectionData     &reportData)
             // reset Y and paint for sample vector
             for (int i = 0; i < numOfSplPnts; i++)
             {
-                leftSample->at(i).lat        = 0.0;
-                leftSample->at(i).paintFlag  = 0.0;
-                rightSample->at(i).lat       = 0.0;
-                rightSample->at(i).paintFlag = 0.0;
+                leftSample->at(i).lat          = 0.0;
+                leftSample->at(i).paintFlag    = 0.0;
+                leftSample->at(i).paintLength  = 0.0;
+                rightSample->at(i).lat         = 0.0;
+                rightSample->at(i).paintFlag   = 0.0;
+                rightSample->at(i).paintLength = 0.0;
             }
 
             // data preprocessing
@@ -771,6 +827,12 @@ bool CRoadVecGen2::mergeSectionLane(IN    reportSectionData     &reportData)
                 // according to direction flag
                 backgroundSectionData *bgDatabaseData = nullptr;
                 getBgDatabaseData(&bgDatabaseData, grpItor->revDirFlag);
+
+                if (!_bHasChanged && grpItor->revDirFlag)
+                {
+                    _bHasRevDirData = true;
+                    _bHasChanged = true;
+                }
 
                 // if it is empty, add it directly. otherwise merge with it
                 if (bgDatabaseData->bgSectionData.empty())
@@ -821,11 +883,17 @@ bool CRoadVecGen2::mergeSectionLane(IN    reportSectionData     &reportData)
                                 // left and right line
                                 for (int i = 0; i < numOfSplPnts; i++)
                                 {
+                                    float weight = ((0 != bgLaneItor->front().at(i).paintLength) && (0 != leftSample->at(i).paintLength)) ? 1.0 : 1.0;
                                     bgLaneItor->front().at(i).lat = (0.75 * bgLaneItor->front().at(i).lat + 0.25 * leftSample->at(i).lat);
-                                    bgLaneItor->front().at(i).paintFlag = (float)(bgLaneItor->front().at(i).paintFlag + leftSample->at(i).paintFlag);
+                                    bgLaneItor->front().at(i).paintFlag = (bgLaneItor->front().at(i).paintFlag + leftSample->at(i).paintFlag);
+                                    bgLaneItor->front().at(i).paintLength = ((1.0 - weight) * bgLaneItor->front().at(i).paintLength +
+                                        weight * leftSample->at(i).paintLength);
 
+                                    weight = ((0 != bgLaneItor->back().at(i).paintLength) && (0 != rightSample->at(i).paintLength)) ? 0.5 : 1.0;
                                     bgLaneItor->back().at(i).lat = (0.75 * bgLaneItor->back().at(i).lat + 0.25 * rightSample->at(i).lat);
-                                    bgLaneItor->back().at(i).paintFlag = (float)(bgLaneItor->back().at(i).paintFlag + rightSample->at(i).paintFlag);
+                                    bgLaneItor->back().at(i).paintFlag = (bgLaneItor->back().at(i).paintFlag + rightSample->at(i).paintFlag);
+                                    bgLaneItor->back().at(i).paintLength = ((1.0 - weight) * bgLaneItor->back().at(i).paintLength +
+                                        weight * rightSample->at(i).paintLength);
                                 }
 
                                 // increase merged times, just use the first point
@@ -889,6 +957,12 @@ bool CRoadVecGen2::stitchSectionLanes(IN bool bRevDir/* = false*/)
     {
         fgSegData->fgSectionData.clear();
 
+        if (!_bHasChanged && bRevDir)
+        {
+            _bHasRevDirData = true;
+            _bHasChanged = true;
+        }
+
         theta = _secRotAngle[_curSecId - 1];
 
         // number of lanes in current section
@@ -947,10 +1021,12 @@ bool CRoadVecGen2::stitchSectionLanes(IN bool bRevDir/* = false*/)
                         {
                             curPnt.lon = laneItor->front().at(i).lon;
                             curPnt.paintFlag = laneItor->front().at(i).paintFlag;
+                            curPnt.paintLength = laneItor->front().at(i).paintLength;
                             leftSample.push_back(curPnt);
 
                             curPnt.lon = laneItor->back().at(i).lon;
                             curPnt.paintFlag = laneItor->back().at(i).paintFlag;
+                            curPnt.paintLength = laneItor->back().at(i).paintLength;
                             rightSample.push_back(curPnt);
                         }
 
@@ -1023,6 +1099,7 @@ bool CRoadVecGen2::stitchSectionLanes(IN bool bRevDir/* = false*/)
                             curPnt.lon = lineOne[i].lon;
                             curPnt.lat = (lineOne[i].lat + lineTwo[i].lat) / 2;
                             curPnt.paintFlag = lineOne[i].paintFlag; // + lineTwo[i].paintFlag;
+                            curPnt.paintLength = lineOne[i].paintLength;
 
                             lineMerged.push_back(curPnt);
                             dOne.push_back(curPnt.lat - lineOne[i].lat);
@@ -1084,6 +1161,7 @@ bool CRoadVecGen2::stitchSectionLanes(IN bool bRevDir/* = false*/)
                         curPnt.lon = dblines.front().at(i).lon;
                         curPnt.lat = dblines.front().at(i).lat + distlines.front().at(i);
                         curPnt.paintFlag = dblines.front().at(i).paintFlag;
+                        curPnt.paintLength = dblines.front().at(i).paintLength;
 
                         linein.push_back(curPnt);
                     }
@@ -1099,6 +1177,7 @@ bool CRoadVecGen2::stitchSectionLanes(IN bool bRevDir/* = false*/)
                         curPnt.lon = dblines.back().at(i).lon;
                         curPnt.lat = dblines.back().at(i).lat + distlines.back().at(i);
                         curPnt.paintFlag = dblines.back().at(i).paintFlag;
+                        curPnt.paintLength = dblines.back().at(i).paintLength;
 
                         linein.push_back(curPnt);
                     }
@@ -1123,6 +1202,7 @@ bool CRoadVecGen2::stitchSectionLanes(IN bool bRevDir/* = false*/)
                         curPnt.lon = dblines.front().at(i).lon;
                         curPnt.lat = dblines.front().at(i).lat + d0[i] + d2[i];
                         curPnt.paintFlag = dblines.front().at(i).paintFlag;
+                        curPnt.paintLength = dblines.front().at(i).paintLength;
 
                         linein.push_back(curPnt);
                     }
@@ -1135,6 +1215,7 @@ bool CRoadVecGen2::stitchSectionLanes(IN bool bRevDir/* = false*/)
                         curPnt.lon = midlines.front().at(i).lon;
                         curPnt.lat = midlines.front().at(i).lat + d2[i];
                         curPnt.paintFlag = midlines.front().at(i).paintFlag;
+                        curPnt.paintLength = midlines.front().at(i).paintLength;
 
                         linein.push_back(curPnt);
                     }
@@ -1147,6 +1228,7 @@ bool CRoadVecGen2::stitchSectionLanes(IN bool bRevDir/* = false*/)
                         curPnt.lon = midlines.back().at(i).lon;
                         curPnt.lat = midlines.back().at(i).lat + d1[i];
                         curPnt.paintFlag = midlines.back().at(i).paintFlag;
+                        curPnt.paintLength = midlines.back().at(i).paintLength;
 
                         linein.push_back(curPnt);
                     }
@@ -1159,6 +1241,7 @@ bool CRoadVecGen2::stitchSectionLanes(IN bool bRevDir/* = false*/)
                         curPnt.lon = dblines.back().at(i).lon;
                         curPnt.lat = dblines.back().at(i).lat + d1[i] + d3[i];
                         curPnt.paintFlag = dblines.back().at(i).paintFlag;
+                        curPnt.paintLength = dblines.back().at(i).paintLength;
 
                         linein.push_back(curPnt);
                     }
@@ -1277,6 +1360,7 @@ bool CRoadVecGen2::stitchSharedLines(IN bool bNeedMerge/* = false*/)
                             pnt.lon = line1.at(i).lon;
                             pnt.lat = 0.5 * line1.at(i).lat + 0.5 * line2.at(i).lat;
                             pnt.paintFlag = line2.at(i).paintFlag;
+                            pnt.paintLength = line2.at(i).paintLength;
 
                             mergedline.push_back(pnt);
                             d1.push_back(pnt.lat - line1.at(i).lat);
@@ -1376,6 +1460,19 @@ bool CRoadVecGen2::stitchSharedLines(IN bool bNeedMerge/* = false*/)
         }
         else
         {
+            // if has backward direction database, push empty lanes
+            if (_bHasRevDirData && bgSegRevData->bgSectionData.empty())
+            {
+                int numOfRevUsedLanes = 0;
+                while (numOfRevUsedLanes < _secLaneNum[_curSecId - 1])
+                {
+                    vector<point3D_t> line;
+                    fgSegAllData->fgSectionData.push_back(line);
+
+                    numOfRevUsedLanes++;
+                }
+            }
+
             // forward direction
             if (!bgSegData->bgSectionData.empty())
             {
@@ -1852,10 +1949,8 @@ void CRoadVecGen2::jointProcessing(OUT list<list<vector<point3D_t>>> &fgData,
             vector<point3D_t> stPnts;
             vector<point3D_t> edPnts;
 
-            bool bHasRevData = !bgSecRevItor->bgSectionData.empty();
-
             // get matched line index
-            getMatchedLineInd(matchedInd, prevData.sectionId, bHasRevData);
+            getMatchedLineInd(matchedInd, prevData.sectionId, _bHasRevDirData, bCommLinesMerged);
 
             int numOfMatchedLines = matchedInd.size();
             for (int i = 0; i < numOfMatchedLines; i++)
@@ -1921,7 +2016,7 @@ void CRoadVecGen2::jointProcessing(OUT list<list<vector<point3D_t>>> &fgData,
             for (int i = 0; i < currlines; i++)
             {
                 // get merged information
-                if (bHasRevData && (i < _secLaneNum[_curSecId - 1]))
+                if (_bHasRevDirData && (i < _secLaneNum[_curSecId - 1]))
                 {
                     if (laneRevItor != bgSecRevItor->bgSectionData.end())
                     {
@@ -2107,7 +2202,7 @@ void CRoadVecGen2::dotLineBlockIndex(IN  vector<point3D_t> &lineData,
         dx.push_back(lineData[i].lon - lineData[i - 1].lon);
         dy.push_back(lineData[i].lat - lineData[i - 1].lat);
 
-        dd.push_back(abs(dx[i - 1] + dy[i - 1]));
+        dd.push_back(abs(dx[i - 1]) + abs(dy[i - 1]));
         if (DASH_DIST_DIFF < dd[i - 1])
         {
             index1.push_back(i - 1);
@@ -2128,27 +2223,48 @@ void CRoadVecGen2::dotLineBlockIndex(IN  vector<point3D_t> &lineData,
     }
     else
     {
-        for (uint32 ii = 0; ii < index0.size(); ii++)
+        vector<int> tmpBlkIndexSt, tmpBlkIndexEd;
+        int numOfInd = index0.size();
+        for (int ii = 0; ii < numOfInd; ii++)
         {
             if (1.0 == dp[index0[ii]])
             {
                 // start of dash painting
-                dotBlkIndexSt.push_back(index0[ii] + 1);
-                if ((index0.size() - 1) == ii)
+                tmpBlkIndexSt.push_back(index0[ii] + 1);
+                if ((numOfInd - 1) == ii)
                 {
-                    dotBlkIndexEd.push_back(numOfPoints - 1);
+                    tmpBlkIndexEd.push_back(numOfPoints - 1);
                 }
             }
             else
             {
                 // end of dash painting
-                dotBlkIndexEd.push_back(index0[ii]);
-                if (dotBlkIndexSt.empty())
+                tmpBlkIndexEd.push_back(index0[ii]);
+                if (tmpBlkIndexSt.empty())
                 {
-                    dotBlkIndexSt.push_back(0);
+                    tmpBlkIndexSt.push_back(0);
                 }
             }
         }
+
+        dotBlkIndexSt.push_back(tmpBlkIndexSt[0]);
+        int numOfBlks = tmpBlkIndexEd.size();
+        for (int ii = 0; ii < numOfBlks - 1; ii++)
+        {
+            if (0.005 > abs(-1.0 - dp[tmpBlkIndexEd[ii]]))
+            {
+                double ddx = lineData[tmpBlkIndexSt[ii+1]].lon - lineData[tmpBlkIndexEd[ii]].lon;
+                double ddy = lineData[tmpBlkIndexSt[ii+1]].lat - lineData[tmpBlkIndexEd[ii]].lat;
+                double dist = ddx * ddx + ddy * ddy;
+                if (0.25 < dist)
+                {
+                    dotBlkIndexSt.push_back(tmpBlkIndexSt[ii+1]);
+                    dotBlkIndexEd.push_back(tmpBlkIndexEd[ii]);
+                }
+            }
+        }
+
+        dotBlkIndexEd.push_back(tmpBlkIndexEd[numOfBlks - 1]);
     }
 
     // merge block
@@ -2354,6 +2470,7 @@ void CRoadVecGen2::getLinePaintInfo(IN  vector<point3D_t> &sourceline,
             {
                 bPaintedBlk = true;
                 leftline[i].paintFlag = 1;
+                leftline[i].paintLength = leftSmpEd[blkIndStEd] - leftSmpSt[blkIndStEd] + 1;
             }
 
             if (i > leftSmpEd[blkIndStEd] && bPaintedBlk)
@@ -2433,21 +2550,105 @@ void CRoadVecGen2::getFGLine(IN  vector<point3D_t> &bgline,
         return;
     }
 
-    // get max paint value of line
-    float maxPaint = fgline[0].paintFlag;
-    for (uint32 i = 1; i < fgline.size(); i++)
+    // get max paint value and index of line
+    int maxIndex = 0;
+    int numOfPnts = fgline.size();
+    float maxPaint = 1.0;
+
+    bool bPaintChanged = false;
+    vector<int> stInd, edInd;
+    vector<point3D_t> tmpline = fgline;
+    for (int i = 0; i < numOfPnts; i++)
     {
+        if (0.0 < tmpline[i].paintFlag)
+        {
+            if (!bPaintChanged)
+            {
+                stInd.push_back(i);
+            }
+            bPaintChanged = true;
+        }
+        else
+        {
+            if (bPaintChanged)
+            {
+                edInd.push_back(i - 1);
+                bPaintChanged = false;
+            }
+        }
+
         if (fgline[i].paintFlag > maxPaint)
         {
             maxPaint = fgline[i].paintFlag;
         }
+
     }
 
+    if (bPaintChanged && (stInd.size() > edInd.size()))
+    {
+        edInd.push_back(numOfPnts - 1);
+    }
+
+    // size of stInd and edInd should be the same
+    int numOfBlks = stInd.size();
+    for (int i = 0; i < numOfBlks; i++)
+    {
+        int start = 0, end = 0;
+        float startFlag = 0.0, endFlag = 0.0;
+        int numOfElems = edInd[i] - stInd[i] + 1;
+        for (int jj = 0; jj < numOfElems; jj++)
+        {
+            if (tmpline[stInd[i] + jj].paintFlag > startFlag)
+            {
+                start = stInd[i] + jj;
+                startFlag = tmpline[stInd[i] + jj].paintFlag;
+            }
+            tmpline[stInd[i] + jj].paintFlag = 0.0;
+
+            if (tmpline[edInd[i] - jj].paintFlag > endFlag)
+            {
+                end = edInd[i] - jj;
+                endFlag = tmpline[edInd[i] - jj].paintFlag;
+            }
+            tmpline[edInd[i] - jj].paintFlag = 0.0;
+        }
+
+        int middle = (start + end + 1) / 2;
+        int paintLength = (int)(max(tmpline[start].paintLength, tmpline[end].paintFlag) + 1);
+        start = middle - paintLength / 2;
+        end = middle + paintLength / 2;
+        start = (start >= 0) ? start : 0;
+        end = (end < numOfPnts) ? end : (numOfPnts - 1);
+
+        for (int jj = start; jj <= end; jj++)
+        {
+            tmpline[jj].paintFlag = 1.0;
+        }
+    }
+
+#if 1
+    char filename[_MAX_PATH] = { '\0' };
+    static int line_cnt = 0;
+    sprintf_s(filename, "fg_lines_merged_temp_%d_sec_%d.txt", line_cnt, _curSecId);
+
+    list<vector<point3D_t>> lane;
+    lane.push_back(tmpline);
+    saveListVec(lane, filename);
+
+
+    sprintf_s(filename, "fg_lines_merged_%d_sec_%d.txt", line_cnt++, _curSecId);
+    lane.clear();
+    lane.push_back(fgline);
+    saveListVec(lane, filename);
+#endif
+
     // normalize paint information
-    for (uint32 i = 1; i < fgline.size(); i++)
+    for (int i = 0; i < numOfPnts; i++)
     {
         fgline[i].paintFlag /= maxPaint;
+        //fgline[i].paintFlag = tmpline[i].paintFlag;
     }
+
 }
 
 
@@ -2558,10 +2759,17 @@ bool CRoadVecGen2::LaneDataPreprocessing(IN  list<vector<point3D_t>> &lanelines,
     stdY1 = sqrt(stdY1 / numOfPnts);
 
     // which re-sample method to use
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+    bool cond00 = 3.0 < abs(meanY0) && abs(meanY0) < 8.0;
+    bool cond01 = stdY0 < 5;
+    bool cond10 = 3.0 < abs(meanY1) && abs(meanY1) < 8.0;
+    bool cond11 = stdY1 < 5;
+#else
     bool cond00 = 3.0 < abs(meanY0) && abs(meanY0) < 6.0;
     bool cond01 = stdY0 < 3;
     bool cond10 = 3.0 < abs(meanY1) && abs(meanY1) < 6.0;
     bool cond11 = stdY1 < 3;
+#endif
 
     RESAMPLE_METHOD smpltype = USE_INTERPOLATION;
     if (cond00 && cond01 && cond10 && cond11)
@@ -2822,7 +3030,8 @@ void CRoadVecGen2::checkCircleRoad()
 
 void CRoadVecGen2::getMatchedLineInd(OUT vector<int> &matchedInd,
     IN uint32 segId,
-    IN bool   bHasRevData)
+    IN bool   bHasRevData,
+    IN bool   bCommLinesMerged)
 {
     matchedInd.clear();
 
@@ -2867,7 +3076,13 @@ void CRoadVecGen2::getMatchedLineInd(OUT vector<int> &matchedInd,
 
     if (bHasRevData)
     {
-        for (int i = 0; i < numOfLines; i++)
+        int numOfRevLines = numOfLines;
+        if (bCommLinesMerged)
+        {
+            numOfRevLines = numOfLines - 1;
+        }
+
+        for (int i = 0; i < numOfRevLines; i++)
         {
             matchedInd.push_back(matchedInd[i] + numOfLines);
         }

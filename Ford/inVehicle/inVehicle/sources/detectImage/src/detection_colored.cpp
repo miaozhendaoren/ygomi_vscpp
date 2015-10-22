@@ -40,8 +40,8 @@ using namespace std;
 namespace ns_detection
 {
 
-Detector_colored::Detector_colored(float highStep, double dist_per_piexl,int horizon_line) :Detector(highStep,dist_per_piexl,horizon_line),
-										_MAX_NUM_FEATURES(1500), 
+Detector_colored::Detector_colored(float highStep, double dist_per_piexl,int horizon_line,int featureNum) :Detector(highStep,dist_per_piexl,horizon_line),
+										_MAX_NUM_FEATURES(featureNum), 
                                        _MAX_RED_CANDIDATES(10),
                                        _INVALID_TYPE(100)
 {

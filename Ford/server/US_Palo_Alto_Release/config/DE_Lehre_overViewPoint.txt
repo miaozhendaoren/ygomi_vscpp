@@ -1,4 +1,0 @@
-overViewPoint:
--5800,500,-5800
-cameraPort:
-0

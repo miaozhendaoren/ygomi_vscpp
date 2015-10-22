@@ -74,7 +74,7 @@ private:
     int Detector_colored::TS_classify(Detector::Shape shape,cv::Mat image,cv::InputArray curve,std::string path = "");
 
 public:
-    Detector_colored(float highStep, double dist_per_piexl,int horizon_line);
+    Detector_colored(float highStep, double dist_per_piexl,int horizon_line,int featureNum = 1500);
     void trafficSignDetect(cv::Mat image, TS_Structure &target);
     //void positionMeasure(ns_roadScan::Parameters &inParam, cv::Point2d &GPS_current, cv::Point2d &GPS_next, cv::Mat &imageIn, TS_Structure &target);
 };

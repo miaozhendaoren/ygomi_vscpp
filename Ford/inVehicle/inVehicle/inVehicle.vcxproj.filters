@@ -147,6 +147,9 @@
     <ClCompile Include="sources\detectImage\src\polynomialFitting.cpp">
       <Filter>Source Files\detectImage</Filter>
     </ClCompile>
+    <ClCompile Include="sources\log\src\TimeStamp.cpp">
+      <Filter>Source Files\log</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sources\visualization\include\3dsId.h">
@@ -250,6 +253,9 @@
     </ClInclude>
     <ClInclude Include="sources\configParse\include\XMLParser.h">
       <Filter>Header Files\configParse</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\log\include\TimeStamp.h">
+      <Filter>Header Files\log</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
