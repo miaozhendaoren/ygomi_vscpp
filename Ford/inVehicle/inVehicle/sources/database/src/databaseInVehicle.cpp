@@ -950,6 +950,19 @@ namespace ns_database
 			setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, (uint32)&(listIdx->gpsR.alt));
 			byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
 
+            // GPS track
+            tlvCfgP = &_tlvCfg_dataPoint_a[data_pointGpsTrackLat_e - data_pointBase_e];
+            setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, (uint32)&(listIdx->gpsTrack.lat));
+            byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+            tlvCfgP = &_tlvCfg_dataPoint_a[data_pointGpsTrackLon_e - data_pointBase_e];
+            setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, (uint32)&(listIdx->gpsTrack.lon));
+            byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+            tlvCfgP = &_tlvCfg_dataPoint_a[data_pointGpsTrackAlt_e - data_pointBase_e];
+            setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, (uint32)&(listIdx->gpsTrack.alt));
+            byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
 			++listIdx;
 		}
 		*length = byteNum;

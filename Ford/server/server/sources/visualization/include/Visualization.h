@@ -109,14 +109,6 @@ typedef struct NEWCO_STRUCTURE_PACK
 
 typedef struct NEWCO_STRUCTURE_PACK
 {
-	int type;
-	GLfloat rotAngle;    //each sign's rotation angle,unit is degree,positive is right rotation, rangle:[-180, 180]
-	point3DFloat_t position;
-	int attribute;
-}signInfo_t;
-
-typedef struct NEWCO_STRUCTURE_PACK
-{
 	lineTypeEnum_t type;    //type of line, dash line, solid line, double solid line, etc
 	//int number;  //how many point it has
 	baseColor_t color;
@@ -130,6 +122,15 @@ typedef struct
 	baseColor_t    color;
 }quadInfo_t;
 
+typedef struct NEWCO_STRUCTURE_PACK
+{
+	int type;
+	GLfloat rotAngle;    //each sign's rotation angle,unit is degree,positive is right rotation, rangle:[-180, 180]
+	point3DFloat_t position;
+	int attribute;
+	int sideFlag;
+	quadInfo_t sharp;
+}signInfo_t;
 /*
 typedef struct
 {
@@ -245,6 +246,7 @@ public:
 private:
 	void DrawSignServer(signInfo_t sign);
 	void DrawSignClient(signInfo_t sign);
+	void DrawSignOnRoad(signInfo_t sign);
 	void DrawPole(GLfloat height = 2.0f);
 	void DrawPoleServer(GLfloat radius, GLfloat height = 20.0f);
 	void DrawCharDynamic(drawCharInfo_t input);
@@ -295,7 +297,7 @@ private:
 	eyeInfo_3D_Internal_t  eyeBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	eyeInfo_3D_Internal_t  eyeBufferLookahead[MAX_BUFFER_NUMBER_3D_ENGINE];
 	eyeInfo_3D_Internal_t  serverEyeBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
-	vector<signInfo_t> signBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
+	vector<signInfo_t>     signBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	list<lineInfo_t> lineBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	list<lineInfo_t> roadLineBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	drawCharInfo_3D_Internal_t charBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];

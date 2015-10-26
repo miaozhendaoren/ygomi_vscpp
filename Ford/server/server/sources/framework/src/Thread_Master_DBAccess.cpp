@@ -150,6 +150,8 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
                                         if(prepareAllDataToVehicle(sendMsg))
                                         {
                                             // Semaphores
+                                            database_gp->resetFurUpdateFlag();
+                                            database_gp->resetUpateSectionIdList();
                                             ReleaseSemaphore(g_readySema_readDb,1,NULL);
                                             ReleaseSemaphore(g_readySema_Redraw,1,NULL);
                                         }
@@ -163,6 +165,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 									{
 										// Reset all furnitures in database
 										database_gp->resetFurniture();
+                                        database_gp->resetFurUpdateFlag();
 
 										// Reset all vectors in database
 										list<list<vector<point3D_t>>> allLines;
@@ -170,6 +173,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 										list<vector<point3D_t>> newDataVec;
 
 										database_gp->resetAllVectors(allLines, lineAttr);
+                                        database_gp->resetUpateSectionIdList();
 
                                         // Reset new data vectors (red lines) in database
 										database_gp->setNewDataVec(newDataVec);
@@ -180,6 +184,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 									{
 										// Reset all furnitures in database
 										database_gp->resetFurniture();
+                                        database_gp->resetFurUpdateFlag();
 									}else if(5 == value)
 									{
 										// Reset all vectors in database
@@ -188,6 +193,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 										list<vector<point3D_t>> newDataVec;
 
 										database_gp->resetAllVectors(allLines, lineAttr);
+                                        database_gp->resetUpateSectionIdList();
 
                                         // Reset new data vectors (red lines) in database
 										database_gp->setNewDataVec(newDataVec);
@@ -214,6 +220,8 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 									{
                                         if(prepareAllDataToVehicle(sendMsg))
                                         {
+                                            database_gp->resetFurUpdateFlag();
+                                            database_gp->resetUpateSectionIdList();
 										    ReleaseSemaphore(g_readySema_readDb,1,NULL);
                                         }
 									}
@@ -291,48 +299,16 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 
                         // Convert info into TLV and prepare update message
                         {
-                            int32 totalBufLen = MAX_PAYLOAD_BYTE_NUM + MAX_ROAD_POINT_BYTES;
-						    uint8 *payloadFromDb = new uint8[totalBufLen];
-						    if(payloadFromDb == NULL)
-						    {
-							    break;
-						    }
-
-						    uint8 *outBuffPtr = payloadFromDb;
-                            int32 outBuffOffset = 0;
-                            int32 outPduIdx = 0;
-                            bool updateFlag = false;						    
+                            bool updateFlag = false;
 
 						    // check which lane queue need to fusion
 						    if(laneProcessFlag == true)
 						    {
 							    if(processLaneBuffer())
 							    {
-		                            int payloadBytes = 0;
-
-                                    // Get updated road vector from database
-                                    uint8* bufferAddr = outBuffPtr;
-                                    int32 outBuffLen;
-                                    database_gp->getAllVectorsTlv(  memory_e, 
-                                                                    (void**)&bufferAddr, 
-                                                                    &outBuffLen);
-
-                                    database_gp->resetFurnitureRoadSideLoc();
-
-                                    if (outBuffLen > MAX_ROAD_POINT_BYTES)
-                                    {
-                                        logPrintf(logLevelCrit_e, "DBAccess", "Buffer overflow!", FOREGROUND_RED);
-                                    }
-
-                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
-                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = vectorList_e;
-                                    updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
-
-                                    outBuffPtr += outBuffLen;
-                                    outBuffOffset += outBuffLen;
-
-                                    ++outPduIdx;
-
+                                    database_gp->resetFurnitureRoadSideLoc2();
+                                    database_gp->setFurUpdateFlag(1);
+                                    
                                     updateFlag = true;
 							    }
 						    }
@@ -348,6 +324,8 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
                                     database_gp->addFurniture(&furAttr, &furAttrOut);
                                 }
 
+                                database_gp->setFurUpdateFlag(1);
+
                                 updateFlag = true;
 						    }
 
@@ -362,61 +340,16 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
                                     database_gp->reduceFurnitureByFurId(&furAttr, &furAttrOut);
                                 }
 
+                                database_gp->setFurUpdateFlag(1);
+
                                 updateFlag = true;
                             }
 
                             // pack the update message
                             if(updateFlag)
                             {
-                                // Convert all furniture to TLVs
-                                int32 segNumOfFur;
-                                database_gp->getSegNumOfFurniture(&segNumOfFur);
-
-                                for(int segIndex = 0; segIndex < segNumOfFur; ++segIndex)
-                                {
-                                    uint8* bufferAddr = outBuffPtr;
-                                    int32 furMsgLen;
-                                    int32 furNum;
-									int segId;
-									int getFlag = database_gp->getSegIdInFurList(segIndex, &segId);
-
-									if(0 != getFlag)
-									{
-										database_gp->getFurnitureTlvInSeg(segId,
-																		  totalBufLen - outBuffOffset,
-																		  bufferAddr, 
-																		  &furMsgLen, 
-																		  &furNum);
-
-										if(furNum > 0)
-										{
-											updateMsgPtr->payloadHeader.pduHeader[outPduIdx].operate = addDatabase_e;
-											updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduType = furnitureList_e;
-											updateMsgPtr->payloadHeader.pduHeader[outPduIdx].pduOffset = outBuffOffset;
-
-											outBuffPtr += furMsgLen;
-											outBuffOffset += furMsgLen;
-											++outPduIdx;
-										}
-									}
-								}
-
-                                int numPDUs = outPduIdx;
-
-                                updateMsgPtr->msgHeader.numPDUs = numPDUs;
-							    updateMsgPtr->msgHeader.headerLen = sizeof(updateMsgPtr->msgHeader) + numPDUs*sizeof(updateMsgPtr->payloadHeader.pduHeader[0]);
-							    updateMsgPtr->msgHeader.msgTypeID = UPDATE_REQ_MSG;
-							    updateMsgPtr->msgHeader.priority = highLevel_e;
-                                updateMsgPtr->msgHeader.payloadLen = outBuffOffset;
-							    updateMsgPtr->payload = payloadFromDb;
-							    databaseQueue_gp->push(&sendMsg);
-							    ReleaseSemaphore(g_readySema_readDb,1,NULL);
 							    ReleaseSemaphore(g_readySema_Redraw,1,NULL);
-                            }else 
-						    {
-							    delete payloadFromDb;
-							    payloadFromDb = NULL;
-						    }
+                            }
                         }
 					}
                     break;
@@ -460,14 +393,19 @@ bool processLaneBuffer()
 	{
 		// call fusion function and update database
         list<list<vector<point3D_t>>> newDataList;
-        laneQueueBuff.getAllVectors(newDataList);
+        list<vector<point3D_t>> newDataGps;
+        laneQueueBuff.getAllVectors(newDataList, newDataGps);
 
         database_gp->setNewDataVec(*(newDataList.begin()));
 
         list<list<vector<point3D_t>>> fgData;
 
+        list<uint32> modifiedIdList;
+
         bool flag = false;
-        flag = roadVecGen2_gp->roadSectionsGen(newDataList, fgData);
+        flag = roadVecGen2_gp->roadSectionsGen(newDataList, newDataGps, fgData, modifiedIdList);
+
+        database_gp->mergeIdListToUpdateIdList(modifiedIdList);
 
         if (flag == false)
         {

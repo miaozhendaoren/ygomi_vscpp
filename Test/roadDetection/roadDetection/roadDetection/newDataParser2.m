@@ -4,14 +4,10 @@ function newDataParser()
 
 close all;
 clc;
+nn=0;
 
-% lonStand = -83.213250649943689;
-% latStand = 42.296855933108084;
-% lonStand = 52.35299955;
-% latStand = 10.693509536666665;
-% get line of file
-for fileIdx = [0]
-    fid = fopen(['dataStruct_',num2str(fileIdx),'.txt'], 'r');
+for fileIdx2 = [0:nn]
+    fid = fopen(['landmarker_',num2str(fileIdx2),'.txt'], 'r');
     row=0;
     while ~feof(fid)
         row=row+sum(fread(fid,10000,'*char')==char(10));
@@ -19,7 +15,38 @@ for fileIdx = [0]
     fclose(fid);
 
     % get data
-    fid = fopen(['dataStruct_',num2str(fileIdx),'.txt'], 'r');
+    fid = fopen(['landmarker_',num2str(fileIdx2),'.txt'], 'r');
+    Data = zeros(4, row);
+    lineIdx = 1;
+    while ~feof(fid)
+        fileLine = fscanf(fid, '%f %f %f %f', 4);
+        if ~isempty(fileLine)
+            Data(:, lineIdx) = fileLine;
+            lineIdx = lineIdx + 1;
+        else
+            break;
+        end
+    end
+    fclose(fid);
+
+    eval(['Stoplat' num2str(fileIdx2) ' = Data(1, :);']);
+    eval(['Stoplon' num2str(fileIdx2) ' = Data(2, :);']);
+end
+
+
+
+
+
+for fileIdx = [0:nn]
+    fid = fopen(['paintingData_',num2str(fileIdx),'.txt'], 'r');
+    row=0;
+    while ~feof(fid)
+        row=row+sum(fread(fid,10000,'*char')==char(10));
+    end
+    fclose(fid);
+
+    % get data
+    fid = fopen(['paintingData_',num2str(fileIdx),'.txt'], 'r');
     Data = zeros(19, row);
     lineIdx = 1;
     while ~feof(fid)
@@ -53,12 +80,39 @@ for fileIdx = [0]
 %     eval(['latRRel' num2str(fileIdx) ' = latR' num2str(fileIdx) ';']);
 end
 
-figure(1);
-hold on;
-plot(lonLRel0(linePaintFlagL0 == 1), latLRel0(linePaintFlagL0 == 1), 'r.');
-plot(lonRRel0(linePaintFlagR0 == 1), latRRel0(linePaintFlagR0 == 1), 'r.');
+
+
+for i = 0:nn
+    figure;
+    hold on;
+    
+    eval(['lonLRel = lonLRel' num2str(i) ';']);
+    eval(['linePaintFlagL = linePaintFlagL' num2str(i) ';']);
+    eval(['latLRel = latLRel' num2str(i) ';']);
+ 
+    eval(['lonRRel = lonRRel' num2str(i) ';']);
+    eval(['latRRel = latRRel' num2str(i) ';']);
+    eval(['linePaintFlagR = linePaintFlagR' num2str(i) ';']);
+    
+    eval(['Stoplon = Stoplon' num2str(i) ';']);
+    eval(['Stoplat = Stoplat' num2str(i) ';']);
+
+    
+    plot(lonLRel(linePaintFlagL == 1), latLRel(linePaintFlagL == 1), 'r.');
+    plot(lonRRel(linePaintFlagR == 1), latRRel(linePaintFlagR == 1), 'r.');
+    plot(Stoplon, Stoplat, 'b.');
+    hold off;
+    
+end
+% plot(lonLRel0(linePaintFlagL0 == 1), latLRel0(linePaintFlagL0 == 1), 'r.');
+% plot(lonRRel0(linePaintFlagR0 == 1), latRRel0(linePaintFlagR0 == 1), 'r.');
+% plot(Stoplon0, Stoplat0, 'b.');
+
+
 % plot(lonLRel1(linePaintFlagL1 == 1), latLRel1(linePaintFlagL1 == 1), 'g.');
 % plot(lonRRel1(linePaintFlagR1 == 1), latRRel1(linePaintFlagR1 == 1), 'g.');
+% plot(Stoplon1, Stoplat1, 'b.');
+
 % plot(lonLRel2(linePaintFlagL2 == 1), latLRel2(linePaintFlagL2 == 1), 'b.');
 % plot(lonRRel2(linePaintFlagR2 == 1), latRRel2(linePaintFlagR2 == 1), 'b.');
 % plot(lonLRel3(linePaintFlagL3 == 1), latLRel3(linePaintFlagL3 == 1), 'm.');

@@ -35,9 +35,6 @@ extern char IMAGE_NAME_STR2[MAX_PATH];
 using namespace std;
 #endif
 
-list<list<vector<point3D_t>>> rptData_g;
-bool bInited = false;
-
 
 namespace ns_database
 {
@@ -143,14 +140,14 @@ CRoadVecGen2::~CRoadVecGen2(void)
 
 
 bool CRoadVecGen2::roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
-    OUT list<list<vector<point3D_t>>> &fgData)
+    IN list<vector<point3D_t>> &gpsData,
+    OUT list<list<vector<point3D_t>>> &fgData,
+    OUT list<uint32> &modifiedSectionId)
 {
     if (rptData.empty())
     {
         return false;
     }
-
-    WaitForSingleObject(_hMutexMerging, INFINITE);
 
     // release data first
     if (!fgData.empty())
@@ -158,11 +155,8 @@ bool CRoadVecGen2::roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
         fgData.clear();
     }
 
-    //if (!bInited)
-    //{
-    //    rptData_g = rptData;
-    //    bInited = true;
-    //}
+    // pre-processing reported lane data
+    // preprocessRptData(rptData, gpsData);
 
     // suppose output is list<reportSectionData> rptData;
     list<reportSectionData> secData;
@@ -171,12 +165,19 @@ bool CRoadVecGen2::roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
     if(!_segConfigList.empty())
     {
         uint32 sampleInterval = 20;
-        _secRptDataObj.segMultiRptData(rptData,sampleInterval,_segConfigList,secData);
+        _secRptDataObj.segMultiRptData(rptData, sampleInterval, _segConfigList, secData);
     }
-#if SAVE_DATA_ON
-    saveData(rptData);
-    saveData(secData);
+#if 1 // SAVE_DATA_ON
+    //saveData(rptData);
+    //saveData(secData);
+    saveData(rptData, gpsData);
+
+    FG_MERGED_NUM++;
+
+    return false;
 #endif
+
+    WaitForSingleObject(_hMutexMerging, INFINITE);
 
     bool bCommLinesMerged = false;
 #if defined(_DE_LEHRE_VIDEO)
@@ -190,11 +191,7 @@ bool CRoadVecGen2::roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
         // current reported section ID
         _curSecId = secItor->sectionId;
 
-        if (_curSecId != 9)
-        {
-            secItor++;
-            continue;
-        }
+        modifiedSectionId.push_back(_curSecId);
 
         // merge new data with database
         mergeSectionLane(*secItor);
@@ -883,17 +880,17 @@ bool CRoadVecGen2::mergeSectionLane(IN    reportSectionData     &reportData)
                                 // left and right line
                                 for (int i = 0; i < numOfSplPnts; i++)
                                 {
-                                    float weight = ((0 != bgLaneItor->front().at(i).paintLength) && (0 != leftSample->at(i).paintLength)) ? 1.0 : 1.0;
+                                    float weight = (float)((0.0 < bgLaneItor->front().at(i).paintLength && 0.0 < leftSample->at(i).paintLength) ? 0.5 : 1.0);
                                     bgLaneItor->front().at(i).lat = (0.75 * bgLaneItor->front().at(i).lat + 0.25 * leftSample->at(i).lat);
-                                    bgLaneItor->front().at(i).paintFlag = (bgLaneItor->front().at(i).paintFlag + leftSample->at(i).paintFlag);
-                                    bgLaneItor->front().at(i).paintLength = ((1.0 - weight) * bgLaneItor->front().at(i).paintLength +
-                                        weight * leftSample->at(i).paintLength);
+                                    bgLaneItor->front().at(i).paintFlag = (float)(bgLaneItor->front().at(i).paintFlag + leftSample->at(i).paintFlag);
+                                    bgLaneItor->front().at(i).paintLength = weight * bgLaneItor->front().at(i).paintLength + 
+                                        weight * leftSample->at(i).paintLength;
 
-                                    weight = ((0 != bgLaneItor->back().at(i).paintLength) && (0 != rightSample->at(i).paintLength)) ? 0.5 : 1.0;
+                                    weight = (float)((0.0 < bgLaneItor->back().at(i).paintLength && 0.0 < rightSample->at(i).paintLength) ? 0.5 : 1.0);
                                     bgLaneItor->back().at(i).lat = (0.75 * bgLaneItor->back().at(i).lat + 0.25 * rightSample->at(i).lat);
-                                    bgLaneItor->back().at(i).paintFlag = (bgLaneItor->back().at(i).paintFlag + rightSample->at(i).paintFlag);
-                                    bgLaneItor->back().at(i).paintLength = ((1.0 - weight) * bgLaneItor->back().at(i).paintLength +
-                                        weight * rightSample->at(i).paintLength);
+                                    bgLaneItor->back().at(i).paintFlag = (float)(bgLaneItor->back().at(i).paintFlag + rightSample->at(i).paintFlag);
+                                    bgLaneItor->back().at(i).paintLength = weight * bgLaneItor->back().at(i).paintLength + 
+                                        weight * rightSample->at(i).paintLength;
                                 }
 
                                 // increase merged times, just use the first point
@@ -2199,10 +2196,10 @@ void CRoadVecGen2::dotLineBlockIndex(IN  vector<point3D_t> &lineData,
     vector<int> index0, index1;
     for (int i = 1; i < numOfPoints; i++)
     {
-        dx.push_back(lineData[i].lon - lineData[i - 1].lon);
-        dy.push_back(lineData[i].lat - lineData[i - 1].lat);
+        dx.push_back(abs(lineData[i].lon - lineData[i - 1].lon));
+        dy.push_back(abs(lineData[i].lat - lineData[i - 1].lat));
 
-        dd.push_back(abs(dx[i - 1]) + abs(dy[i - 1]));
+        dd.push_back(dx[i - 1] + dy[i - 1]);
         if (DASH_DIST_DIFF < dd[i - 1])
         {
             index1.push_back(i - 1);
@@ -2223,48 +2220,27 @@ void CRoadVecGen2::dotLineBlockIndex(IN  vector<point3D_t> &lineData,
     }
     else
     {
-        vector<int> tmpBlkIndexSt, tmpBlkIndexEd;
-        int numOfInd = index0.size();
-        for (int ii = 0; ii < numOfInd; ii++)
+        for (uint32 ii = 0; ii < index0.size(); ii++)
         {
             if (1.0 == dp[index0[ii]])
             {
                 // start of dash painting
-                tmpBlkIndexSt.push_back(index0[ii] + 1);
-                if ((numOfInd - 1) == ii)
+                dotBlkIndexSt.push_back(index0[ii] + 1);
+                if ((index0.size() - 1) == ii)
                 {
-                    tmpBlkIndexEd.push_back(numOfPoints - 1);
+                    dotBlkIndexEd.push_back(numOfPoints - 1);
                 }
             }
             else
             {
                 // end of dash painting
-                tmpBlkIndexEd.push_back(index0[ii]);
-                if (tmpBlkIndexSt.empty())
+                dotBlkIndexEd.push_back(index0[ii]);
+                if (dotBlkIndexSt.empty())
                 {
-                    tmpBlkIndexSt.push_back(0);
+                    dotBlkIndexSt.push_back(0);
                 }
             }
         }
-
-        dotBlkIndexSt.push_back(tmpBlkIndexSt[0]);
-        int numOfBlks = tmpBlkIndexEd.size();
-        for (int ii = 0; ii < numOfBlks - 1; ii++)
-        {
-            if (0.005 > abs(-1.0 - dp[tmpBlkIndexEd[ii]]))
-            {
-                double ddx = lineData[tmpBlkIndexSt[ii+1]].lon - lineData[tmpBlkIndexEd[ii]].lon;
-                double ddy = lineData[tmpBlkIndexSt[ii+1]].lat - lineData[tmpBlkIndexEd[ii]].lat;
-                double dist = ddx * ddx + ddy * ddy;
-                if (0.25 < dist)
-                {
-                    dotBlkIndexSt.push_back(tmpBlkIndexSt[ii+1]);
-                    dotBlkIndexEd.push_back(tmpBlkIndexEd[ii]);
-                }
-            }
-        }
-
-        dotBlkIndexEd.push_back(tmpBlkIndexEd[numOfBlks - 1]);
     }
 
     // merge block
@@ -2470,7 +2446,7 @@ void CRoadVecGen2::getLinePaintInfo(IN  vector<point3D_t> &sourceline,
             {
                 bPaintedBlk = true;
                 leftline[i].paintFlag = 1;
-                leftline[i].paintLength = leftSmpEd[blkIndStEd] - leftSmpSt[blkIndStEd] + 1;
+                leftline[i].paintLength = (float)(leftSmpEd[blkIndStEd] - leftSmpSt[blkIndStEd] + 1);
             }
 
             if (i > leftSmpEd[blkIndStEd] && bPaintedBlk)
@@ -2550,17 +2526,26 @@ void CRoadVecGen2::getFGLine(IN  vector<point3D_t> &bgline,
         return;
     }
 
-    // get max paint value and index of line
-    int maxIndex = 0;
+    // get max paint value of line
     int numOfPnts = fgline.size();
     float maxPaint = 1.0;
+    for (int i = 0; i < numOfPnts; i++)
+    {
+        if (fgline[i].paintFlag > maxPaint)
+        {
+            maxPaint = fgline[i].paintFlag;
+        }
+    }
 
+    // get valid paint block start and end index
     bool bPaintChanged = false;
     vector<int> stInd, edInd;
     vector<point3D_t> tmpline = fgline;
     for (int i = 0; i < numOfPnts; i++)
     {
-        if (0.0 < tmpline[i].paintFlag)
+        tmpline[i].paintFlag /= maxPaint;
+
+        if (0.5 <= tmpline[i].paintFlag)
         {
             if (!bPaintChanged)
             {
@@ -2576,14 +2561,9 @@ void CRoadVecGen2::getFGLine(IN  vector<point3D_t> &bgline,
                 bPaintChanged = false;
             }
         }
-
-        if (fgline[i].paintFlag > maxPaint)
-        {
-            maxPaint = fgline[i].paintFlag;
-        }
-
     }
 
+    // for end point is painted
     if (bPaintChanged && (stInd.size() > edInd.size()))
     {
         edInd.push_back(numOfPnts - 1);
@@ -2596,6 +2576,8 @@ void CRoadVecGen2::getFGLine(IN  vector<point3D_t> &bgline,
         int start = 0, end = 0;
         float startFlag = 0.0, endFlag = 0.0;
         int numOfElems = edInd[i] - stInd[i] + 1;
+
+        // get max merged start and end index
         for (int jj = 0; jj < numOfElems; jj++)
         {
             if (tmpline[stInd[i] + jj].paintFlag > startFlag)
@@ -2613,12 +2595,17 @@ void CRoadVecGen2::getFGLine(IN  vector<point3D_t> &bgline,
             tmpline[edInd[i] - jj].paintFlag = 0.0;
         }
 
-        int middle = (start + end + 1) / 2;
-        int paintLength = (int)(max(tmpline[start].paintLength, tmpline[end].paintFlag) + 1);
+        // center point
+        int middle = (start + end) / 2;
+        int paintLength = (int)(max(tmpline[start].paintLength, tmpline[end].paintLength) + 1);
         start = middle - paintLength / 2;
         end = middle + paintLength / 2;
+
+        // limit the index to be within the 0.5 range
         start = (start >= 0) ? start : 0;
         end = (end < numOfPnts) ? end : (numOfPnts - 1);
+        start = (start >= stInd[i]) ? start : stInd[i];
+        end = (end <= edInd[i]) ? end : edInd[i];
 
         for (int jj = start; jj <= end; jj++)
         {
@@ -2626,29 +2613,11 @@ void CRoadVecGen2::getFGLine(IN  vector<point3D_t> &bgline,
         }
     }
 
-#if 1
-    char filename[_MAX_PATH] = { '\0' };
-    static int line_cnt = 0;
-    sprintf_s(filename, "fg_lines_merged_temp_%d_sec_%d.txt", line_cnt, _curSecId);
-
-    list<vector<point3D_t>> lane;
-    lane.push_back(tmpline);
-    saveListVec(lane, filename);
-
-
-    sprintf_s(filename, "fg_lines_merged_%d_sec_%d.txt", line_cnt++, _curSecId);
-    lane.clear();
-    lane.push_back(fgline);
-    saveListVec(lane, filename);
-#endif
-
     // normalize paint information
-    for (int i = 0; i < numOfPnts; i++)
+    for (uint32 i = 1; i < fgline.size(); i++)
     {
-        fgline[i].paintFlag /= maxPaint;
-        //fgline[i].paintFlag = tmpline[i].paintFlag;
+        fgline[i].paintFlag = tmpline[i].paintFlag;
     }
-
 }
 
 
@@ -3088,6 +3057,65 @@ void CRoadVecGen2::getMatchedLineInd(OUT vector<int> &matchedInd,
         }
     }
 }
+
+
+void CRoadVecGen2::preprocessRptData(INOUT list<list<vector<point3D_t>>>& rptData,
+    IN list<vector<point3D_t>> &gpsData)
+{
+    int numOfLanes = rptData.size();
+    int numOfTracks = gpsData.size();
+
+    // number of lanes should be the same with number of tracks
+    if (numOfLanes == numOfTracks)
+    {
+        list<list<vector<point3D_t>>>::iterator laneIt = rptData.begin();
+        list<vector<point3D_t>>::iterator trackIt = gpsData.begin();
+        while (laneIt != rptData.end() && trackIt != gpsData.end())
+        {
+            int numOfVecPnts = laneIt->front().size();
+            int numOfGpsPnts = trackIt->size();
+            if (numOfGpsPnts == numOfVecPnts)
+            {
+                // mean relative distance of left and right line
+                int lCnt = 0, rCnt = 0;
+                double lDist = 0.0, rDist = 0.0;
+                for (int i = 0; i < numOfVecPnts; ++i)
+                {
+                    if (0.005 >= abs(laneIt->front().at(i).paintFlag - 1.0))
+                    {
+                        double lat = laneIt->front().at(i).lat - trackIt->at(i).lat;
+                        double lon = laneIt->front().at(i).lon - trackIt->at(i).lon;
+                        lDist = lat * lat + lon * lon;
+                        lCnt++;
+                    }
+
+                    if (0.005 >= abs(laneIt->back().at(i).paintFlag - 1.0))
+                    {
+                        double lat = laneIt->back().at(i).lat - trackIt->at(i).lat;
+                        double lon = laneIt->back().at(i).lon - trackIt->at(i).lon;
+                        rDist = lat * lat + lon * lon;
+                        rCnt++;
+                    }
+                }
+
+                // add data for undetected points
+                if (0 < lCnt)
+                {
+                    double mLDist = lDist / lCnt;
+                }
+
+                if (0 < rCnt)
+                {
+                    double mRDist = rDist / rCnt;
+                }
+            }
+
+            ++laneIt;
+            ++trackIt;
+        }
+    }
+}
+
 
 } // end of namespace ns_database
 

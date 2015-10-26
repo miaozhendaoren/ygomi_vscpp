@@ -17,6 +17,7 @@
 
 #include "SecRptData.h"
 #include "VisualizationApis.h"
+#include "configure.h"
 
 namespace ns_database
 {
@@ -460,16 +461,33 @@ namespace ns_database
                         // remove lane change points
 						for(aSecLeftLaneItor = aSecLeftLaneData.begin();aSecLeftLaneItor!= aSecLeftLaneData.end();)
 						{
-							if((*aSecLeftLaneItor).paintFlag == 2 || (*aSecRightLaneItor).paintFlag == 2)
-							{
-								aSecLeftLaneItor = aSecLeftLaneData.erase(aSecLeftLaneItor);
-								aSecRightLaneItor = aSecRightLaneData.erase(aSecRightLaneItor);
-							}
-							else
-							{
-								aSecLeftLaneItor++;
-								aSecRightLaneItor++;
-							}
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+                            if (sectionIndex == 2)
+                            {
+                                if((*aSecLeftLaneItor).paintFlag == 2 || (*aSecRightLaneItor).paintFlag == 2)
+                                {
+                                    aSecLeftLaneData.clear();
+                                    aSecRightLaneData.clear();
+                                    break;
+                                }else
+                                {
+                                	aSecLeftLaneItor++;
+								    aSecRightLaneItor++;
+                                }
+                            }else
+#endif
+                            {
+							    if((*aSecLeftLaneItor).paintFlag == 2 || (*aSecRightLaneItor).paintFlag == 2)
+							    {
+								    aSecLeftLaneItor = aSecLeftLaneData.erase(aSecLeftLaneItor);
+								    aSecRightLaneItor = aSecRightLaneData.erase(aSecRightLaneItor);
+							    }
+							    else
+							    {
+								    aSecLeftLaneItor++;
+								    aSecRightLaneItor++;
+							    }
+                            }
 						}
 
                         rptSeg.revDirFlag = (*videoNumItor)[index].reverseFlag;

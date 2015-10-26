@@ -40,10 +40,52 @@ using namespace ns_historyLine;
 //point3DFloat_t pointVecBuf[MAX_BUFFER_DEPTH_DRAW_LINE_POINT];
 vector<point3DFloat_t> pointVecBuf;
 
-//baseColor_t lineColor[5];
+void generateRect(float length, float width, quadInfo_t & rect)
+{
 
-// declararion
-//extern list<segAttributes_t> g_segCfgList;
+	rect.vertex[0].x = -width/2;
+	rect.vertex[0].y = 0;
+	rect.vertex[0].z = length/2;
+
+	rect.vertex[1].x = width/2;
+	rect.vertex[1].y = 0;
+	rect.vertex[1].z = length/2;
+
+	rect.vertex[2].x = width/2;
+	rect.vertex[2].y = 0;
+	rect.vertex[2].z = -length/2;
+
+	rect.vertex[3].x = -width/2;
+	rect.vertex[3].y = 0;
+	rect.vertex[3].z = -length/2;
+}
+
+bool assignSignOnRoadSharp(int type, signInfo_t &signInfo)
+{
+	bool returnValue = true;
+	switch(type)
+	{
+	case 2001:
+		generateRect(6, 1, signInfo.sharp);
+		break;
+	case 2002:
+	case 2003:
+	case 2004:
+	case 2005:
+		generateRect(6, 2, signInfo.sharp);
+		break;
+	case 1000:
+		generateRect(0.4, 4, signInfo.sharp);
+		break;
+	case 1002:
+		generateRect(2, 2, signInfo.sharp);
+		break;
+	default:
+		returnValue = false;
+		break;
+	}
+	return returnValue;
+}
 
 int convertSignType(int type)
 {
@@ -172,6 +214,28 @@ int convertSignType(int type)
     case 44200:
         number = 40;
         break;
+	//for traffic sign on the road, need to assign the quad to texture
+	case 2001:
+		number = 42;
+		break;
+	case 2002:
+		number = 43;
+		break;
+	case 2003:
+		number = 44;
+		break;
+	case 2004:
+		number = 45;
+		break;
+	case 2005:
+		number = 46;
+		break;
+	case 1000:
+		number = 47;
+		break;
+	case 1002:
+		number = 48;
+		break;
 	default:
 		number = 41;
 		break;
@@ -361,6 +425,11 @@ void convFurToSignInfo(list<list<furAttributesInVehicle_t>>& furnitureList,
 				signTemp.position.z = location.z;
 				signTemp.rotAngle   = furInfo->angle * 180 / PI;
 				signTemp.type       = convertSignType(furInfo->type);
+				signTemp.sideFlag   = furInfo->sideFlag;
+				if(furInfo->sideFlag == 4)
+				{
+					assignSignOnRoadSharp(furInfo->type, signTemp);
+				}
 				signInfo.push_back(signTemp);
 			}
 			furIter++;
@@ -601,108 +670,108 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 					    if(lineNum >= 2)
 					    {
-					    // For each vector
-					    while(lineIter != (*lineInSegIter).end())
-					    {
-						    lineTypeEnum_t lineStyle = (lineTypeEnum_t)(*lineAttrIter).lineStyle;
+    					    // For each vector
+    					    while(lineIter != (*lineInSegIter).end())
+    					    {
+    						    lineTypeEnum_t lineStyle = (lineTypeEnum_t)(*lineAttrIter).lineStyle;
 
-						    int numberPoint = (*lineAttrIter).numPoints;
-						    point3DFloat_t tempPoint;
+    						    int numberPoint = (*lineAttrIter).numPoints;
+    						    point3DFloat_t tempPoint;
 							RD_ADD_TS(tsFunId_eThread_Visual_Pre,7);
-						    for(int pointIdx = 0; pointIdx < numberPoint; pointIdx++)
-						    {
-							    //coordinateChange(&standPoint,&(*lineIter)[pointIdx], &(pointVecBuf[pointIdx]));
-							    //coordinateChange(&standPoint,&(*lineIter)[pointIdx], &tempPoint);
-                                changeDataBaseCoord(&(*lineIter)[pointIdx], &tempPoint);
-							    pointVecBuf.push_back(tempPoint);
-						    }
+    						    for(int pointIdx = 0; pointIdx < numberPoint; pointIdx++)
+    						    {
+    							    //coordinateChange(&standPoint,&(*lineIter)[pointIdx], &(pointVecBuf[pointIdx]));
+    							    //coordinateChange(&standPoint,&(*lineIter)[pointIdx], &tempPoint);
+                                    changeDataBaseCoord(&(*lineIter)[pointIdx], &tempPoint);
+    							    pointVecBuf.push_back(tempPoint);
+    						    }
 
-						    {
-							    baseColor_t color;
-							    color.R = 0.25;
-							    color.G = 0.25;
-							    color.B = 0.25;
-							    baseColor_t colorLine;
-							    colorLine.R = 0;//0.15;
-							    colorLine.G = 1;//0.44;
-							    colorLine.B = 0;//0.12;
-							    quadInfo_t quadBuf;
-							    quadBuf.color = colorLine;
+    						    {
+    							    baseColor_t color;
+    							    color.R = 0.25;
+    							    color.G = 0.25;
+    							    color.B = 0.25;
+    							    baseColor_t colorLine;
+    							    colorLine.R = 0;//0.15;
+    							    colorLine.G = 1;//0.44;
+    							    colorLine.B = 0;//0.12;
+    							    quadInfo_t quadBuf;
+    							    quadBuf.color = colorLine;
 
 
-							    //engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
-							    engine3DPtr->AddOneLineInfo(lineTypeEnum_solid, colorLine, pointVecBuf);
+    							    //engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
+    							    engine3DPtr->AddOneLineInfo(lineTypeEnum_solid, colorLine, pointVecBuf);
 
-							    //for(int index = 0; index < (numberPoint-1); index++)
-							    //{
-								//    extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.03, index, &quadBuf,0.005);
-								//    engine3DPtr->AddQuadInfo(1,&quadBuf);
-							   // }
+    							    //for(int index = 0; index < (numberPoint-1); index++)
+    							    //{
+    								//    extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.03, index, &quadBuf,0.005);
+    								//    engine3DPtr->AddQuadInfo(1,&quadBuf);
+    							   // }
 
-							    if((lineIdx == 0)||(lineIdx == (lineNum-1)))
-							    {
-								    engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
-							    }
-						    }
+    							    if((lineIdx == 0)||(lineIdx == (lineNum-1)))
+    							    {
+    								    engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
+    							    }
+    						    }
 
-						if(lineIdx == 0)
-						{
-							lastPos = pointVecBuf[0];
-							drawNum = (*lineIter)[0].count;
-						}else
-						{
-							point3DFloat_t drawPos;
-							drawPos.x = (lastPos.x + pointVecBuf[0].x)/2;
-							drawPos.y = (lastPos.y + pointVecBuf[0].y)/2;
-							drawPos.z = (lastPos.z + pointVecBuf[0].z)/2;
+        						if(lineIdx == 0)
+        						{
+        							lastPos = pointVecBuf[0];
+        							drawNum = (*lineIter)[0].count;
+        						}else
+        						{
+        							point3DFloat_t drawPos;
+        							drawPos.x = (lastPos.x + pointVecBuf[0].x)/2;
+        							drawPos.y = (lastPos.y + pointVecBuf[0].y)/2;
+        							drawPos.z = (lastPos.z + pointVecBuf[0].z)/2;
 
-							drawServerCharInfo_t testChar;
+        							drawServerCharInfo_t testChar;
 
-							generateRoadChar(drawPos, drawNum, testChar);
+        							generateRoadChar(drawPos, drawNum, testChar);
 
-							engine3DPtr->AddOneServerCharInfo(testChar);
+        							engine3DPtr->AddOneServerCharInfo(testChar);
 							
-							lastPos = pointVecBuf[0];
-							drawNum = (*lineIter)[0].count;
+        							lastPos = pointVecBuf[0];
+        							drawNum = (*lineIter)[0].count;
 							
-						}
+        						}
 
-						    //draw the paint of the line
-						    {
-							    baseColor_t color;
-							    color.R = 1.0;
-							    color.G = 0.95;
-							    color.B = 0.9;
+    						    //draw the paint of the line
+    						    {
+    							    baseColor_t color;
+    							    color.R = 1.0;
+    							    color.G = 0.95;
+    							    color.B = 0.9;
 
-							    quadInfo_t quadBuf;
-							    quadBuf.color = color;
-							    bool contiFlag = false;
+    							    quadInfo_t quadBuf;
+    							    quadBuf.color = color;
+    							    bool contiFlag = false;
 
-							    for(int index = 0; index < (numberPoint-1); index+=4)
-							    {
-								    //extractQuadInfo(pointVecBuf[2*index], pointVecBuf[2*index+1], 0.2, false, &quadBuf);
-								    if(((*lineIter)[index].paintFlag>=0.5)&&((*lineIter)[index+1].paintFlag>=0.5))
-								    {
-									    extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf,0.01);
-									    contiFlag = true;
-									    engine3DPtr->AddQuadInfo(1,&quadBuf);
-								    }else
-								    {
-									    contiFlag = false;
-								    }
-							    }
-						    }
+    							    for(int index = 0; index < (numberPoint-1); index+=4)
+    							    {
+    								    //extractQuadInfo(pointVecBuf[2*index], pointVecBuf[2*index+1], 0.2, false, &quadBuf);
+    								    if(((*lineIter)[index].paintFlag>=0.5)&&((*lineIter)[index+1].paintFlag>=0.5))
+    								    {
+    									    extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf,0.01);
+    									    contiFlag = true;
+    									    engine3DPtr->AddQuadInfo(1,&quadBuf);
+    								    }else
+    								    {
+    									    contiFlag = false;
+    								    }
+    							    }
+    						    }
 
-						    pointVecBuf.clear();
+    						    pointVecBuf.clear();
 
-						    lineIter++;
-						    lineAttrIter++;
-						    lineIdx++;
-					    }
-
+    						    lineIter++;
+    						    lineAttrIter++;
+    						    lineIdx++;
+    					    }
+					    }//end for if
+                        
 					    lineInSegIter++;
 					    lineAttrInSegIter++;
-					    }//end for if
 				    }//end for while
 
 

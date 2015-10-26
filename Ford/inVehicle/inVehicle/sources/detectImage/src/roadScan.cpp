@@ -34,9 +34,6 @@ namespace ns_roadScan
 int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Point2d *GPS_next, 
        gpsInformationAndInterval *gpsAndInterval, int *intrtmp,Parameters inParam,Point2d &GPS_stop,bool &stopFlg)
 {
-    //laneInfo currlane;												//XYBLOCK
-    ///////////////////////////////////////////////////////////////////////////////////////////
-	//Point2d	ref = Point2d(42.29982494686108,-83.21984649411516);
 
 	Point2d *GPS_ref = &inParam.GPSref;
 
@@ -80,12 +77,8 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
     ///////////////////////////////////////////////////////////////////////////////////////////
     //Generate BirdView
     Mat birds_image;
-
     double scale = 1;
-
-	//startLocation = (objPts[2].y-objPts[0].y)/(imgPts[2].y-imgPts[0].y)/inParam.lengthRate*h+(inParam.stretchRate-1)*h-10;
-	startLocation = 710;
-		
+	startLocation = 710;		
     Mat homography = H;
 
 	Size birdSize = Size(image_f.cols*scale,image_f.rows*scale*inParam.stretchRate);
@@ -106,7 +99,7 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
         coordinateChange(*GPS_abs, *GPS_ref, GPS_rel);
         coordinateChange(*GPS_next, *GPS_ref, GPS_rel2);
         d = sqrt((GPS_rel.x-GPS_rel2.x)*(GPS_rel.x-GPS_rel2.x)+(GPS_rel.y-GPS_rel2.y)*(GPS_rel.y-GPS_rel2.y));
-        if (d < 0.20)
+        if (d < 0.10)
         {
             GPS_stop = *GPS_abs;
             stopFlg = true;
@@ -124,7 +117,7 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
         coordinateChange(*GPS_abs, *GPS_ref, GPS_rel);
         coordinateChange(GPS_stop, *GPS_ref, GPS_rel2);
         d = sqrt((GPS_rel.x-GPS_rel2.x)*(GPS_rel.x-GPS_rel2.x)+(GPS_rel.y-GPS_rel2.y)*(GPS_rel.y-GPS_rel2.y));
-        if (d > 0.20)
+        if (d > 0.10)
         {
             coordinateChange(*GPS_abs, *GPS_ref, GPS_rel);
             coordinateChange(*GPS_next, *GPS_ref, GPS_rel2);
@@ -140,8 +133,7 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
     }
 	
 	int Interval =floor(d/(inParam.distancePerPixel/100)+0.5);
-   
-    //double roadScanStretchRate = 1;
+  
 	//if(dist>=1)
 	{
 		*rowIndex = *rowIndex - *intrtmp;
@@ -177,13 +169,9 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
 		{
 			gpsAndInterval->intervalOfInterception = 0;
 		}
-
-		//should not line when judge the paint of bird view
-		//line(birdEye, Point(0,floor(startLocation)), Point(w,floor(startLocation)), Scalar(255), 1, CV_AA);
-
 		int xx = 0;
 		int yy = (*rowIndex);
-		yy = min(yy,HH*SCALE*h-2*h-1);
+		yy = min(yy,history.rows-2*h-1);
 				
 		Rect rect = Rect(xx, yy, history.cols, h*2);
 		cv::namedWindow("Road Scan",CV_WINDOW_NORMAL);
@@ -191,8 +179,6 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
 	}
 
 	*intrtmp = Interval;
-
-	//(*rowIndex) = (*rowIndex)-Interval;
 #ifdef ROAD_SCAN_UT
 	imshow( "Birds View", birdEye );
 #endif
@@ -200,33 +186,15 @@ int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Poi
 
 	return 0;
 }
-
-
-void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInterval, vector<dataEveryRow> &roadPaintData, Parameters& inParam)
+void roadImageProc2(Mat longLane, Parameters &inParam, vector<gpsInformationAndInterval> &gpsAndInterval, vector<dataEveryRow> &roadPaintData, 
+    vector<landMark> &vecLandMark)
 {
 
-#define T1  30
-#define T2  200
-
+//    Mat RGBImg;
+//   cvtColor(longLane,RGBImg,COLOR_GRAY2RGB);
 #ifdef ROAD_SCAN_UT
     double startT = static_cast<double>(cv::getTickCount());
 #endif
-//    Mat longLaneRGB = longLane;
-//    Mat longLaneHSV;    
-    //cvtColor(longLaneRGB,longLaneHSV,COLOR_BGR2HSV_FULL);
-    //longLaneRGB.convertTo(longLaneHSV,COLOR_BGR2HSV);
-    //cvtColor(longLane,longLane,COLOR_RGB2GRAY);
-
-//    Mat longLaneGray;
-//    cvtRGB2Gray(longLaneRGB, longLaneGray);
-
-    shadowProcess(longLane, longLane);
-    
-#ifdef ROAD_SCAN_UT
-    imwrite("longLane.png",longLane);
-#endif
-	vector<landMark> landMark;
-    vector<Point> stopLineLoc;
 	int W = longLane.cols;
 	int H = longLane.rows;
 
@@ -266,44 +234,65 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
     Mat DrawMarker = Mat::zeros(longLane.rows,longLane.cols,CV_8UC3);
     Mat PaintLine = Mat::zeros(longLane.rows,longLane.cols,CV_8UC1);
 	Mat longLane_cut;
+
 	int n_cut;
 	n_cut = ceil(longLane.rows/CUT);
 	for (int kk=1;kk<=n_cut;kk++)
 	{
-
-//		cout<<"n="<<n_cut<<"kk="<<kk<<endl;
 		if (kk==n_cut)
 			longLane_cut = longLane(Rect(0,(kk-1)*CUT,longLane.cols,longLane.rows-(kk-1)*CUT));
 		else
 			longLane_cut = longLane(Rect(0,(kk-1)*CUT,longLane.cols,CUT));
 
+        Mat longLane_cut2;
+
+        shadowProcess(longLane_cut, longLane_cut2);
 		int w = longLane_cut.cols;
 		int h = longLane_cut.rows;
 
-		Mat longLaneLeft = longLane_cut(Rect(0,0,longLane_cut.cols/2,longLane_cut.rows));
-		Mat longLaneRight = longLane_cut(Rect(longLane_cut.cols/2,0,longLane_cut.cols/2,longLane_cut.rows));
-		int size = 256;
-		Mat dstImage1(size,size,CV_8UC1,Scalar(0));
-		Mat dstImage2(size,size,CV_8UC1,Scalar(0));
-		int hisLeftTh,hisRightTh;
-		calThread(longLaneLeft,hisLeftTh,dstImage1);
-		calThread(longLaneRight,hisRightTh,dstImage2);
+#if((RD_ROAD_SIGN_DETECT_STOPLINE_MASK & RD_ROAD_SIGN_DETECT) )
 
-		int histThres=0;
-		if (hisLeftTh==0||hisRightTh==0)
-			histThres = hisRightTh+hisLeftTh;
-		else
-			histThres = (hisLeftTh + hisRightTh)/2;
-		histThres = max(hisLeftTh,hisRightTh);
-
-
-        
+        landMark landmark1;
+        vector<Point> stopLineLoc;
+        stopLineDetection(longLane_cut2,stopLineLoc);
+        for (int i=0;i<stopLineLoc.size();i++)
+        {
+            stopLineLoc[i].y =((kk-1)*CUT + stopLineLoc[i].y);
+            landmark1.center = stopLineLoc[i];
+            landmark1.type = 1000;
+            landmark1.flag = 4;
+            vecLandMark.push_back(landmark1);
+//            circle(RGBImg,landmark1.center,0,Scalar(0,0,255),6);
+        }
+#endif
+         
+#ifdef DEBUG_ROAD_SCAN
+//         imwrite("RGBImg.png",RGBImg);
+#endif
 	
-#if 0
-//		circleDection(longLane_cut,landMark,histThres);	
-		landMarkDetection(longLane_cut,landMark,histThres+20);
-        stopLineDetection(longLane_cut,stopLineLoc);
+#if((RD_ROAD_SIGN_DETECT_ARROW_MASK & RD_ROAD_SIGN_DETECT) )
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+//		circleDection(longLane_cut,landMark,histThres);
+        vector<landMark> arrows;
+        Mat longLane_cutBW;
+        gray2BW(longLane_cut,longLane_cutBW);
+#ifdef DEBUG_ROAD_SCAN
+        imwrite("longLane_cutBW.png",longLane_cutBW);
+#endif
+		arrowDetection(longLane_cut,longLane_cutBW,arrows,longLane_cut2);
 
+#ifdef DEBUG_ROAD_SCAN
+        imwrite("longLane_cut2.png",longLane_cut2);
+#endif
+        for (int i=0;i<arrows.size();i++)
+        {
+            arrows[i].center.y = H - ((kk-1)*CUT + arrows[i].center.y );
+            arrows[i].hight = arrows[i].hight * inParam.distancePerPixel/100;
+            arrows[i].width = arrows[i].width * inParam.distancePerPixel/100;
+            vecLandMark.push_back(arrows[i]);
+        }
+        
+#endif
 #endif
         
 ///////shadow and no shadow ,process respectively
@@ -312,7 +301,7 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 	    Mat allUnitContous(h,w,CV_8UC1);
 		Mat allKappBin;
 
-        blockCalRidge(longLane_cut,inParam,allUnitKapa,allUnitContous,allKappBin);
+        blockCalRidge(longLane_cut2,inParam,allUnitKapa,allUnitContous,allKappBin);
 
 		linkInterval(allUnitContous,allUnitContous);
 		threshold( allUnitContous, allUnitContous,5, 255,0 );
@@ -322,7 +311,7 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 #endif
        
         Mat lineLinkOut;
-		linkPaintLine(allUnitContous,landMark,lineLinkOut);
+		linkPaintLine(allUnitContous,lineLinkOut);
 
 		//step3: find the left and right lane.
 		int w1 = allUnitContous.cols;
@@ -368,8 +357,6 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 					}
 					if (left>-1 ) 
 					{
-//                        int hue = longLaneHSV.at<Vec3b>(i,left)[0];
-//                        int v   = longLaneHSV.at<Vec3b>(i,left)[2];
 						int dataMiddle = allUnitContous.at<uchar>(i,left);
 						if(dataMiddle!=0)
 						{
@@ -377,24 +364,18 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 							middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].leftPoint.x = left;
 							middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].leftPoint.y = i+(kk-1)*CUT;
 							middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].isPaint_Left = 1;
-
-//							calPaintEdgePos(kapa2, i, left, middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].left_Edge_XY[0], middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].left_Edge_XY[1]);                           
 							circle(roadDraw3, Point(left,i),0,CV_RGB(255, 0, 0),4);
 						}
 					}
 
 					if (right< w1) 
 					{
-//                        int hue = longLaneHSV.at<Vec3b>(i,right)[0];
 						int dataMiddle = allUnitContous.at<uchar>(i,right);
 						if(dataMiddle!=0)
 						{
 							middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].rightPoint.x = right;
 							middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].rightPoint.y = i+(kk-1)*CUT;
 							middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].isPaint_Right = 1;
-
-//							calPaintEdgePos(kapa2, i, right, middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].right_Edge_XY[0], middleRoadPaintData[(H-1)-(i+(kk-1)*CUT)].right_Edge_XY[1]);
-
                             circle(roadDraw3, Point(right,i),0,CV_RGB(0, 0, 255),4);
 						}
 					}
@@ -453,7 +434,7 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 	sort(changeLP.begin(),changeLP.end());
 
 	int thresholdCL = 30;
-	int changelinePoint = -1;
+	vector<int> changelinePoint;
 
 	for(int i = 0; i<changeLP.size(); i++)
 	{
@@ -463,8 +444,8 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 			{
 				if(abs(middleRoadPaintData[changeLP[i]+thresholdCL].leftPoint.x-W_half)<50)
 				{
-					changelinePoint = changeLP[i];
-					break;
+					changelinePoint.push_back(changeLP[i]);
+					continue;
 				}
 			}
 
@@ -472,8 +453,8 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 			{
 				if(abs(middleRoadPaintData[changeLP[i]+thresholdCL].rightPoint.x-W_half)<50)
 				{
-					changelinePoint = changeLP[i];
-					break;
+					changelinePoint.push_back(changeLP[i]);
+					continue;
 				}
 			}
 		}
@@ -484,8 +465,8 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 			{
 				if(abs(middleRoadPaintData[changeLP[i]-thresholdCL].leftPoint.x-W_half)<50)
 				{
-					changelinePoint = changeLP[i];
-					break;
+					changelinePoint.push_back(changeLP[i]);
+					continue;
 				}
 			}
 
@@ -493,18 +474,18 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 			{
 				if(abs(middleRoadPaintData[changeLP[i]-thresholdCL].rightPoint.x-W_half)<50)
 				{
-					changelinePoint = changeLP[i];
-					break;
+					changelinePoint.push_back(changeLP[i]);
+					continue;
 				}
 			}
 		}
 	}
 
-	if(changelinePoint!=-1)
+	for (int idx = 0; idx < changelinePoint.size(); idx++)
 	{
 		//line change
-		int sP = changelinePoint-300;
-		int eP = changelinePoint+300;
+		int sP = changelinePoint[idx]-100;
+		int eP = changelinePoint[idx]+100;
 
         if(sP < 0)
 		{
@@ -575,14 +556,11 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 		}
 	}
 	
-	if (landMark.size())
+	if (vecLandMark.size())
 	{
-		for (int i=0;i<landMark.size();i++)
+		for (int i=0;i<vecLandMark.size();i++)
 		{
-			findGPSInterval(gpsAndInterval,landMark[i].landMarkWeight,longLane,inParam,landMark[i].landMarkWeightRel);
-		//	cout<<landMark[i].landMarkWeight.x<<" ,"<<landMark[i].landMarkWeight.y<<endl;
-		//	cout<<landMark[i].landMarkWeightRel.x<<" ,"<<landMark[i].landMarkWeightRel.y<<endl;
-
+            calLandMarkRelGPS(gpsAndInterval,vecLandMark[i].center,longLane,inParam,vecLandMark[i].centerRel,vecLandMark[i].angleVec);         
 		}
     }
 
@@ -593,8 +571,6 @@ void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &gpsAndInter
 #endif
 
 }
-
-
 bool readParamRoadScan(char* paramFileName, Parameters& inParam)
 {
 	ifstream readParam(paramFileName, ios::_Nocreate);

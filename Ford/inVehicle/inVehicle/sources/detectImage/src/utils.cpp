@@ -205,7 +205,7 @@ void ridgeDetectX(Mat &image_f,Mat &Kapa, double sigma1, double sigma2)
 
 	//Step2: Compute the Gradient Vector Field
 	Mat KernelX = (Mat_<float>(1, 3) << -0.1, 0, 0.1);
-	Mat KernelY = (Mat_<float>(3, 1) << -0.5, 0, 0.5);
+	Mat KernelY = (Mat_<float>(3, 1) << -0.7, 0, 0.7);
 
 	Mat fx,fy;
 	filter2D(image_f2,fx,-1,KernelX);
@@ -1411,140 +1411,155 @@ void circleDection(Mat &Inimage,vector<landMark> &landmark,int histThres)
  	imwrite("dst.png",dst);
 	
 }
+/*
+ * @FUNC
+ *     binary image by threshold value;      
+ * @PARAMS
+ *     src        -  input  image;
+ *     thres      - BW threshold
+ *     dst        - output binary image
+ */
+void thesholdImage(Mat &src,int thres, Mat &dst)
+{
+    Mat imgThres;
+    threshold(src,imgThres,thres,255,0);
+    Mat element = getStructuringElement(MORPH_RECT,Size(5,5));
+    Mat Dilate,Erode;
+    dilate(imgThres,Dilate,element,Point(-1,-1),2);
+    erode(Dilate,Erode,element,Point(-1,-1),1);
+    dst = Erode;
+#ifdef DEBUG_ROAD_SCAN
+    imwrite("binaryImage.png",Erode);
+#endif
+
+}
 
 /*
  * @FUNC
- *     detect landmarks, such as arrows;      
+ *     detection arrows, cal arrows' location(x,y) in image
  * @PARAMS
- *     Inimg   -  input roadScan image;
- *     histThres  - BW threshold
- *     landmark - landmark information
+ *     longLane    -  input src gray image;
+ *     longLaneBW  -  input binary image;
+ *     arrows      -  arrows info
+ *     lane      -  image, which doesn't contain arrows;
  */
-void landMarkDetection(Mat &Inimage,vector<landMark> &landmarks,int histThres)
+void arrowDetection(Mat &longLane,Mat &longLaneBW,vector<landMark> &arrows,Mat &lane)
 {
-	Mat imgThres;
-	threshold(Inimage,imgThres,histThres,255,0);
-	Mat element = getStructuringElement(MORPH_RECT,Size(5,5));
-	Mat Dilate,Erode;
-	dilate(imgThres,Dilate,element,Point(-1,-1),2);
-//	imshow("Dilate",Dilate);
-	erode(Dilate,Erode,element,Point(-1,-1),1);
+    Mat src;
+    longLaneBW.copyTo(src);
+    vector<vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    findContours(src, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
+    // draw contours:   
 
-#ifdef DEBUG_ROAD_SCAN
-	imwrite("Erode.png",Erode);
-#endif
-	
+    Mat T = Mat::zeros(src.size(), CV_8UC1);
+    Mat laneBW = Mat::zeros(src.size(), CV_8UC1);
+    int w = src.cols/4;
+    int meanValue=0;
+    for (int i = 0; i < contours.size(); i++)
+    {			
+        vector<Point> pointss = contours[i];
+        Point upoint = pointss[0];
+        Point dpoint = pointss[pointss.size()-1];
+        Point lpoint = pointss[0];
+        Point rpoint = pointss[pointss.size()-1];
+        Point2d weightPoint = Point2d(-1,-1);
+        for (int j=0;j<pointss.size();j++)
+        {
+            if (pointss[j].y<upoint.y)
+            {
+                upoint = pointss[j];
+            }
+            if (pointss[j].y>dpoint.y)
+            {
+                dpoint = pointss[j];
+            }			
 
-	vector<vector<Point> > contours;
-	vector<Vec4i> hierarchy;
-	findContours(Dilate, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
-	// draw contours:   
+            if (pointss[j].x<lpoint.x)
+            {
+                lpoint = pointss[j];
+            }
+            if (pointss[j].x>rpoint.x)
+            {
+                rpoint = pointss[j];
+            }
+            weightPoint.x += pointss[j].x;
+            weightPoint.y += pointss[j].y;
 
-	Mat T = Mat::zeros(Inimage.size(), CV_8UC1);
-	Mat T2 = Mat::zeros(Inimage.size(), CV_8UC1);
-	int w = Inimage.cols/4;
-	int meanValue=0;
-	for (unsigned int i = 0; i < contours.size(); i++)
-	{			
-		vector<Point> pointss = contours[i];
-		Point upoint = pointss[0];
-		Point dpoint = pointss[pointss.size()-1];
-		Point lpoint = pointss[0];
-		Point rpoint = pointss[pointss.size()-1];
-		Point2d weightPoint = Point2d(-1,-1);
-		for (int j=0;j<pointss.size();j++)
-		{
-			if (pointss[j].y<upoint.y)
-			{
-				upoint = pointss[j];
-			}
-			if (pointss[j].y>dpoint.y)
-			{
-				dpoint = pointss[j];
-			}			
+            meanValue += src.at<uchar>(pointss[j].y,pointss[j].x);
+        }
+        weightPoint.x = weightPoint.x/pointss.size();
+        weightPoint.y = weightPoint.y/pointss.size();
+        meanValue = meanValue/contours.size();
 
-			if (pointss[j].x<lpoint.x)
-			{
-				lpoint = pointss[j];
-			}
-			if (pointss[j].x>rpoint.x)
-			{
-				rpoint = pointss[j];
-			}
-			weightPoint.x += pointss[j].x;
-			weightPoint.y += pointss[j].y;
+        int dx = rpoint.x - lpoint.x;
+        int dy = dpoint.y - upoint.y;
 
-			meanValue += Inimage.at<uchar>(pointss[j].y,pointss[j].x);
-		}
-		weightPoint.x = weightPoint.x/pointss.size();
-		weightPoint.y = weightPoint.y/pointss.size();
-		meanValue = meanValue/contours.size();
-
-		int dx = rpoint.x - lpoint.x;
-		int dy = dpoint.y - upoint.y;
-	
-		double values = dy/(dx+0.0000000001);
-		if (abs(values-1)<0.3)
-		{
-			continue;
-		}
-
-		if (meanValue<200)
-		{
-	//		continue;
-		}
-    	if (rpoint.x<w*3&&lpoint.x>w)
-		{
-			if (contourArea(contours[i])>2000&&dy<1000)
-			{
-				Mat roi = Inimage(Rect(lpoint.x,upoint.y,dx,dy));
-
-				int result = arrowClassify(roi);
+        double values = dy/(dx+0.0000000001);
+        if (abs(values-1)<0.3)
+        {
+            drawContours(laneBW, contours, i, Scalar(255), -1, 8, hierarchy, 0);
+            continue;
+        }
+      if (rpoint.x<w*3&&lpoint.x>w)
+        {
+            if (contourArea(contours[i])>1000&&dy<500)
+            {
+                Mat roi = longLane(Rect(lpoint.x,upoint.y,dx,dy));
+                int result = arrowClassify(roi);
 
 #ifdef ROAD_SCAN_UT
-//				cout<<"result："<<result<<endl;
+                //cout<<"result："<<result<<endl;
 #endif							
+                if (result !=-1&&result!=0)
+                {			
+                    RotatedRect rect = minAreaRect(contours[i]);
+                    Point2f vertex[4];
+                    rect.points(vertex);
+                    for (int j =0;j<4;j++)
+                    {
+                        line(T,vertex[j],vertex[(j+1)%4],Scalar(255,0,0),2,8);
+                    }				
+                    drawContours(T, contours, i, Scalar(255), -1, 8, hierarchy, 0);
 
-				if (result !=-1&&result!=0)
-				{
-			//		cout<<"matchnum="<<numMatchTemp<<"model="<<index<<endl;					
-					RotatedRect rect = minAreaRect(contours[i]);
-					Point2f vertex[4];
-					rect.points(vertex);
-					for (int j =0;j<4;j++)
-					{
-						line(T,vertex[j],vertex[(j+1)%4],Scalar(255,0,0),2,8);
-					}				
-					drawContours(T, contours, i, Scalar(255), -1, 8, hierarchy, 0);					
-					
+                    Mat roi2 = lane(Rect(lpoint.x,upoint.y,dx,dy));
+                    roi2 = Mat::zeros(roi2.rows,roi2.cols,CV_8UC1);
+                    
+
+#ifdef ROAD_SCAN_UT
+                   imwrite("arrows.png",T);
+#endif	
+
 #ifdef DEBUG_ROAD_SCAN
-					char pName[100];
-					sprintf(pName,"./landmark/landmark_%d_classify_%d.png",landmarkSquence,result);
-					imwrite(pName,roi);
-					landmarkSquence++;
+                    char pName[100];
+                    sprintf(pName,"./landmark/landmark_%d_classify_%d.png",landmarkSquence,result);
+                    imwrite(pName,roi);
+                    landmarkSquence++;
 #endif				
-					
-					
-					landMark str_landmark;
-					str_landmark.boundary = contours[i];
-					str_landmark.landMarkWeight = weightPoint;
-					str_landmark.uPoint = upoint;
-					str_landmark.dPoint = dpoint;
-					str_landmark.lPoint = lpoint;
-					str_landmark.rPoint = rpoint;
-					landmarks.push_back(str_landmark);
 
-				}				
-			}
-		}		
-	}
-//	bitwise_not(Dilate,Dilate);
-#ifdef DEBUG_ROAD_SCAN
-	imwrite("number.png",T);
-#endif			
-	
 
+                    landMark str_arrow;
+                    str_arrow.center = weightPoint;
+                    str_arrow.hight = dy;
+                    str_arrow.width = dx;               
+                    str_arrow.type = result;
+                    str_arrow.flag = 4;
+                    arrows.push_back(str_arrow);
+
+                }	
+                else
+                {
+                    drawContours(laneBW, contours, i, Scalar(255), -1, 8, hierarchy, 0);
+                }
+            }
+            else
+            {
+                drawContours(laneBW, contours, i, Scalar(255), -1, 8, hierarchy, 0);
+            }
+        }
+    }
 }
+
 /*
  * @FUNC
  *     recognize arrow,distinguish diffrenet arrows; 
@@ -1571,6 +1586,7 @@ int arrowClassify(Mat &inImge)
 	svm_arrow_R.load("../../../../Ford/inVehicle/inVehicle/resource/Germany/roadarrow/R_ARROW_SVM_HOG.xml");
 	svm_arrow_RF.load("../../../../Ford/inVehicle/inVehicle/resource/Germany/roadarrow/RF_ARROW_SVM_HOG.xml");
 #else
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
 	//svm.load("./resource/Germany/roadarrow/ARROW_SVM_HOG.xml");
 	svm_arrow.load("./resource/Germany/roadarrow/ARROW_SVM_HOG.xml");
 	svm_arrow_F.load("./resource/Germany/roadarrow/F_ARROW_SVM_HOG.xml");
@@ -1578,6 +1594,9 @@ int arrowClassify(Mat &inImge)
 	svm_arrow_LF.load("./resource/Germany/roadarrow/LF_ARROW_SVM_HOG.xml");
 	svm_arrow_R.load("./resource/Germany/roadarrow/R_ARROW_SVM_HOG.xml");
 	svm_arrow_RF.load("./resource/Germany/roadarrow/RF_ARROW_SVM_HOG.xml");
+#else
+	//#error();
+#endif
 #endif
 
 	HOGDescriptor hog(Size(64,640),Size(16,16),Size(8,8),Size(8,8),9);
@@ -1689,10 +1708,11 @@ int SurfFeatureMatch(Mat &src1,Mat &src2)
   if adjust successfully, return 0, otherwise, return non-zero. 
 */  
 int imageAdjust(Mat &src, Mat &dst,   
-	double low, double high,   // Xlow and high are the intensities of src  
-	double bottom, double top, // Ymapped to bottom and top of dst  
+	double low, double high,  
+	double bottom, double top, 
 	double gamma )
 {
+    src.copyTo(dst);
 	if(     low<0 && low>1 && high <0 && high>1&&  
 		bottom<0 && bottom>1 && top<0 && top>1 && low>high)  
 		return -1;  
@@ -1713,7 +1733,10 @@ int imageAdjust(Mat &src, Mat &dst,
 		{  
 			val = ((uchar*)(src.data + src.cols*y))[x];   
 			val = pow((val - low2)/err_in, gamma) * err_out + bottom2;  
-			if(val>255) val=255; if(val<0) val=0; // Make sure src is in the range [low,high]  
+			if(val>255) 
+                val=255; 
+            if(val<0) 
+                val=0; // Make sure src is in the range [low,high]  
 			((uchar*)(dst.data + dst.cols*y))[x] = (uchar) val;  
 		}  
 	}  
@@ -1728,23 +1751,51 @@ int imageAdjust(Mat &src, Mat &dst,
  */
 void shadowProcess(Mat &src, Mat &dst)
 {
-#if (RD_LOCATION == RD_US_PALO_ALTO)
-    Mat element1 = getStructuringElement(MORPH_ELLIPSE,Size(10,10));
-    Mat openDst1;
-    morphologyEx(src,openDst1,MORPH_CLOSE,element1,Point(-1,-1),2);
-    
-	Mat element = getStructuringElement(MORPH_ELLIPSE,Size(15,15));
-	Mat openDst;
-	morphologyEx(openDst1,openDst,MORPH_OPEN,element,Point(-1,-1),2);
-	Mat dst1 = abs(openDst1-openDst);
-#else
+#if (RD_LOCATION == RD_US_DETROIT)
+
 	Mat element = getStructuringElement(MORPH_ELLIPSE,Size(15,15));
 	Mat openDst1;
 	morphologyEx(src,openDst1,MORPH_OPEN,element,Point(-1,-1),2);	
 	Mat dst1 = abs(src-openDst1);	
-#endif
 
-	int s = imageAdjust(dst1,dst,0,0.3,0,0.7,1);
+#else
+    Mat element1 = getStructuringElement(MORPH_CROSS,Size(10,10));
+    Mat openDst1;
+    morphologyEx(src,openDst1,MORPH_CLOSE,element1,Point(-1,-1),2);
+    
+	Mat element = getStructuringElement(MORPH_CROSS,Size(15,15));
+	Mat openDst;
+	morphologyEx(openDst1,openDst,MORPH_OPEN,element,Point(-1,-1),2);
+	Mat dst1 = abs(openDst1-openDst);
+#endif
+//    int s = imageAdjust(dst1,dst,0,0.3,0,0.7,1);
+
+    int h = dst1.rows;
+    int w = dst1.cols;
+    dst = Mat::zeros(h,w,CV_8UC1);
+    int unitH=500;
+    int unitNum = ceil(1.0*h/unitH);
+    for (int uniti=1;uniti<=unitNum;uniti++)
+    {
+        Mat unit;
+        if (uniti==unitNum)
+            unit = dst1(Rect(0,(uniti-1)*unitH,w,h-(uniti-1)*unitH));
+        else
+            unit = dst1(Rect(0,(uniti-1)*unitH,w,unitH));
+        Mat temp;
+        int s = imageAdjust(unit,temp,0,0.3,0,0.7,1);
+
+        if (uniti==unitNum)
+        {
+            Mat roi = dst(Rect(0,(uniti-1)*unitH,w,h-(uniti-1)*unitH));
+            temp.copyTo(roi);       
+        }
+        else
+        {
+            Mat roi = dst(Rect(0,(uniti-1)*unitH,w,unitH));
+            temp.copyTo(roi);
+        }
+    }
 #ifdef ROAD_SCAN_UT
     imwrite("close.png",openDst1);
     imwrite("open.png",openDst);
@@ -1814,34 +1865,38 @@ bool judgeShadow(Mat &src)
 }
 /*
  * @FUNC
- *     find the interval according to coordinates(x,y) in image, and cal the relGPS;
+ *     find the interval according to coordinates(x,y) in image, and cal the relGPS, and cal
+ *     landMark's relGPS;
  * @PARAMS
  *     gpsAndInterval   -  store gps and interva;
  *     point            -  coordinates(x,y) in image;
  *     inImage          -  input image;
- *     inParam          -  config info
- *     pointRel         -  output relative GPS
+ *     inParam          -  config info;
+ *     pointRel         -  output relative GPS;
+ *     angleVec         -  output angle;
  */
-void findGPSInterval(vector<gpsInformationAndInterval> &gpsAndInterval,Point2d &point,
-    Mat &inImage,Parameters inParam, Point2d &pointRel)
+void calLandMarkRelGPS(vector<gpsInformationAndInterval> &gpsAndInterval,Point2d &point,
+    Mat &inImage,Parameters inParam, Point2d &pointRel, Point2d &angleVec)
 {
-	int countnow = 0;
+	int countabs = 0;
 	int countnext = 0;
 	int H = inImage.rows;
 	
 	for (int i=0;i<gpsAndInterval.size()-1;i++)
 	{
 		Point2d GPS_1,GPS_2;
-		coordinateChange(gpsAndInterval[i+1].GPS_now,inParam.GPSref,GPS_1);
-		coordinateChange(gpsAndInterval[i+1].GPS_next,inParam.GPSref,GPS_2);
-		countnow += gpsAndInterval[i].intervalOfInterception;
-		countnext  = countnow+gpsAndInterval[i+1].intervalOfInterception;
-		if (H-countnow>point.y&&H-countnext<point.y)
+		coordinateChange(gpsAndInterval[i].GPS_now,inParam.GPSref,GPS_1);
+		coordinateChange(gpsAndInterval[i].GPS_next,inParam.GPSref,GPS_2);		
+        countnext = countabs + gpsAndInterval[i].intervalOfInterception;
+        if (H-point.y>=countabs && H-point.y<=countnext)
 		{
-			Point2d point2 = Point2d(point.x-inImage.cols/2,H-countnow-point.y);
+			Point2d point2 = Point2d(point.x-inImage.cols/2,H-point.y-countabs);
 			getGPSLocationOfEveryPixelInRoadScanImage(GPS_1,GPS_2,
 				point2,gpsAndInterval[i+1].intervalOfInterception,pointRel,inParam.distancePerPixel);
+            angleVec = GPS_2 - GPS_1;
+            break;
 		}
+        countabs += gpsAndInterval[i].intervalOfInterception;
 	}
 }
 
@@ -2093,13 +2148,13 @@ void blockCalRidge(Mat &longLane_cut, Parameters& inParam, Mat &allUnitKapa,
              {
                  //		continue;
              }
-             if (angle<75)
+             if (angle<65)
              {
                  continue;
              }
              double kk2 = atan((sline.upoint.y - sline.WeiPoint.y)/(sline.upoint.x - sline.WeiPoint.x+0.000000001));//首和重心点斜率；
              double angle2  = abs(180*kk2/PI);
-             if (angle2<75)
+             if (angle2<65)
              {
                  continue;
              }
@@ -2155,10 +2210,9 @@ void blockCalRidge(Mat &longLane_cut, Parameters& inParam, Mat &allUnitKapa,
  *     link the painting lines, and eliminate the noise,
  * @PARAMS
  *     allUnitContous     -  input contous image;
- *     landmark         -  landmark information;
  *     Tline_link_out     -  output paiting linked image;
  */
-void linkPaintLine(Mat allUnitContous,vector<landMark> &landmark,Mat &Tline_link_out)
+void linkPaintLine(Mat allUnitContous,Mat &Tline_link_out)
 {
 
     vector<vector<Point> > contours;
@@ -2201,28 +2255,6 @@ void linkPaintLine(Mat allUnitContous,vector<landMark> &landmark,Mat &Tline_link
 
         }
         sline.WeiPoint = Point(sline.WeiPoint.x/contours[i].size(),sline.WeiPoint.y/contours[i].size());
-        bool isdelete = false;
-
-        if (landmark.size())
-        {
-            for(int j=0;j<landmark.size();j++)
-            {
-                if (sline.WeiPoint.x>landmark[j].lPoint.x&&sline.WeiPoint.x<landmark[j].rPoint.x
-                    &&sline.WeiPoint.y<landmark[j].dPoint.y&&sline.WeiPoint.y>landmark[j].uPoint.y)
-                {
-                    isdelete = true;
-                    break;
-                }
-
-            }
-            if (isdelete==true)
-            {
-                isdelete = false;
-                continue;
-            }		
-        }
-
-
         //			if (sline.upoint.x<w/2&&meanvalue>hisLeftTh&&dst>100)
         {
             drawContours(TSline, contours, i, Scalar(255), -1, 8, hierarchy, 0);
@@ -2453,7 +2485,7 @@ void linkPaintLine(Mat allUnitContous,vector<landMark> &landmark,Mat &Tline_link
             continue;
         }
 
-        if (dst>500)//delete the hight less than 500
+        if (dst>300)//delete the hight less than 300
         {	
             drawContours(Tline_link_out, contours4, i, Scalar(255), 1, 8, hierarchy4, 0);
         }
@@ -2467,127 +2499,60 @@ void linkPaintLine(Mat allUnitContous,vector<landMark> &landmark,Mat &Tline_link
 
 /*
  * @FUNC
- *     detection arrows, cal arrows' location(x,y) in image
+ *     find points's left, right, top and down boundary;
  * @PARAMS
- *     longLane    -  input src gray image;
- *     longLaneBW  -  input binary image;
- *     arrows      -  arrows weight points and boundary;
- *     laneBW      -  image, which doesn't contain arrows;
+ *     vecPoints           -  input points;
+ *     points              -  out put boundary;
  */
-void arrowDetection(Mat &longLane,Mat &longLaneBW,vector<landMark> &arrows,Mat &laneBW)
+void getBoundaryPoint(vector<Point> vecPoints, boundaryPoint &points)
 {
-    Mat src;
-    longLaneBW.copyTo(src);
-    vector<vector<Point> > contours;
-    vector<Vec4i> hierarchy;
-    findContours(src, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
-    // draw contours:   
-
-    Mat T = Mat::zeros(src.size(), CV_8UC1);
-    laneBW = Mat::zeros(src.size(), CV_8UC1);
-    int w = src.cols/4;
-    int meanValue=0;
-    for (unsigned int i = 0; i < contours.size(); i++)
-    {			
-        vector<Point> pointss = contours[i];
-        Point upoint = pointss[0];
-        Point dpoint = pointss[pointss.size()-1];
-        Point lpoint = pointss[0];
-        Point rpoint = pointss[pointss.size()-1];
-        Point2d weightPoint = Point2d(-1,-1);
-        for (int j=0;j<pointss.size();j++)
+    int size = vecPoints.size();
+    points.leftPt = vecPoints[0];
+    points.rightPt = vecPoints[0];
+    points.topPt = vecPoints[0];
+    points.downPt = vecPoints[0];
+    for (int i=0; i<size; i++)
+    {
+        if (vecPoints[i].x < points.leftPt.x)
         {
-            if (pointss[j].y<upoint.y)
-            {
-                upoint = pointss[j];
-            }
-            if (pointss[j].y>dpoint.y)
-            {
-                dpoint = pointss[j];
-            }			
-
-            if (pointss[j].x<lpoint.x)
-            {
-                lpoint = pointss[j];
-            }
-            if (pointss[j].x>rpoint.x)
-            {
-                rpoint = pointss[j];
-            }
-            weightPoint.x += pointss[j].x;
-            weightPoint.y += pointss[j].y;
-
-            meanValue += src.at<uchar>(pointss[j].y,pointss[j].x);
+            points.leftPt = vecPoints[i];
         }
-        weightPoint.x = weightPoint.x/pointss.size();
-        weightPoint.y = weightPoint.y/pointss.size();
-        meanValue = meanValue/contours.size();
-
-        int dx = rpoint.x - lpoint.x;
-        int dy = dpoint.y - upoint.y;
-
-        double values = dy/(dx+0.0000000001);
-        if (abs(values-1)<0.3)
+        if(vecPoints[i].x > points.rightPt.x)
         {
-            drawContours(laneBW, contours, i, Scalar(255), -1, 8, hierarchy, 0);
-            continue;
+            points.rightPt = vecPoints[i];
         }
-//      if (rpoint.x<w*3&&lpoint.x>w)
+        if (vecPoints[i].y < points.topPt.y)
         {
-            if (contourArea(contours[i])>2000&&dy<1000)
-            {
-                Mat roi = src(Rect(lpoint.x,upoint.y,dx,dy));
-
-                int result = arrowClassify(roi);
-
-#ifdef ROAD_SCAN_UT
-                //				cout<<"result："<<result<<endl;
-#endif							
-
-                if (result !=-1&&result!=0)
-                {
-                    //		cout<<"matchnum="<<numMatchTemp<<"model="<<index<<endl;					
-                    RotatedRect rect = minAreaRect(contours[i]);
-                    Point2f vertex[4];
-                    rect.points(vertex);
-                    for (int j =0;j<4;j++)
-                    {
-                        line(T,vertex[j],vertex[(j+1)%4],Scalar(255,0,0),2,8);
-                    }				
-                    drawContours(T, contours, i, Scalar(255), -1, 8, hierarchy, 0);	
-                    imwrite("arrows.png",T);
-                    
-
-#ifdef DEBUG_ROAD_SCAN
-                    char pName[100];
-                    sprintf(pName,"./landmark/landmark_%d_classify_%d.png",landmarkSquence,result);
-                    imwrite(pName,roi);
-                    landmarkSquence++;
-#endif				
-
-
-                    landMark str_landmark;
-                    str_landmark.boundary = contours[i];
-                    str_landmark.landMarkWeight = weightPoint;
-                    str_landmark.uPoint = upoint;
-                    str_landmark.dPoint = dpoint;
-                    str_landmark.lPoint = lpoint;
-                    str_landmark.rPoint = rpoint;
-                    arrows.push_back(str_landmark);
-
-                }	
-                else
-                {
-                    drawContours(laneBW, contours, i, Scalar(255), -1, 8, hierarchy, 0);
-                }
-            }
-            else
-            {
-                drawContours(laneBW, contours, i, Scalar(255), -1, 8, hierarchy, 0);
-            }
+            points.topPt = vecPoints[i];
+        }
+        if(vecPoints[i].y > points.downPt.y)
+        {
+            points.downPt = vecPoints[i];
         }
     }
 }
+
+
+/*
+ * @FUNC
+ *     find points's center point ;
+ * @PARAMS
+ *     vecPoints   -  input points;
+ *     center      -  center point coordinate(x,y);
+ */
+void getCenterPoint(vector<Point> vecPoints, Point &center)
+{
+    int size = vecPoints.size();
+    center = vecPoints[0];
+    for (int i=1; i<size; i++)
+    {
+        center.x += vecPoints[i].x;
+        center.y += vecPoints[i].y;
+    }
+    center.x /= size;
+    center.y /= size;
+}
+
 /*
  * @FUNC
  *     detect stop lines.
@@ -2597,19 +2562,48 @@ void arrowDetection(Mat &longLane,Mat &longLaneBW,vector<landMark> &arrows,Mat &
  */
 void stopLineDetection(Mat &src, vector<Point> &stopLineLoc)
 {
+    int H = src.rows;
+    int W = src.cols;
     Mat stopKapa,stopKapaBin;
     stopKapa.convertTo(stopKapa,CV_32F);
-    ridgeDetectX(src,stopKapa,5,5);   
+    ridgeDetectX(src,stopKapa,7,7);   
     stopKapa.convertTo(stopKapa,CV_8UC1,1024); 
-    threshold(stopKapa,stopKapaBin,5,255,0);
+    threshold(stopKapa,stopKapaBin,50,255,0);
 #ifdef DEBUG_ROAD_SCAN
     imwrite("stopKapaBin.png",stopKapaBin);
     imwrite("stopKapa.png",stopKapa);
 #endif
-    
+   
+    vector<vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    findContours(stopKapaBin, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
+    for (int i = 0;i<contours.size();i++)
+    {
+        vector<Point> vecPoints;
+        boundaryPoint points;
+        vecPoints = contours[i];
+        getBoundaryPoint(vecPoints,points);
+        int width, hight;
+        width = points.rightPt.x - points.leftPt.x;
+        hight  = points.downPt.y  - points.topPt.y;
+        if (width < W/2 )
+        {
+            continue;
+        }
+        if (hight > 300)
+        {
+            continue;
+        }
+        Point loc;
+        getCenterPoint(vecPoints,loc);      
+        stopLineLoc.push_back(loc);
 
+        circle(stopKapaBin,loc,0,Scalar(255,0,0),4);
+#ifdef DEBUG_ROAD_SCAN
+        imwrite("stopline.png",stopKapaBin);
+#endif
 
-
+    }
 }
 
 

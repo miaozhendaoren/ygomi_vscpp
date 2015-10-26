@@ -82,10 +82,18 @@ namespace ns_database
 
         void calcFurnitureHeight(IN point3D_t *locIn, IN uint8 sideFlagIn, OUT double *altOut);
 
+        void resetSingleFurSegId(IN  furAttributesServer_t* furnitureIn, IN  uint32 newSegId);
+
+        void resetAllFurSegId(void);
+
         void addFurniture(IN furAttributes_t* furnitureIn,
                           OUT furAttributes_t* furnitureOut);
 
-		void resetFurnitureRoadSideLoc();
+        void resetFurnitureRoadSideLoc();
+        
+        void resetFurnitureRoadSideLoc1();
+
+        void resetFurnitureRoadSideLoc2();
 
         void addFurnitureTlv(IN uint8* tlvBuff, 
                              IN uint32 buffLen,

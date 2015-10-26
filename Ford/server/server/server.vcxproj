@@ -263,7 +263,7 @@ copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_US_PALO_ALTO_VIDEO;%(PreprocessorDefinitions)</PreprocessorDefinitions>

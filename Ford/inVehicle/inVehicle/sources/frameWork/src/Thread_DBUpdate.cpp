@@ -186,8 +186,8 @@ RESTART_LABEL:
                             case ADD_ALL_VECTORLIST:
                                 // add a vector list for specified segment.
 								historyInfoP.saveHistoryLine(database_gp);
-								database_gp->resetAllVectors();
-                                database_gp->addAllVectorsInSegTlv(recvHeader->payload + recvHeader->payloadHeader.pduHeader[pduIdx].pduOffset,pduLen);
+								//database_gp->resetAllVectors();// Clear each section in function below -- addVectorsInSegTlv
+                                database_gp->addVectorsInSegTlv(recvHeader->payload + recvHeader->payloadHeader.pduHeader[pduIdx].pduOffset,pduLen);
                                 break;
                             case REDUCE_ONE_FURNITURE:
                                 database_gp->reduceFurnitureTlv(recvHeader->payload + recvHeader->payloadHeader.pduHeader[pduIdx].pduOffset,pduLen);

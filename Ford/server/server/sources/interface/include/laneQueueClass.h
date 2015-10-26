@@ -37,7 +37,8 @@ namespace laneSpace
 		void addLanePoint(int laneId,laneType_t &linePoint);
 		bool specifiedLaneQueueSize(int laneId,int *queueSize);
 		bool deleteSpecifiedLaneQueue(int laneId);
-        void getAllVectors(OUT std::list<std::list<std::vector<point3D_t>>> &newDataList);
+        void getAllVectors(OUT std::list<std::list<std::vector<point3D_t>>> &newDataLaneList,
+            OUT std::list<std::vector<point3D_t>> &newDataGpsList);
 		std::queue<laneType_t>*  getSpecifiedLane(int laneId);
 		~laneQueueClass(void);
 	};

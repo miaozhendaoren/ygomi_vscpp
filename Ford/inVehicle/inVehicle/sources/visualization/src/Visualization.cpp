@@ -449,7 +449,14 @@ void OPENGL_3D_ENGINE::DrawFrontBufferClient()
 		//draw all the sign
 		for(signIdx = 0; signIdx < signBuffer[signFrontBufIdx].size(); signIdx++)
 		{
-			DrawSignClient(signBuffer[signFrontBufIdx][signIdx]);
+			if(4 == signBuffer[signFrontBufIdx][signIdx].sideFlag)
+			{
+				DrawSignOnRoad(signBuffer[signFrontBufIdx][signIdx]);
+			}else
+			{
+				DrawSignClient(signBuffer[signFrontBufIdx][signIdx]);
+			}
+			
 		}
 	}
 
@@ -493,7 +500,13 @@ void OPENGL_3D_ENGINE::DrawFrontBufferServer()
 		//draw all the sign
 		for(signIdx = 0; signIdx < signBuffer[signFrontBufIdx].size(); signIdx++)
 		{
-			DrawSignServer(signBuffer[signFrontBufIdx][signIdx]);
+			if(4 == signBuffer[signFrontBufIdx][signIdx].sideFlag)
+			{
+				DrawSignOnRoad(signBuffer[signFrontBufIdx][signIdx]);
+			}else
+			{
+				DrawSignServer(signBuffer[signFrontBufIdx][signIdx]);
+			}
 		}
 	}
 
@@ -970,6 +983,57 @@ void OPENGL_3D_ENGINE::DrawSignClient(signInfo_t sign)
 	glCallList(SignShowList_roadSide);
 	
 	//server mode, sign is forward the sky
+	glPopMatrix();
+}
+
+void OPENGL_3D_ENGINE::DrawSignOnRoad(signInfo_t sign)
+{
+	GLint last_texture_ID;
+	if((int)(sign.type) > MAX_BUFFER_DEPTH_2D_TXETURE)
+	{
+		return;
+	}
+
+    if(sign.attribute <= 0)
+    {
+        return;
+    }
+
+	glPushMatrix();
+
+	//draw the sign on the road side
+	glTranslatef(sign.position.x, 0.01, sign.position.z);
+
+	//client mode, sign is forward car perspective
+	glRotatef((sign.rotAngle),0, 1, 0);
+
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture_ID);
+
+	glBindTexture(GL_TEXTURE_2D, texturelist[sign.type]);
+	{
+		GLfloat
+			Point1[] = {sign.sharp.vertex[0].x,sign.sharp.vertex[0].y,sign.sharp.vertex[0].z},//{-10.0f, 0.0f, 20.0f},
+			Point2[] = {sign.sharp.vertex[1].x,sign.sharp.vertex[1].y,sign.sharp.vertex[1].z},//{10.0f,  0.0f, 20.0f},
+			Point3[] = {sign.sharp.vertex[2].x,sign.sharp.vertex[2].y,sign.sharp.vertex[2].z},//{10.0f,  0.0f, -20.0f},
+			Point4[] = {sign.sharp.vertex[3].x,sign.sharp.vertex[3].y,sign.sharp.vertex[3].z};//{-10.0f, 0.0f, -20.0f};
+		GLfloat
+			ColorR[] = {1, 0, 0, 0.5};
+
+		glBegin(GL_QUADS);
+		// front side texture
+		glTexCoord2f(1.0f, 1.0f);
+		ColoredVertex(ColorR, Point1);
+		glTexCoord2f(0.0f, 1.0f);
+		ColoredVertex(ColorR, Point2);
+		glTexCoord2f(0.0f, 0.0f);
+		ColoredVertex(ColorR, Point3);
+		glTexCoord2f(1.0f, 0.0f);
+		ColoredVertex(ColorR, Point4);
+		glEnd();
+	}
+
+	glBindTexture(GL_TEXTURE_2D, last_texture_ID);
+	
 	glPopMatrix();
 }
 

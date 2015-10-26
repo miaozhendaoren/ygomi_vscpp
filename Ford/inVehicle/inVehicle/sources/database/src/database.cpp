@@ -192,6 +192,9 @@ namespace ns_database
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointLatitudeR_e - data_pointBase_e], data_pointLatitudeR_e, tvDouble_e, 8, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointLongitudeR_e - data_pointBase_e], data_pointLongitudeR_e, tvDouble_e, 8, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointAltitudeR_e - data_pointBase_e], data_pointAltitudeR_e, tvDouble_e, 8, 1, 0);
+        setTvlCfg(&_tlvCfg_dataPoint_a[data_pointGpsTrackLat_e - data_pointBase_e], data_pointGpsTrackLat_e, tvDouble_e, 8, 1, 0);
+        setTvlCfg(&_tlvCfg_dataPoint_a[data_pointGpsTrackLon_e - data_pointBase_e], data_pointGpsTrackLon_e, tvDouble_e, 8, 1, 0);
+        setTvlCfg(&_tlvCfg_dataPoint_a[data_pointGpsTrackAlt_e - data_pointBase_e], data_pointGpsTrackAlt_e, tvDouble_e, 8, 1, 0);
     }
 
     void database::getTlvCfgbyId(IN  typeId_e typeId, 
@@ -763,7 +766,7 @@ namespace ns_database
         ReleaseMutex(_hMutexMemory);
     }
 
-    void database::addAllVectorsInSegTlv(IN uint8* tlvBuff, IN uint32 buffLen)
+    void database::addVectorsInSegTlv(IN uint8* tlvBuff, IN uint32 buffLen)
     {
         WaitForSingleObject(_hMutexMemory,INFINITE);
 
@@ -772,7 +775,7 @@ namespace ns_database
 
         _mEndPosition = tlvBuff + buffLen;
 
-        readTlvToVector(input, memory_e);
+        readTlvToVectorSec(input, memory_e);
         
         ReleaseMutex(_hMutexMemory);
     }
@@ -1570,6 +1573,183 @@ namespace ns_database
             
             readTlv(input, sourceFlag, &tlvTmp, &idBase, &numByteRead, _dataTmpBuf);
         }
+    }
+
+    void database::readTlvToVectorSec(IN  void** input,
+                           IN  resource_e sourceFlag)
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        tlvCommon_t tlvTmp;
+        uint32 segmentId = 0;
+
+        vector<point3D_t> vectorElement;
+
+        // Read TLV from DB file
+        typeId_e idBase;
+        int numByteRead;
+        
+        logPosition(input, sourceFlag);
+
+        readTlv(input, sourceFlag, &tlvTmp, &idBase, &numByteRead, _dataTmpBuf);
+
+        // Parse TLVs
+        while(numByteRead)
+        {
+            typeId_e typeId = tlvTmp.typeId;
+
+            switch(idBase)
+            {
+                case vec_base_e:
+                {
+                    if(typeId == vec_segId_e)
+                    {
+                        segmentId = tlvTmp.value;
+                    }
+                    else if(typeId == vec_vecList_e)
+                    {
+                        list<vector<point3D_t>> vectorsInSeg;
+                        list<lineAttributes_t> attrInSeg;
+
+                        int numVec = tlvTmp.length;
+                        int numPoint;
+
+                        for(int vecIdx = 0; vecIdx < numVec; vecIdx++)
+                        // Read each vector
+                        {
+                            int lineEnd = 0;
+
+                            lineAttributes_t attr;
+
+                            // Read Line attributes
+                            {
+                                attr.segmentId = segmentId;
+
+                                logPosition(input, sourceFlag);
+                                readTlv(input, sourceFlag, &tlvTmp, &idBase, &numByteRead, _dataTmpBuf);
+
+                                while(numByteRead)
+                                {
+                                    typeId_e typeId = tlvTmp.typeId;
+
+                                    switch(idBase)
+                                    {
+                                        case data_lineBase_e:
+                                        {
+                                            if(typeId == data_linePointList_e)
+                                            {
+                                                attr.numPoints = tlvTmp.length;
+                                                numPoint = tlvTmp.length;
+                                            }else if(typeId == data_lineId_e)
+                                            {
+                                                attr.lineId = tlvTmp.value;
+                                            }else if(typeId == data_lineWidth_e)
+                                            {
+                                                attr.width = tlvTmp.value;
+                                            }else if(typeId == data_lineStyle_e)
+                                            {
+                                                attr.lineStyle = tlvTmp.value;
+                                            }else if(typeId == data_lineSegVersion_e)
+                                            {
+                                                attr.segVersion = tlvTmp.value;
+                                            }else if(typeId == data_lineSegVersion_e)
+                                            {
+                                                attr.segVersion = tlvTmp.value;
+                                            }
+
+                                            break;
+                                        }
+                                        default:
+                                        {
+                                            lineEnd = 1;
+
+                                            break;
+                                        }
+                                    }
+
+                                    if(lineEnd == 1)
+                                    {
+                                        resetPosition(input, sourceFlag);
+                                        break; // while
+                                    }
+
+                                    logPosition(input, sourceFlag);
+                                    readTlv(input, sourceFlag, &tlvTmp, &idBase, &numByteRead, _dataTmpBuf);
+                                }
+
+                                attrInSeg.push_back(attr);
+                            }
+
+                            // Read points
+                            {
+                                for(uint32 pointIdx = 0; pointIdx < numPoint; pointIdx++)
+                                {
+                                    int numBytes;
+                                    point3D_t point;
+
+                                    readTlvToPoint(input, sourceFlag, point, &numBytes);
+
+                                    vectorElement.push_back(point);
+                                }
+
+                            }
+
+                            vectorsInSeg.push_back(vectorElement);
+                            vectorElement.clear();
+                        }
+
+                        //update vector
+                        {
+                            int vectorExistFlag = 0;
+							list<lineAttributes_t>::iterator attrInSegIter = attrInSeg.begin();
+                            list<list<vector<point3D_t>>>::iterator vecListIter = _vectorList.begin();
+                            list<list<lineAttributes_t>>::iterator attrListIter = _lineAttrList.begin();
+
+                            // For each segment
+                            while(vecListIter != _vectorList.end())
+                            {
+                                list<vector<point3D_t>>::iterator pointListIter = (*vecListIter).begin();
+                                list<lineAttributes_t>::iterator attrIter = attrListIter->begin();
+
+                                if(attrInSegIter->segmentId == attrIter->segmentId)
+                                {
+                                    //delete old vector
+                                    vecListIter = _vectorList.erase(vecListIter);
+                                    attrListIter = _lineAttrList.erase(attrListIter);
+
+                                    //add new vector
+                                    _vectorList.push_back(vectorsInSeg);
+                                    _lineAttrList.push_back(attrInSeg);
+
+                                    vectorExistFlag = 1;
+
+                                    break;
+                                }                               
+
+                                vecListIter++;
+                                attrListIter++;
+                            }
+                            // if not found exist section, add directly
+                            if(0 == vectorExistFlag)
+                            {
+                                _vectorList.push_back(vectorsInSeg);
+                                _lineAttrList.push_back(attrInSeg);
+                            }
+                        }
+                    }
+
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+            
+            readTlv(input, sourceFlag, &tlvTmp, &idBase, &numByteRead, _dataTmpBuf);
+        }
+        
+        ReleaseMutex(_hMutexMemory);
     }
 
     void database::readTlvToPoint(IN  void** input,

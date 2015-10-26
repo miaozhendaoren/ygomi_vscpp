@@ -31,6 +31,53 @@ using namespace std;
 //point3DFloat_t pointVecBuf[MAX_BUFFER_DEPTH_DRAW_LINE_POINT];
 vector<point3DFloat_t> pointVecBuf;
 
+void generateRect(float length, float width, quadInfo_t & rect)
+{
+
+	rect.vertex[0].x = -width/2;
+	rect.vertex[0].y = 0;
+	rect.vertex[0].z = length/2;
+
+	rect.vertex[1].x = width/2;
+	rect.vertex[1].y = 0;
+	rect.vertex[1].z = length/2;
+
+	rect.vertex[2].x = width/2;
+	rect.vertex[2].y = 0;
+	rect.vertex[2].z = -length/2;
+
+	rect.vertex[3].x = -width/2;
+	rect.vertex[3].y = 0;
+	rect.vertex[3].z = -length/2;
+}
+
+bool assignSignOnRoadSharp(int type, signInfo_t &signInfo)
+{
+	bool returnValue = true;
+	switch(type)
+	{
+	case 2001:
+		generateRect(6, 1, signInfo.sharp);
+		break;
+	case 2002:
+	case 2003:
+	case 2004:
+	case 2005:
+		generateRect(6, 2, signInfo.sharp);
+		break;
+	case 1000:
+		generateRect(0.4, 4, signInfo.sharp);
+		break;
+	case 1002:
+		generateRect(2, 2, signInfo.sharp);
+		break;
+	default:
+		returnValue = false;
+		break;
+	}
+	return returnValue;
+}
+
 int convertSignType(int type)
 {
 	int number = 0;
@@ -158,6 +205,28 @@ int convertSignType(int type)
     case 44200:
         number = 40;
         break;
+	//for traffic sign on the road, need to assign the quad to texture
+	case 2001:
+		number = 42;
+		break;
+	case 2002:
+		number = 43;
+		break;
+	case 2003:
+		number = 44;
+		break;
+	case 2004:
+		number = 45;
+		break;
+	case 2005:
+		number = 46;
+		break;
+	case 1000:
+		number = 47;
+		break;
+	case 1002:
+		number = 48;
+		break;
 	default:
 		number = 41;
 		break;
@@ -253,6 +322,11 @@ void convFurToSignInfo(list<list<furAttributesServer_t>>& furnitureList,
 				signTemp.position.z = location.z;
 				signTemp.rotAngle   = furInfo->angle * 180 / PI;
 				signTemp.type       = convertSignType(furInfo->type);
+				signTemp.sideFlag   = furInfo->sideFlag;
+				if(furInfo->sideFlag == 4)
+				{
+					assignSignOnRoadSharp(furInfo->type, signTemp);
+				}
 				signInfo.push_back(signTemp);
             }
             furIter++;
@@ -590,6 +664,21 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 			convFurToSignInfo(furnitureList, signInfo);
 			furnitureList.clear();
 
+			//test
+#if 0
+			{
+				signInfo_t test;
+				test.attribute = 1;
+				test.position.x = -109;
+				test.position.y = 0;
+				test.position.z = 2132;
+				test.rotAngle = -90;
+				test.sideFlag = 4;
+				test.type = 42;
+				signInfo.push_back(test);
+
+			}
+#endif
 			engine3DPtr->AddSignInfo(signInfo);
 			engine3DPtr->SwapSignBuffer(); 
 		}

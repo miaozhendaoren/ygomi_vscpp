@@ -101,9 +101,10 @@ namespace laneSpace
 		//CloseHandle(_hMutex);  
 	}
 
-    void laneQueueClass::getAllVectors(OUT list<list<vector<point3D_t>>> &newDataList)
+    void laneQueueClass::getAllVectors(OUT list<list<vector<point3D_t>>> &newDataLaneList, OUT list<vector<point3D_t>> &newDataGpsList)
     {
-        newDataList.clear();
+        newDataLaneList.clear();
+        newDataGpsList.clear();
         int laneId = 0;
 
         for(int laneIdx = 0; laneIdx < MAX_LANE_NUM; ++laneIdx)
@@ -113,6 +114,7 @@ namespace laneSpace
                 list<vector<point3D_t>> newDataSection;
                 vector<point3D_t> newDataVecL;
                 vector<point3D_t> newDataVecR;
+                vector<point3D_t> newDataVecGps;
 
                 queue<laneType_t> * lanePtr = laneQueuePtr[laneId];
 
@@ -121,22 +123,25 @@ namespace laneSpace
                     laneType_t newDataTmp = lanePtr->front();;
                     lanePtr->pop();
 
-                    point3D_t newDataL, newDataR;
+                    point3D_t newDataL, newDataR, newDataGPS;
 
                     newDataL = newDataTmp.gpsL;
                     newDataR = newDataTmp.gpsR;
+                    newDataGPS = newDataTmp.gpsTrack;
 
                     newDataL.paintFlag = newDataTmp.linePaintFlagL;
                     newDataR.paintFlag = newDataTmp.linePaintFlagR;
 
                     newDataVecL.push_back(newDataL);
                     newDataVecR.push_back(newDataR);
+                    newDataVecGps.push_back(newDataGPS);
                 }
 
                 newDataSection.push_back(newDataVecL);
                 newDataSection.push_back(newDataVecR);
 
-                newDataList.push_back(newDataSection);
+                newDataLaneList.push_back(newDataSection);
+                newDataGpsList.push_back(newDataVecGps);
 
                 laneId++;
             }

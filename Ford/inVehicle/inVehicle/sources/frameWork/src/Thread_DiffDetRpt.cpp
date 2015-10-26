@@ -50,6 +50,7 @@
 #include <iomanip>
 #include <fstream>
 #include "TimeStamp.h"
+#include <math.h>
 
 using namespace ns_database;
 using namespace ns_statistics;
@@ -79,6 +80,25 @@ struct gpsCarInfo_t
 #ifdef TRAFFIC_SIGN_TEST
 FILE *fd;
 #endif
+
+void convertLandMark2furniture(landMark &mark, furAttributesInVehicle_t &furniture)
+{
+	//furniture.angle = landMark.angleVec;
+	furniture.angle_used = 1;
+	furniture.angle = (float)atan2(mark.angleVec.x, mark.angleVec.y);
+
+	furniture.location_used = 1;
+	furniture.location.alt = 0;
+	furniture.location.lat = mark.centerRel.x;
+	furniture.location.lon = mark.centerRel.y;
+
+	furniture.type_used = 1;
+	furniture.type      = mark.type;
+	
+	furniture.sideFlag_used = 1;
+	furniture.sideFlag = 4;
+}
+
 unsigned int __stdcall Thread_DiffDetRpt(void *data)
 {
     //open the camera device.
@@ -87,7 +107,8 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
     list<laneType_t> laneInfoList;
 
     vector<dataEveryRow> roadPaintData;
-    vector<gpsInformationAndInterval> GPSAndInterval;
+	vector<landMark> vecLandMark;
+	vector<gpsInformationAndInterval> GPSAndInterval;
     gpsInformationAndInterval gpsAndInterval;
 
     while(1)
@@ -205,8 +226,8 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
 
 				sprintf(bufferTemp, "road_time_roi.png");
 				imwrite(bufferTemp, historyROI );
-        
-				roadImageProc2(historyROI, GPSAndInterval, roadPaintData, inParam);
+
+				roadImageProc2(historyROI, inParam, GPSAndInterval, roadPaintData, vecLandMark);
 
 				RD_ADD_TS(tsFunId_eThread_DifRpt,5);
 				for(int index = 0; index < roadPaintData.size(); index++)
@@ -214,12 +235,14 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
 					if( (0 != roadPaintData[index].Left_Middle_RelGPS.x) && (0 != roadPaintData[index].Left_Middle_RelGPS.y) && 
 						(0 != roadPaintData[index].Right_Middle_RelGPS.x) && (0 != roadPaintData[index].Right_Middle_RelGPS.y) )
 					{
-						point3D_t outGpsInfoL, outGpsInfoR;
-						outGpsInfoL.alt = 0; outGpsInfoL.lat = roadPaintData[index].Left_Middle_RelGPS.x; outGpsInfoL.lon = roadPaintData[index].Left_Middle_RelGPS.y;
-						outGpsInfoR.alt = 0; outGpsInfoR.lat = roadPaintData[index].Right_Middle_RelGPS.x; outGpsInfoR.lon = roadPaintData[index].Right_Middle_RelGPS.y;
+						point3D_t outGpsInfoL = { 0 }, outGpsInfoR = { 0 }, outGpsInfo= { 0 };
+						outGpsInfoL.lat = roadPaintData[index].Left_Middle_RelGPS.x; outGpsInfoL.lon = roadPaintData[index].Left_Middle_RelGPS.y;
+						outGpsInfoR.lat = roadPaintData[index].Right_Middle_RelGPS.x; outGpsInfoR.lon = roadPaintData[index].Right_Middle_RelGPS.y;
+                        outGpsInfo.lat = roadPaintData[index].Middle_RelGPS.x; outGpsInfo.lon = roadPaintData[index].Middle_RelGPS.y;
 						laneType_t laneInfo;
 						laneInfo.gpsL = outGpsInfoL;
 						laneInfo.gpsR = outGpsInfoR;
+                        laneInfo.gpsTrack = outGpsInfo;
 						laneInfo.laneId = 0;
 						laneInfo.laneWidth = 3.75;
 						laneInfo.lineStyle = 0;
@@ -241,6 +264,34 @@ CLEAN_ROADSCAN_BUFFER:
         // Furniture detection
         list<furAttributesInVehicle_t> furInfoListAddReport;
         list<furAttributesInVehicle_t> furInfoListUpdateReport;
+
+		//check if there is some traffic sign on the road scamed by roadscam
+        {
+            if( vecLandMark.size() > 0)
+            {
+                for(int roadSign = 0; roadSign < vecLandMark.size(); roadSign++)
+                {
+#ifdef TRAFFIC_SIGN_TEST                           
+                    fprintf(fd,"====================================================================\n");	
+                    fprintf(fd,"report_%d_%d = ",furListTempIdx->type,furListTempIdx->sideFlag);
+                    fprintf(fd,"%.14f %.14f;\n",furListTempIdx->location.lon,furListTempIdx->location.lat);	
+                    fprintf(fd,"***********************************************************************\n");
+#endif
+                    list<furAttributesInVehicle_t> furInfoListInDb;
+					furAttributesInVehicle_t furTemp;
+
+					convertLandMark2furniture(vecLandMark[roadSign], furTemp);
+                    //get the furniture info according to the GPS.
+					database_gp->getFurnitureByGps(&(furTemp.location), database_gp->_distThreshFar, furInfoListInDb);
+
+                    compareFurnitureList(&furTemp,&furInfoListInDb,&furInfoListAddReport, &furInfoListUpdateReport);
+                }
+
+				vecLandMark.clear();
+            }
+        }
+
+
 #if(RD_SIGN_DETECT != RD_SIGN_DETECT_OFF)
 
 #ifdef TRAFFIC_SIGN_TEST
@@ -1164,3 +1215,4 @@ void filterFurToReport(Point2d refGps,point3D_t currentGps,list<statisticsFurInf
         }
     }
 }
+

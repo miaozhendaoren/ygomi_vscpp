@@ -42,14 +42,18 @@ public:
     *
     * @PARAMS
     *     rptData - road lines of the lane vehicle reported.
+    *     gpsData - car GPS track data used to handle missing part.
     *     fgData  - updated data of road. there may be multiple sections, iterate
     *               one by one from first list. The second list stands for lane
     *               number and vector stands for lines of each lane.
     *               There may by empty items in the output.
+    *     modifiedSectionId - used to save modified section's Id.
     *
     */
     bool roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
-        OUT list<list<vector<point3D_t>>> &fgData);
+        IN  list <vector<point3D_t>> &gpsData,
+        OUT list<list<vector<point3D_t>>> &fgData,
+        OUT list<uint32> &modifiedSectionId);
 
     /*
     * @FUNC
@@ -471,6 +475,20 @@ protected:
         IN uint32 segId,
         IN bool   bHasRevData,
         IN bool   bCommLinesMerged);
+
+    /*
+    * @FUNC
+    *     Pre-processing reported new data. For undetected part, use car GPS
+    *     track to calculate left and right points. The width is calculated
+    *     by using detected relative points.
+    *
+    * @PARAMS
+    *     rptData - reported left and right lines data.
+    *     gpsData - car GPS track data.
+    *
+    */
+    void preprocessRptData(INOUT list<list<vector<point3D_t>>> &rptData,
+        IN list<vector<point3D_t>> &gpsData);
 
 };
 

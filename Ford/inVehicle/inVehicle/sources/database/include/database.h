@@ -63,6 +63,7 @@ namespace ns_database
         double alt;
         float  paintFlag;
         int    count;
+        float  paintLength;
     };
 
 	struct point2D_t
@@ -161,6 +162,7 @@ namespace ns_database
 		float laneWidth;
 		ns_database::point3D_t gpsL;
 		ns_database::point3D_t gpsR;
+        ns_database::point3D_t gpsTrack;
 	};
 
     class database
@@ -184,7 +186,7 @@ namespace ns_database
 
         void addSegmentTlv(IN uint8* tlvBuff, IN uint32 buffLen);
 
-        void addAllVectorsInSegTlv(IN uint8* tlvBuff, IN uint32 buffLen);
+        void addVectorsInSegTlv(IN uint8* tlvBuff, IN uint32 buffLen);
 
         void getAllVectors(std::list<std::list<std::vector<point3D_t>>>& allLines, 
                                      std::list<std::list<lineAttributes_t>>& lineAttr);
@@ -309,6 +311,9 @@ namespace ns_database
 
         void readTlvToVector(IN  void** input,
                              IN  resource_e sourceFlag);
+
+		void readTlvToVectorSec(IN  void** input,
+									IN  resource_e sourceFlag);		
 
         void readTlvToPoint(IN  void** input,
                             IN  resource_e sourceFlag,

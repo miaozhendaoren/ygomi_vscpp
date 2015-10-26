@@ -162,6 +162,7 @@ namespace ns_database
 		float laneWidth;
 		ns_database::point3D_t gpsL;
 		ns_database::point3D_t gpsR;
+        ns_database::point3D_t gpsTrack;
 	};
 
     class database
@@ -193,10 +194,30 @@ namespace ns_database
         void getAllVectors_clear(std::list<std::list<std::vector<point3D_t>>>& allLines, 
                                  std::list<std::list<lineAttributes_t>>& lineAttr);
 
-        void database::getAllVectorsTlv(IN resource_e sourceFlag, 
+        void getAllVectorsTlv(IN resource_e sourceFlag, 
                                       OUT void** output, 
                                       OUT int32* length);
 
+		void getSpecificIdVectorsTlv(IN resource_e sourceFlag,
+                                      OUT void** output, 
+                                      OUT int32* length);
+
+		bool checkIdInUpdateIdList(IN uint32 inId);
+
+		void mergeIdListToUpdateIdList(std::list<uint32> &modifiedSectionId);
+
+		void addAllIdToUpdateIdList();
+
+		void getUpateSectionIdList(std::list<uint32> &updateSectionId);
+
+		void resetUpateSectionIdList();
+
+		int getFurUpdateFlag();
+
+    	void setFurUpdateFlag(int flag);
+    
+    	void resetFurUpdateFlag();
+		
         void resetAllVectors(IN std::list<std::list<std::vector<point3D_t>>>& allLines, 
                              IN std::list<std::list<lineAttributes_t>>& lineAttr);
 
@@ -268,6 +289,8 @@ namespace ns_database
         std::list<segAttributes_t> _segmentList; // segment list / segment element
         std::list<std::list<std::vector<point3D_t>>> _vectorList; // segment list / vector list / point list / point element
         std::list<std::list<lineAttributes_t>> _lineAttrList; // segment list / vector list
+        std::list<uint32> _updateSectionIdList;
+		int _furUpdateFlag;
         //std::list<std::list<furAttributes_t>> _furnitureList; // segment list / furniture element
 
         // Private Methods

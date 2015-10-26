@@ -79,18 +79,22 @@ int searchRegularPolygon(Mat &src,Mat &dxImg, Mat &dyImg,vector<int> &radusVec,i
 void landMarkDetection(Mat &Inimage,vector<landMark> &landmark,int histThres);
 void arrowDetection(Mat &longLane,Mat &longLaneBW,vector<landMark> &arrows,Mat &laneBW);
 void stopLineDetection(Mat &src, vector<Point> &stopLineLoc);
+void getBoundaryPoint(vector<Point> vecPoints, boundaryPoint &points);
+void getCenterPoint(vector<Point> vecPoints, Point &center);
 
 int imageAdjust(Mat &src, Mat &dst,double low, double high, double bottom, double top, 	double gamma );
 void shadowProcess(Mat &src, Mat &dst);
 bool judgeShadow(Mat &src);
-void findGPSInterval(vector<gpsInformationAndInterval> &gpsAndInterval,Point2d &point, Mat &inImage,Parameters inParam, Point2d &pointRel);
+void calLandMarkRelGPS(vector<gpsInformationAndInterval> &gpsAndInterval,Point2d &point,
+    Mat &inImage,Parameters inParam, Point2d &pointRel, Point2d &angleVec);
 
 void linkInterval(Mat &src, Mat &dst);
 int arrowClassify(Mat &inImge);
 void calHAndInvertH(Parameters &inParam, Mat &H, Mat &invertH);
 void blockCalRidge(Mat &matlongLane_cut, Parameters& inParam,Mat &allUnitKapa,Mat &allUnitContous,Mat &allKappBin);
-void linkPaintLine(Mat allUnitContous,vector<landMark> &landmark,Mat &Tline_link_out);
+void linkPaintLine(Mat allUnitContous,Mat &Tline_link_out);
 
+void thesholdImage(Mat &src,int thres, Mat &dst);
 void gray2BW(Mat src, Mat &dst);
 void delMiddlePart(Mat &src,Mat &dst);
 bool changeLaneDection(Mat &src);

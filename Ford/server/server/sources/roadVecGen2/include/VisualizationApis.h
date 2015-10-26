@@ -30,6 +30,8 @@ void saveData(list<reportSectionData> &secData);
 
 void saveData(list<list<vector<point3D_t>>> &fgData, bool bOutput = false);
 
+void saveData(list<list<vector<point3D_t>>> &fgData, list<vector<point3D_t>> &gpsData);
+
 void saveData(list<backgroundSectionData> &bgDbData, uint32 segId, bool bRevDir = false);
 
 #endif

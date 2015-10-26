@@ -314,6 +314,46 @@ void saveData(list<list<vector<point3D_t>>> &fgData, bool bOutput/* = false*/)
 }
 
 
+void saveData(list<list<vector<point3D_t>>> &fgData, list<vector<point3D_t>> &gpsData)
+{
+    list<vector<point3D_t>> fglines;
+    list<list<vector<point3D_t>>>::iterator fgItor = fgData.begin();
+    list<vector<point3D_t>>::iterator fglineItor;
+
+    list<vector<point3D_t>>::iterator trackIt = gpsData.begin();
+    while (fgItor != fgData.end() && trackIt != gpsData.end())
+    {
+        if (!fgItor->empty())
+        {
+            fglineItor = fgItor->begin();
+            while (fglineItor != fgItor->end())
+            {
+                fglines.push_back(*fglineItor);
+
+                fglineItor++;
+            }
+        }
+
+        if (!trackIt->empty())
+        {
+            fglines.push_back(*trackIt);
+        }
+
+        fgItor++;
+        trackIt++;
+    }
+
+#if VISUALIZATION_ON
+        sprintf_s(IMAGE_NAME_STR2, "fg_%d_source.png", FG_MERGED_NUM);
+        showImage(fglines, Scalar(0, 0, 255), IMAGE_NAME_STR2);
+#endif // end of visualization
+#if 1 // SAVE_DATA_ON
+        sprintf_s(IMAGE_NAME_STR2, "fg_%d_source.txt", FG_MERGED_NUM);
+        saveListVec(fglines, IMAGE_NAME_STR2);
+#endif // end of save data
+}
+
+
 void saveData(list<backgroundSectionData> &bgDbData, uint32 segId, bool bRevDir/* = false*/)
 {
     list<backgroundSectionData>::iterator bgDBItor = bgDbData.begin();

@@ -198,19 +198,28 @@ struct PairPoints
 
 struct landMark
 {
-	vector<Point> boundary;
-	vector<Point2d> boudaryRel;
-	Point2d landMarkWeight;
-	Point2d landMarkWeightRel;
-	Point rPoint;
-	Point lPoint;
-	Point uPoint;
-	Point dPoint;
+    Point2d center;
+    Point2d centerRel;
+    double width;
+    double hight;
+    Point2d angleVec;
+    int flag;
+    int type;//1000.stop line; 1002.man hole; 2001-2005, arrows;
+};
+
+struct boundaryPoint
+{
+    Point leftPt;
+    Point rightPt;
+    Point topPt;
+    Point downPt;
 };
 
 int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Point2d *GPS_next, 
     gpsInformationAndInterval *gpsAndInterval, int *intrtmp, Parameters inParam,Point2d &GPS_stop,bool &stopFlg);
-void roadImageProc2(Mat longLane, vector<gpsInformationAndInterval> &GPSAndInterval, vector<dataEveryRow> &roadPaintData, Parameters &inParam);
+void roadImageProc2(Mat longLane, Parameters &inParam, vector<gpsInformationAndInterval> &GPSAndInterval, vector<dataEveryRow> &roadPaintData, 
+     vector<landMark> &vecLandMark);
+
 bool readParamRoadScan(char* paramFileName, Parameters& inParam);
 
 }

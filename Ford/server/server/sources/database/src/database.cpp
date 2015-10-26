@@ -203,6 +203,9 @@ namespace ns_database
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointLatitudeR_e - data_pointBase_e], data_pointLatitudeR_e, tvDouble_e, 8, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointLongitudeR_e - data_pointBase_e], data_pointLongitudeR_e, tvDouble_e, 8, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointAltitudeR_e - data_pointBase_e], data_pointAltitudeR_e, tvDouble_e, 8, 1, 0);
+        setTvlCfg(&_tlvCfg_dataPoint_a[data_pointGpsTrackLat_e - data_pointBase_e], data_pointGpsTrackLat_e, tvDouble_e, 8, 1, 0);
+        setTvlCfg(&_tlvCfg_dataPoint_a[data_pointGpsTrackLon_e - data_pointBase_e], data_pointGpsTrackLon_e, tvDouble_e, 8, 1, 0);
+        setTvlCfg(&_tlvCfg_dataPoint_a[data_pointGpsTrackAlt_e - data_pointBase_e], data_pointGpsTrackAlt_e, tvDouble_e, 8, 1, 0);
     }
 
     void database::getTlvCfgbyId(IN  typeId_e typeId, 
@@ -486,6 +489,7 @@ namespace ns_database
         uint8  segId_usedIn = furnitureAttr->segId_used;
         if(0 == segId_usedIn)
         {
+            ReleaseMutex(_hMutexMemory);
             return;
         }
         uint32 segIdIn = furnitureAttr->segId;
@@ -497,6 +501,7 @@ namespace ns_database
 
         if(0 == furnitureAttr->location_used)
         {
+            ReleaseMutex(_hMutexMemory);
             return;
         }
         point3D_t furLocation = furnitureAttr->location;
@@ -506,6 +511,12 @@ namespace ns_database
         if(1 != furSideFlag_used)
         {
             furSideFlag = 4;
+        }
+        
+        if((3 == furSideFlag) || (4 == furSideFlag))
+        {
+            ReleaseMutex(_hMutexMemory);
+            return;
         }
 
         // For each segment
@@ -528,6 +539,8 @@ namespace ns_database
                 int vectorNumInSeg = (*vecListIter).size();
                 if(2 > vectorNumInSeg)
                 {
+                    ++vecListIter;
+                    ++segAttrListIter;
                     continue;
                 }
                 
@@ -549,7 +562,7 @@ namespace ns_database
                         {
                             if(distance < minDist)
                             {
-    							minDist = distance;
+                                minDist = distance;
                                 nearFurLocation = pointTmp;
                             }
                         }
@@ -575,7 +588,7 @@ namespace ns_database
                         {
                             if(distance < minDist)
                             {
-    							minDist = distance;
+                                minDist = distance;
                                 nearFurLocation = pointTmp;
                             }
                         }
@@ -674,6 +687,248 @@ namespace ns_database
                     setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, attrIter->segVersion);
                     byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
                     */
+                    int numPoints = (*pointListIter).size();
+
+                    tlvCfgP = &_tlvCfg_dataLine_a[data_linePointList_e - data_lineBase_e];
+                    setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, numPoints, 0);
+                    byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+                    
+                    // For each point
+                    for(int pointIdx = 0; pointIdx < numPoints; pointIdx++)
+                    {
+                        point3D_t pointTmp = (*pointListIter)[pointIdx];
+
+                        tlvCfgP = &_tlvCfg_dataPoint_a[data_pointLatitude_e - data_pointBase_e];
+                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, (uint32)(&(pointTmp.lat)));
+                        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                        tlvCfgP = &_tlvCfg_dataPoint_a[data_pointLongitude_e - data_pointBase_e];
+                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, (uint32)(&(pointTmp.lon)));
+                        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                        tlvCfgP = &_tlvCfg_dataPoint_a[data_pointAltitude_e - data_pointBase_e];
+                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, (uint32)(&(pointTmp.alt)));
+                        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                        tlvCfgP = &_tlvCfg_dataPoint_a[data_pointPaintFlag_e - data_pointBase_e];
+                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, *(uint32*)(&pointTmp.paintFlag));
+                        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                        tlvCfgP = &_tlvCfg_dataPoint_a[data_mergeCounter_e - data_pointBase_e];
+                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, pointTmp.count);
+                        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+                    }
+
+                    ++pointListIter;
+                }
+
+                //break;
+            }
+
+            ++vecListIter;
+            ++segAttrListIter;
+        }
+
+        *length = byteNum;
+
+        if(sourceFlag == file_e)
+        {
+            ReleaseMutex(_hMutexFile);
+        }
+        else
+        {
+            ReleaseMutex(_hMutexMemory);
+        }
+    }
+
+    bool database::checkIdInUpdateIdList(IN uint32 inId)
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+
+        bool flag = false;
+        if(_updateSectionIdList.size() > 0)
+        {
+            list<uint32>::iterator sectionIdListIter = _updateSectionIdList.begin();
+            while(sectionIdListIter != _updateSectionIdList.end())
+            {
+                if(inId == (*sectionIdListIter))
+                {
+                    flag = true;
+                    break;
+                }
+                ++sectionIdListIter;
+            }
+        }
+        
+        ReleaseMutex(_hMutexMemory);
+
+        return flag;
+    }
+
+    void database::mergeIdListToUpdateIdList(list<uint32> &modifiedSectionId)
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+
+        int flag = 0;
+        if(_updateSectionIdList.size() <= 0)
+        {
+            _updateSectionIdList = modifiedSectionId;
+        }
+        else
+        {
+            if(modifiedSectionId.size() > 0)
+            {
+                list<uint32>::iterator modifyIdListIter = modifiedSectionId.begin();
+                while(modifyIdListIter != modifiedSectionId.end())
+                {
+                    int idFoundFlag = 0;;
+                    uint32 modifiedId = *modifyIdListIter;
+
+                    list<uint32>::iterator sectionIdListIter = _updateSectionIdList.begin();
+                    while(sectionIdListIter != _updateSectionIdList.end())
+                    {
+                        uint32 sectionId = *sectionIdListIter;
+
+                        if(sectionId == modifiedId)
+                        {
+                            idFoundFlag = 1;
+                            break;
+                        }
+                        ++sectionIdListIter;
+                    }
+                    if(0 == idFoundFlag)
+                    {
+                        _updateSectionIdList.push_back(modifiedId);
+                    }
+                    ++modifyIdListIter;
+                }
+            }
+        }
+        ReleaseMutex(_hMutexMemory);
+    }
+
+    void database::addAllIdToUpdateIdList()
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        list<list<lineAttributes_t>>::iterator  attrIter = _lineAttrList.begin();
+        while(attrIter != _lineAttrList.end())
+        {
+            int idFoundFlag = 0;;
+            list<lineAttributes_t>::iterator  lineAttrIter = attrIter->begin();
+
+            uint32 sectionId = lineAttrIter->segmentId;
+            
+            _updateSectionIdList.push_back(sectionId);
+
+            ++attrIter;
+        }
+        ReleaseMutex(_hMutexMemory);
+    }
+
+    int database::getFurUpdateFlag()
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        int flag =  _furUpdateFlag;
+
+        ReleaseMutex(_hMutexMemory);
+
+        return flag;
+    }
+
+    void database::setFurUpdateFlag(int flag)
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        _furUpdateFlag = flag;
+
+        ReleaseMutex(_hMutexMemory);
+    }
+    
+    void database::resetFurUpdateFlag()
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        _furUpdateFlag = 0;
+
+        ReleaseMutex(_hMutexMemory);
+    }
+    
+    void database::getUpateSectionIdList(list<uint32> &updateSectionId)
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        // Clear list in current database
+        updateSectionId = _updateSectionIdList;
+
+        ReleaseMutex(_hMutexMemory);
+    }
+
+    void database::resetUpateSectionIdList()
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        // Clear list in current database
+        _updateSectionIdList.clear();
+
+        ReleaseMutex(_hMutexMemory);
+    }
+
+    void database::getSpecificIdVectorsTlv(IN resource_e sourceFlag,
+                                      OUT void** output, 
+                                      OUT int32* length)
+    {
+        if(sourceFlag == file_e)
+        {
+            WaitForSingleObject(_hMutexFile,INFINITE);
+        }
+        else
+        {
+            WaitForSingleObject(_hMutexMemory,INFINITE);
+        }
+
+        tlvCommon_t tlvTmp;
+        tlvCfg_t* tlvCfgP;
+        int byteNum = 0;
+
+        list<list<vector<point3D_t>>>::iterator vecListIter = _vectorList.begin();
+        list<segAttributes_t>::iterator segAttrListIter = _segmentList.begin();
+
+        // For each segment
+        while(vecListIter != _vectorList.end())
+        {
+            if((*vecListIter).empty())
+            // Segment with no vector
+            {
+                ++vecListIter;
+                ++segAttrListIter;
+                continue;
+            }
+
+            uint32 segmentIdDb = segAttrListIter->segId;
+
+            if(checkIdInUpdateIdList(segmentIdDb))
+            // Segment ID match
+            {
+                list<vector<point3D_t>>::iterator pointListIter = vecListIter->begin();
+
+                // Segment ID
+                tlvCfgP = &_tlvCfg_vec_a[vec_segId_e - vec_base_e];
+                setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, segmentIdDb);
+                byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+                
+                int vectorNumInSeg = (*vecListIter).size();
+
+                // Vector list
+                tlvCfgP = &_tlvCfg_vec_a[vec_vecList_e - vec_base_e];
+                setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, vectorNumInSeg, 0);
+                byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                // For each vector
+                while(pointListIter != vecListIter->end())
+                {
+                    // Get vector info from the first element
                     int numPoints = (*pointListIter).size();
 
                     tlvCfgP = &_tlvCfg_dataLine_a[data_linePointList_e - data_lineBase_e];
@@ -843,12 +1098,12 @@ namespace ns_database
         ReleaseMutex(_hMutexMemory);
     }
 
-	void database::getSegmentIdByGps(IN  point3D_t*       gps, 
+    void database::getSegmentIdByGps(IN  point3D_t*       gps, 
                                      OUT uint8*           existFlag, 
                                      OUT segAttributes_t* segmentAttr)
     {
         WaitForSingleObject(_hMutexMemory,INFINITE);
-		double minH = DBL_MAX;
+        double minH = DBL_MAX;
         *existFlag = 0;
         list<segAttributes_t>::iterator segListIter = _segmentList.begin();
 
@@ -862,45 +1117,45 @@ namespace ns_database
             double lon1 = (*segListIter).ports[0].lon;
             double lon2 = (*segListIter).ports[1].lon;
 
-			// calculate angle
-			double aPower2 = (gps->lat - lat1) * (gps->lat - lat1) + (gps->lon - lon1) * (gps->lon - lon1);
-			double bPower2 = (gps->lat - lat2) * (gps->lat - lat2) + (gps->lon - lon2) * (gps->lon - lon2);
-			double cPower2 = (lat1 - lat2) * (lat1 - lat2) + (lon1 - lon2) * (lon1 - lon2);
-			double a = sqrt(aPower2); double b = sqrt(bPower2); double c = sqrt(cPower2);
+            // calculate angle
+            double aPower2 = (gps->lat - lat1) * (gps->lat - lat1) + (gps->lon - lon1) * (gps->lon - lon1);
+            double bPower2 = (gps->lat - lat2) * (gps->lat - lat2) + (gps->lon - lon2) * (gps->lon - lon2);
+            double cPower2 = (lat1 - lat2) * (lat1 - lat2) + (lon1 - lon2) * (lon1 - lon2);
+            double a = sqrt(aPower2); double b = sqrt(bPower2); double c = sqrt(cPower2);
 
-			//cosA = (a^2+b^2-c^2)/2ab
-			double cosA = (aPower2 + cPower2 - bPower2);
-			double cosB = (bPower2 + cPower2 - aPower2);
+            //cosA = (a^2+b^2-c^2)/2ab
+            double cosA = (aPower2 + cPower2 - bPower2);
+            double cosB = (bPower2 + cPower2 - aPower2);
 
-			if( (cosA >= 0) && (cosB >= 0) ) // acute angle
-			{
-				// S=¡Ìp(p-a)(p-b)(p-c), p = (a+b+c)/2
-				double p  = (a + b + c) / 2;
-				double S = sqrt(p*(p-a)*(p-b)*(p-c));
+            if( (cosA >= 0) && (cosB >= 0) ) // acute angle
+            {
+                // S=¡Ìp(p-a)(p-b)(p-c), p = (a+b+c)/2
+                double p  = (a + b + c) / 2;
+                double S = sqrt(p*(p-a)*(p-b)*(p-c));
 
-				double h = 2 * S / c;
+                double h = 2 * S / c;
 
-				if(minH > h)
-				{
-					minH = h;
+                if(minH > h)
+                {
+                    minH = h;
 
-					*existFlag = 1;
+                    *existFlag = 1;
 
-					*segmentAttr = (*segListIter);
-				}
-			}
-			else
-			{
-				double minDistan = a < b ? a : b;
+                    *segmentAttr = (*segListIter);
+                }
+            }
+            else
+            {
+                double minDistan = a < b ? a : b;
                 if(minH > minDistan)
-				{
-					minH = minDistan;
+                {
+                    minH = minDistan;
 
-					*existFlag = 1;
+                    *existFlag = 1;
 
-					*segmentAttr = (*segListIter);
-				}
-			}
+                    *segmentAttr = (*segListIter);
+                }
+            }
 
             segListIter++;
         }

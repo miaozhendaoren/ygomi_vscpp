@@ -77,6 +77,8 @@ void databaseInit()
     database_gp->readDb(&input, ns_database::file_e);
 
     database_gp->resetSegCfg(segConfigList);
+
+    database_gp->resetFurUpdateFlag();
 }
 void msgQueueInit()
 {
