@@ -61,6 +61,9 @@
     <Filter Include="Header Files\configParse">
       <UniqueIdentifier>{e17d5460-be36-46d0-b601-d4d44d55ceb2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\configParse">
+      <UniqueIdentifier>{48c49dd0-a034-43a1-aa77-cf41c159da1a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="sources\database\src\database.cpp">
@@ -149,6 +152,24 @@
     </ClCompile>
     <ClCompile Include="sources\log\src\TimeStamp.cpp">
       <Filter>Source Files\log</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\RoadSeg.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\tinystr.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\tinyxml.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\tinyxmlerror.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\tinyxmlparser.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\XMLParser.cpp">
+      <Filter>Source Files\configParse</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -242,9 +263,6 @@
     <ClInclude Include="sources\visualization\include\getSectionID.h">
       <Filter>Header Files\visualization</Filter>
     </ClInclude>
-    <ClInclude Include="sources\configParse\include\configParse.h">
-      <Filter>Header Files\configParse</Filter>
-    </ClInclude>
     <ClInclude Include="sources\configParse\include\tinystr.h">
       <Filter>Header Files\configParse</Filter>
     </ClInclude>
@@ -256,6 +274,9 @@
     </ClInclude>
     <ClInclude Include="sources\log\include\TimeStamp.h">
       <Filter>Header Files\log</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\configParse\include\RoadSeg.h">
+      <Filter>Header Files\configParse</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

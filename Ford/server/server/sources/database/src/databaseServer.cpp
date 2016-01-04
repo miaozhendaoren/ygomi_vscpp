@@ -55,6 +55,8 @@ namespace ns_database
         offset          = furAttrIn->offset;
         reliabRating_used = furAttrIn->reliabRating_used;
         reliabRating    = furAttrIn->reliabRating;
+        inLoopIdx_used  = furAttrIn->inLoopIdx_used;
+        inLoopIdx       = furAttrIn->inLoopIdx;
     }
 
     furAttributesServer_t::furAttributesServer_t() : furAttributes_t()
@@ -449,7 +451,7 @@ namespace ns_database
                 // relocate furniture's segment ID
                 uint8 segLocated = 0;
                 segAttributes_t segAttr;
-                getSegmentIdByGps(&(furIter->location), &segLocated, &segAttr);
+                getSegmentIdByGps((*furIter), &segLocated, &segAttr);
 
                 uint32 newSegId = segAttr.segId;
                 if(newSegId != furIter->segId)
@@ -470,6 +472,79 @@ namespace ns_database
         }
         ReleaseMutex(_hMutexMemory);
     }
+
+    bool databaseServer::resetFurnitureSideFlag(IN furAttributesServer_t* furnitureIn, IN uint32 segId)
+    {
+        bool angleReverseFlag = false;
+        
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        if (furnitureIn->angle_used == 1)
+        {
+            list<segAttributes_t>::iterator segAttrListIter = _segmentList.begin(); 
+            while(segAttrListIter != _segmentList.end())
+            {
+                // for each seg
+                uint32 segmentIdDb = segAttrListIter->segId;
+                if(segmentIdDb == segId)
+                {
+                    float angleSeg = 0;
+                    calcNormalAngle(&(segAttrListIter->ports[0]), &(segAttrListIter->ports[1]), &angleSeg);
+
+                    float angleFur = furnitureIn->angle;
+                    double angleDiff;
+
+                    if (angleFur > angleSeg)
+                    {
+                        angleDiff = angleFur - angleSeg;
+                    }else
+                    {
+                        angleDiff = angleSeg - angleFur;
+                    }
+
+                    if( (angleDiff > (PI/2)) && (angleDiff < (3*PI/2)) )
+                    {
+                        angleReverseFlag = true;
+                    }
+                    break;
+                }
+                
+                ++segAttrListIter;
+            }
+        }
+
+        if(true == angleReverseFlag)
+        {
+            switch(furnitureIn->sideFlag)
+            {
+            case rightSide_e:
+                furnitureIn->sideFlag = leftSide_e;
+                break;
+            case leftSide_e:
+                furnitureIn->sideFlag = middleLeft_e;
+                break;
+            default:
+                break;
+            }
+        }
+        else
+        {
+            switch(furnitureIn->sideFlag)
+            {
+            case rightSide_e:
+                furnitureIn->sideFlag = rightSide_e;
+                break;
+            case leftSide_e:
+                furnitureIn->sideFlag = middleRight_e;
+                break;
+            default:
+                break;
+            }
+        }
+        
+        ReleaseMutex(_hMutexMemory);
+        return angleReverseFlag;
+    }
+                                      
     void databaseServer::addFurniture(IN furAttributes_t* furnitureIn,
                                       OUT furAttributes_t* furnitureOut)
     {
@@ -481,6 +556,26 @@ namespace ns_database
         bool furIdFoundFlag = false;
         list<list<furAttributesServer_t>>::iterator segIter;
         list<furAttributesServer_t>::iterator furIter;
+
+        {
+            // Locate segment and change side flag
+            uint8 segLocated = 0;
+            segAttributes_t segAttr;
+            getSegmentIdByGps(furnitureServerIn, &segLocated, &segAttr);
+            if (segLocated == 0)
+            // Failed to found the segment by GPS of the furniture
+            {
+                ReleaseMutex(_hMutexMemory);
+                logPrintf(logLevelError_e, "DATABASE", "Furniture location not in any segment", FOREGROUND_RED);
+                return;
+            }
+            else
+            {
+                furnitureServerIn.segId_used = 1;
+                furnitureServerIn.segId = segAttr.segId;
+                resetFurnitureSideFlag(&furnitureServerIn, segAttr.segId);
+            }
+        }
 
         if (furnitureServerIn.furId_used == 1)
         {
@@ -496,7 +591,7 @@ namespace ns_database
                 {
                     if ((*furIter).checkFurId(furnitureServerIn.furId))
                     {
-                        furIdFoundFlag = true;
+                        furIdFoundFlag = true;                        
                         break;
                     }
 
@@ -522,8 +617,7 @@ namespace ns_database
             mergeFurInSameRange(*furIter);
             
             // Put furniture to the side of road
-            calcFurnitureRoadSideLoc(&furnitureServerIn);
-            *furIter = furnitureServerIn;
+            calcFurnitureRoadSideLoc3(&(*furIter));
 
             // Calculate height of the furniture
             double altOut;
@@ -546,7 +640,7 @@ namespace ns_database
                 furIter = (*segIter).begin();
 
                 while (furIter != (*segIter).end())
-                {
+                {                    
                     if ( checkTwoFurnitureSame(&(*furIter), &furnitureServerIn, _distThreshNear, _angleThresh) )
                     {
                         furFoundFlag = true;
@@ -567,15 +661,47 @@ namespace ns_database
             if (furFoundFlag)
             // Update existing furniture
             {
+                //resetFurnitureSideFlag(&furnitureServerIn, furnitureServerIn.segId);
+                
                 // Update with new location and reliability
                 (*furIter).update(&furnitureServerIn);
+                
+                // Update segId in furniture after location updated
+                {
+                    uint8 segLocated = 0;
+                    segAttributes_t segAttr;
+                    getSegmentIdByGps((*furIter), &segLocated, &segAttr);
+                    if (segLocated == 0)
+                    // Failed to found the segment by GPS of the furniture
+                    {
+                        ReleaseMutex(_hMutexMemory);
+                        logPrintf(logLevelError_e, "DATABASE", "Furniture location not in any segment", FOREGROUND_RED);
+                        return;
+                    }
+                    else
+                    {
+                        if((*furIter).segId != segAttr.segId)
+                        {
+                            (*furIter).segId = segAttr.segId;
+
+                            list<furAttributesServer_t>::iterator furIterNew;
+
+                            furIterNew = insertOneFurniture((*furIter));
+
+                            segIter->erase(furIter);
+
+                            furIter = furIterNew;
+                        }
+                    }
+                }
 
                 // Check if need to merge other funitures in DB after updating location
                 mergeFurInSameRange(*furIter);
                 
                 // Put furniture to the side of road
-                calcFurnitureRoadSideLoc(&furnitureServerIn);
-                *furIter = furnitureServerIn;
+                calcFurnitureRoadSideLoc3(&(*furIter));
+
+                mergeFurInSameRange(*furIter);
 
                 // Calculate height of the furniture
                 double altOut;
@@ -597,9 +723,9 @@ namespace ns_database
                 furnitureServerIn.reliabRating = 1;
 
                 // Locate segment
-                uint8 segLocated = 0;
+                /*uint8 segLocated = 0;
                 segAttributes_t segAttr;
-                getSegmentIdByGps(&furnitureServerIn.location, &segLocated, &segAttr);
+                getSegmentIdByGps(furnitureServerIn, &segLocated, &segAttr);
 
                 if (segLocated == 0)
                 // Failed to found the segment by GPS of the furniture
@@ -608,11 +734,16 @@ namespace ns_database
                     logPrintf(logLevelError_e, "DATABASE", "Furniture location not in any segment", FOREGROUND_RED);
                     return;
                 }
+                else
+                {
+                    furnitureServerIn.segId_used = 1;
+                    furnitureServerIn.segId = segAttr.segId;
+                    resetFurnitureSideFlag(&furnitureServerIn, furnitureServerIn.segId);
+                }*/
 
-                furnitureServerIn.segId_used = 1;
-                furnitureServerIn.segId = segAttr.segId;
+                calcFurnitureRoadSideLoc3(&furnitureServerIn);
 
-                calcFurnitureRoadSideLoc(&furnitureServerIn);
+                mergeFurInSameRange(furnitureServerIn);
 
                 // Calculate altitude from input height
                 double altOut;
@@ -634,7 +765,7 @@ namespace ns_database
         ReleaseMutex(_hMutexMemory);
     }
 
-    void databaseServer::insertOneFurniture(IN furAttributesServer_t &furnitureServerIn)
+    list<furAttributesServer_t>::iterator databaseServer::insertOneFurniture(IN furAttributesServer_t &furnitureServerIn)
     {
         // Check Segment ID in furniture list
         bool segIdFound = false;
@@ -655,6 +786,8 @@ namespace ns_database
         // Add furniture
         {
             (*segIter).push_back(furnitureServerIn);
+
+            return (--segIter->end());
         }
         else
         // Create a new furniture list
@@ -663,7 +796,237 @@ namespace ns_database
             furListTmp.push_back(furnitureServerIn);
 
             _furnitureList.push_back(furListTmp);
+
+            return --(--_furnitureList.end())->end();
         }
+    }
+
+    void databaseServer::resetFurnitureRoadSideLoc3()
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+
+        vector<point3D_t> pointListPolygonL;    
+        vector<point3D_t> pointListPolygonR;
+        
+        vector<point3D_t> *firstLine   = &pointListPolygonL;
+        vector<point3D_t> *middle1Line = &pointListPolygonL;
+        vector<point3D_t> *middle2Line = &pointListPolygonL;
+		vector<point3D_t> *lastLine    = &pointListPolygonL;
+        
+        list<list<vector<point3D_t>>>::iterator vecListIter = _vectorList.begin();
+        list<segAttributes_t>::iterator segAttrListIter = _segmentList.begin(); 
+
+        if((_updateSectionIdList.size() <= 0) || (_furnitureList.size() <= 0))
+        {
+            ReleaseMutex(_hMutexMemory);
+            return;
+        }
+        
+        // For each segment
+        while(vecListIter != _vectorList.end())
+        {
+            int vectorNumInSeg = (*vecListIter).size();
+            if(2 > vectorNumInSeg)
+            {
+                ++vecListIter;
+                ++segAttrListIter;
+                continue;
+            }
+
+            // for each fur
+            uint32 segmentIdDb = segAttrListIter->segId;
+            if(checkIdInUpdateIdList(_updateSectionIdList, segmentIdDb))
+            {
+                list<vector<point3D_t>>::iterator pointListIter = vecListIter->begin();
+                list<vector<point3D_t>>::iterator pointListIterLast = vecListIter->end();
+                --pointListIterLast;
+
+                while(pointListIter != vecListIter->end())
+                {
+                    int count = (*pointListIter)[0].count;
+                    
+                    if(pointListIter == vecListIter->begin()) // first line
+                    {
+                        firstLine = &(*pointListIter);
+                    }
+                    else if( (LANE_END_LINE_FLAG == count) && (pointListIter != pointListIterLast) )
+                    {
+                        middle1Line = &(*pointListIter);
+                        ++pointListIter;
+                        middle2Line = &(*pointListIter);
+                    }
+                    else if(pointListIter == pointListIterLast) // last line
+                    {
+                        lastLine = &(*pointListIter);
+                    }
+
+                    ++pointListIter;
+                }
+
+                int pointNumFist = firstLine->size();
+                int pointNumMiddle1 = middle1Line->size();
+                int pointNumMiddle2 = middle2Line->size();
+                int pointNumLast = lastLine->size();
+                
+                int pointIdx = 0;
+                for(pointIdx = 0; pointIdx < pointNumFist; pointIdx++)
+                {
+                    point3D_t pointTmp = (*firstLine)[pointIdx];
+                    pointListPolygonL.push_back(pointTmp);
+                }                    
+                for(pointIdx = pointNumLast-1; pointIdx >= 0; pointIdx--)
+                {
+                    point3D_t pointTmp = (*lastLine)[pointIdx];
+                    pointListPolygonL.push_back(pointTmp);
+                }
+                
+                if(0 < pointNumMiddle1)
+                {   
+                    for(pointIdx = 0; pointIdx < pointNumMiddle1; pointIdx++)
+                    {
+                        point3D_t pointTmp = (*middle1Line)[pointIdx];
+                        pointListPolygonR.push_back(pointTmp);
+                    }
+                    for(pointIdx = pointNumMiddle2-1; pointIdx >= 0; pointIdx--)
+                    {
+                        point3D_t pointTmp = (*middle2Line)[pointIdx];
+                        pointListPolygonR.push_back(pointTmp);
+                    }                    
+                }
+
+                list<list<furAttributesServer_t>>::iterator segIter = _furnitureList.begin();
+
+                // For each Furniture
+                while(segIter != _furnitureList.end())
+                {
+                    list<furAttributesServer_t>::iterator furIter = (*segIter).begin();
+                    
+                    uint32 segIdIn = furIter->segId;
+                    // Segment ID match
+                    if(segmentIdDb == segIdIn)
+                    {
+                    
+                        // For each furniture in the segment
+                        while(furIter != (*segIter).end())
+                        {
+                            point3D_t furLocation = furIter->location;
+                            point3D_t nearFurLocation = furLocation;
+                            uint8  furSideFlag_used = furIter->sideFlag_used;
+                            uint8  furSideFlag = furIter->sideFlag; // 1: right side, 2: left side, 3: both sides, 4: on the road
+                            if(1 != furSideFlag_used)
+                            {
+                                furSideFlag = 4;
+                            }
+                            
+                            // not reset location for case 3/4
+                            if((3 == furSideFlag) || (4 == furSideFlag))
+                            {
+                                ++furIter;
+                                continue;
+                            }
+
+                            // check loop index
+                            if((1 == segAttrListIter->loopIdx_used) && (1 == furIter->inLoopIdx_used))
+                            {
+                                if(furIter->inLoopIdx != segAttrListIter->loopIdx) // if furniture not in loop
+                                {
+                                    ++furIter;
+                                    continue;
+                                }
+                            }
+                            
+                            double minDist = DBL_MAX;
+
+                            if( (furIter->sideFlag == rightSide_e) || (furIter->sideFlag == leftSide_e) || (0 == pointNumMiddle1) )
+                            {
+                                bool pointInFlag = pointInPolygon(furLocation, pointListPolygonL);
+                                if(true == pointInFlag)
+                                {
+                                    int numPoints = pointListPolygonL.size();
+                                    // For each point
+                                    for(int pointIdx = 0; pointIdx < numPoints; pointIdx++)
+                                    {
+                                        point3D_t pointTmp = pointListPolygonL[pointIdx];
+
+                                        //uint8 pointSideFlag = pointListPolygonFlagL[pointIdx];
+
+                                        double distance = (furLocation.lat - pointTmp.lat) * (furLocation.lat - pointTmp.lat) + (furLocation.lon - pointTmp.lon) * (furLocation.lon - pointTmp.lon);
+
+                                        //1: right side, or  4: on the road
+                                        //if(pointSideFlag == furSideFlag)
+                                        {
+                                            if(distance < minDist)
+                                            {
+                    							minDist = distance;
+                                                nearFurLocation = pointTmp;
+                                            }
+                                        }
+                                    }
+                                    
+                                    furIter->location = nearFurLocation;
+                                    furIter->location.alt = furLocation.alt;
+                                    furIter->location.count = furLocation.count;
+                                    furIter->location.paintFlag = furLocation.paintFlag;
+
+                                    mergeFurInSameRange(*furIter);
+                                }
+                            }
+                            if( ((furIter->sideFlag == middleLeft_e) || (furIter->sideFlag == middleRight_e)) && (0 < pointNumMiddle1) )
+                            {
+                                bool pointInFlag = pointInPolygon(furLocation, pointListPolygonR);
+                                if(false == pointInFlag)
+                                {
+                                    int numPoints = pointListPolygonR.size();
+                                    // For each point
+                                    for(int pointIdx = 0; pointIdx < numPoints; pointIdx++)
+                                    {
+                                        point3D_t pointTmp = pointListPolygonR[pointIdx];
+
+                                        //uint8 pointSideFlag = pointListPolygonFlagR[pointIdx];
+
+                                        double distance = (furLocation.lat - pointTmp.lat) * (furLocation.lat - pointTmp.lat) + (furLocation.lon - pointTmp.lon) * (furLocation.lon - pointTmp.lon);
+
+                                        //1: right side, or  4: on the road
+                                        //if(pointSideFlag == furSideFlag)
+                                        {
+                                            if(distance < minDist)
+                                            {
+                    							minDist = distance;
+                                                nearFurLocation = pointTmp;
+                                            }
+                                        }
+                                    }
+                                    furIter->location = nearFurLocation;
+                                    furIter->location.alt = furLocation.alt;
+                                    furIter->location.count = furLocation.count;
+                                    furIter->location.paintFlag = furLocation.paintFlag;
+
+                                    mergeFurInSameRange(*furIter);
+                                }
+                            }
+                            
+                            ++furIter;
+                        }
+
+                    }
+
+                    ++segIter;
+                }
+            }
+
+            ++vecListIter;
+            ++segAttrListIter;
+            
+            pointListPolygonL.clear();
+            pointListPolygonR.clear();
+
+            firstLine   = &pointListPolygonL;
+            middle1Line = &pointListPolygonL;
+            middle2Line = &pointListPolygonL;
+		    lastLine    = &pointListPolygonL;
+        }       
+
+        ReleaseMutex(_hMutexMemory);
     }
 
     void databaseServer::resetFurnitureRoadSideLoc2()
@@ -674,7 +1037,13 @@ namespace ns_database
         vector<uint8> pointListPolygonFlag;
         
         list<list<vector<point3D_t>>>::iterator vecListIter = _vectorList.begin();
-        list<segAttributes_t>::iterator segAttrListIter = _segmentList.begin();        
+        list<segAttributes_t>::iterator segAttrListIter = _segmentList.begin(); 
+
+        if((_updateSectionIdList.size() <= 0) || (_furnitureList.size() <= 0))
+        {
+            ReleaseMutex(_hMutexMemory);
+            return;
+        }
         
         // For each segment
         while(vecListIter != _vectorList.end())
@@ -686,102 +1055,113 @@ namespace ns_database
                 ++segAttrListIter;
                 continue;
             }
-            
-            list<vector<point3D_t>>::iterator pointListIter = vecListIter->begin();
-
-            int numPoints = (*pointListIter).size();
-            // For each point
-            for(int pointIdx = 0; pointIdx < numPoints; pointIdx++)
-            {
-                point3D_t pointTmp = (*pointListIter)[pointIdx];
-                pointListPolygon.push_back(pointTmp);
-                pointListPolygonFlag.push_back(2);
-            }
-            pointListIter = vecListIter->end();
-            pointListIter--;
-            
-            numPoints = (*pointListIter).size();
-            // For each point
-            for(int pointIdx = numPoints-1; pointIdx >= 0; pointIdx--)
-            {
-                point3D_t pointTmp = (*pointListIter)[pointIdx];
-                pointListPolygon.push_back(pointTmp);
-                pointListPolygonFlag.push_back(1);
-            }
 
             // for each fur
             uint32 segmentIdDb = segAttrListIter->segId;
+            if(checkIdInUpdateIdList(_updateSectionIdList, segmentIdDb))
+            {            
+                list<vector<point3D_t>>::iterator pointListIter = vecListIter->begin();
 
-            list<list<furAttributesServer_t>>::iterator segIter = _furnitureList.begin();
-
-
-            // For each segment
-            while(segIter != _furnitureList.end())
-            {
-                list<furAttributesServer_t>::iterator furIter = (*segIter).begin();
-                
-                uint32 segIdIn = furIter->segId;
-                // Segment ID match
-                if(segmentIdDb == segIdIn)
+                int numPoints = (*pointListIter).size();
+                // For each point
+                for(int pointIdx = 0; pointIdx < numPoints; pointIdx++)
                 {
+                    point3D_t pointTmp = (*pointListIter)[pointIdx];
+                    pointListPolygon.push_back(pointTmp);
+                    pointListPolygonFlag.push_back(2);
+                }
+                pointListIter = vecListIter->end();
+                pointListIter--;
                 
-                    // For each furniture in the segment
-                    while(furIter != (*segIter).end())
+                numPoints = (*pointListIter).size();
+                // For each point
+                for(int pointIdx = numPoints-1; pointIdx >= 0; pointIdx--)
+                {
+                    point3D_t pointTmp = (*pointListIter)[pointIdx];
+                    pointListPolygon.push_back(pointTmp);
+                    pointListPolygonFlag.push_back(1);
+                }            
+
+                list<list<furAttributesServer_t>>::iterator segIter = _furnitureList.begin();
+
+                // For each segment
+                while(segIter != _furnitureList.end())
+                {
+                    list<furAttributesServer_t>::iterator furIter = (*segIter).begin();
+                    
+                    uint32 segIdIn = furIter->segId;
+                    // Segment ID match
+                    if(segmentIdDb == segIdIn)
                     {
-                        point3D_t furLocation = furIter->location;
-                        point3D_t nearFurLocation = furLocation;
-                        uint8  furSideFlag_used = furIter->sideFlag_used;
-                        uint8  furSideFlag = furIter->sideFlag; // 1: right side, 2: left side, 3: both sides, 4: on the road
-                        if(1 != furSideFlag_used)
+                    
+                        // For each furniture in the segment
+                        while(furIter != (*segIter).end())
                         {
-                            furSideFlag = 4;
-                        }
-                        
-                        // not reset location for case 3/4
-                        if((3 == furSideFlag) || (4 == furSideFlag))
-                        {
-                            furIter++;
-                            continue;
-                        }
-                        
-                        double minDist = DBL_MAX;
-
-                        bool pointInFlag = pointInPolygon(furLocation, pointListPolygon);
-                        if(true == pointInFlag)
-                        {
-                            int numPoints = pointListPolygon.size();
-                            // For each point
-                            for(int pointIdx = 0; pointIdx < numPoints; pointIdx++)
+                            point3D_t furLocation = furIter->location;
+                            point3D_t nearFurLocation = furLocation;
+                            uint8  furSideFlag_used = furIter->sideFlag_used;
+                            uint8  furSideFlag = furIter->sideFlag; // 1: right side, 2: left side, 3: both sides, 4: on the road
+                            if(1 != furSideFlag_used)
                             {
-                                point3D_t pointTmp = pointListPolygon[pointIdx];
+                                furSideFlag = 4;
+                            }
+                            
+                            // not reset location for case 3/4
+                            if((3 == furSideFlag) || (4 == furSideFlag))
+                            {
+                                ++furIter;
+                                continue;
+                            }
 
-                                uint8 pointSideFlag = pointListPolygonFlag[pointIdx];
-
-                                double distance = (furLocation.lat - pointTmp.lat) * (furLocation.lat - pointTmp.lat) + (furLocation.lon - pointTmp.lon) * (furLocation.lon - pointTmp.lon);
-
-                                //1: right side, or  4: on the road
-                                if(pointSideFlag == furSideFlag)
+                            // check loop index
+                            if((1 == segAttrListIter->loopIdx_used) && (1 == furIter->inLoopIdx_used))
+                            {
+                                if(furIter->inLoopIdx != segAttrListIter->loopIdx) // if furniture not in loop
                                 {
-                                    if(distance < minDist)
-                                    {
-            							minDist = distance;
-                                        nearFurLocation = pointTmp;
-                                    }
+                                    ++furIter;
+                                    continue;
                                 }
                             }
                             
-                            furIter->location = nearFurLocation;
-                            furIter->location.alt = furLocation.alt;
-                            furIter->location.count = furLocation.count;
-                            furIter->location.paintFlag = furLocation.paintFlag;
+                            double minDist = DBL_MAX;
+
+                            bool pointInFlag = pointInPolygon(furLocation, pointListPolygon);
+                            if(true == pointInFlag)
+                            {
+                                int numPoints = pointListPolygon.size();
+                                // For each point
+                                for(int pointIdx = 0; pointIdx < numPoints; pointIdx++)
+                                {
+                                    point3D_t pointTmp = pointListPolygon[pointIdx];
+
+                                    uint8 pointSideFlag = pointListPolygonFlag[pointIdx];
+
+                                    double distance = (furLocation.lat - pointTmp.lat) * (furLocation.lat - pointTmp.lat) + (furLocation.lon - pointTmp.lon) * (furLocation.lon - pointTmp.lon);
+
+                                    //1: right side, or  4: on the road
+                                    if(pointSideFlag == furSideFlag)
+                                    {
+                                        if(distance < minDist)
+                                        {
+                							minDist = distance;
+                                            nearFurLocation = pointTmp;
+                                        }
+                                    }
+                                }
+                                
+                                furIter->location = nearFurLocation;
+                                furIter->location.alt = furLocation.alt;
+                                furIter->location.count = furLocation.count;
+                                furIter->location.paintFlag = furLocation.paintFlag;
+                            }
+                            
+                            ++furIter;
                         }
-                        
-                        furIter++;
+
                     }
 
+                    ++segIter;
                 }
-
-                segIter++;
             }
 
             ++vecListIter;
@@ -981,7 +1361,7 @@ namespace ns_database
 
             uint32 segmentIdDb = segAttrListIter->segId;
 
-            if(checkIdInUpdateIdList(segmentIdDb))
+            if(checkIdInUpdateIdList(_updateSectionIdList, segmentIdDb))
             {
                 list<list<furAttributesServer_t>>::iterator segIter = _furnitureList.begin();
                 
@@ -1111,6 +1491,137 @@ namespace ns_database
         }       
 
         ReleaseMutex(_hMutexMemory);
+    }
+
+    int databaseServer::getFurUpdateFlag()
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        int flag =  _furUpdateFlag;
+
+        ReleaseMutex(_hMutexMemory);
+
+        return flag;
+    }
+
+    void databaseServer::setFurUpdateFlag(int flag)
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+
+        _furUpdateFlag = flag;
+
+        ReleaseMutex(_hMutexMemory);
+    }
+    
+    void databaseServer::resetFurUpdateFlag()
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        _furUpdateFlag = 0;
+
+        ReleaseMutex(_hMutexMemory);
+    }
+
+    bool databaseServer::getUpateMsgToTlv(OUT uint8 **tlvP, 
+                                        OUT uint32 *pduOutOffset, 
+                                        OUT vector<uint32> &vecPduOffset, 
+                                        OUT vector<uint32> &furPduOffset)
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        bool flag = false;
+        
+        int furUpdateFlag = _furUpdateFlag;
+        int vecUpdateListSize = _updateSectionIdList.size();
+    
+        if((1 == furUpdateFlag) || (vecUpdateListSize > 0))
+        {            
+            int32 totalBufLen = MAX_PAYLOAD_BYTE_NUM + MAX_ROAD_POINT_BYTES;
+            uint8 *payloadFromDb = new uint8[totalBufLen];
+            if(payloadFromDb == NULL)
+            {
+                ReleaseMutex(_hMutexMemory);
+                logPrintf(logLevelCrit_e, "DBAccess", "Cannot new buffer", FOREGROUND_RED);
+                return false;
+            }
+    
+            uint8 *outBuffPtr = payloadFromDb;
+            int32 outBuffOffset = 0;
+            int32 outPduIdx = 0;
+            bool updateFlag = false;
+            
+            if(vecUpdateListSize > 0)
+            {            
+                {
+                    int payloadBytes = 0;
+    
+                    // Get updated road vector from database
+                    uint8* bufferAddr = outBuffPtr;
+                    int32 outBuffLen;
+                    database_gp->getSpecificIdVectorsTlv(memory_e,
+                                                    _updateSectionIdList,
+                                                    (void**)&bufferAddr, 
+                                                    &outBuffLen);
+    
+                    if (outBuffLen > MAX_ROAD_POINT_BYTES)
+                    {
+                        logPrintf(logLevelCrit_e, "DBAccess", "Buffer overflow!", FOREGROUND_RED);
+                    }
+
+                    vecPduOffset.push_back(outBuffOffset);
+    
+                    outBuffPtr += outBuffLen;
+                    outBuffOffset += outBuffLen;
+    
+                    ++outPduIdx;
+                }
+                
+                database_gp->resetUpateSectionIdList();
+            }
+                // pack the fur update message
+            if(1 == furUpdateFlag)
+            {
+                // Convert all furniture to TLVs
+                int32 segNumOfFur;
+                database_gp->getSegNumOfFurniture(&segNumOfFur);
+    
+                for(int segIndex = 0; segIndex < segNumOfFur; ++segIndex)
+                {
+                    uint8* bufferAddr = outBuffPtr;
+                    int32 furMsgLen;
+                    int32 furNum;
+                    int segId;
+                    int getFlag = database_gp->getSegIdInFurList(segIndex, &segId);
+    
+                    if(0 != getFlag)
+                    {
+                        database_gp->getFurnitureTlvInSeg(segId,
+                                                          totalBufLen - outBuffOffset,
+                                                          bufferAddr, 
+                                                          &furMsgLen, 
+                                                          &furNum);
+    
+                        if(furNum > 0)
+                        {
+                            furPduOffset.push_back(outBuffOffset);
+                            
+                            outBuffPtr += furMsgLen;
+                            outBuffOffset += furMsgLen;
+                            ++outPduIdx;
+                        }
+                    }
+                }
+    
+                database_gp->resetFurUpdateFlag();
+            }
+
+            *tlvP = payloadFromDb;
+            *pduOutOffset = outBuffOffset;
+            flag = true;
+        }
+        
+        ReleaseMutex(_hMutexMemory);
+        return flag;
     }
 
     void databaseServer::reduceFurnitureTlv(IN uint8* tlvBuff, 
@@ -1245,14 +1756,26 @@ namespace ns_database
             while( furIter != (*segIter).end() )
             {
                 // Same furniture nearby with different furId
-                if( checkTwoFurnitureSame( &(*furIter), &furnitureInOut, 6.0, _angleThresh) ) 
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+                double distThresh;
+                if(furnitureInOut.inLoopIdx == 1 || furnitureInOut.inLoopIdx == 2) // small loop or T cross
+                {
+                    distThresh = 10.0;
+                }else // big loop
+                {
+                    distThresh = 20.0;
+                }
+#else
+                double distThresh = 6.0;
+#endif
+                if( checkTwoFurnitureSame( &(*furIter), &furnitureInOut, distThresh, _angleThresh) ) 
                 {
                     if(furIter->furId != furnitureInOut.furId)
                     {
                         // Merge the two furnitures
                         // TODO: currently delete the old furniture in DB
-                        list<furAttributesServer_t>::iterator furIterTmp = furIter++;
-                        segIter->erase(furIterTmp);
+                        furnitureInOut.reliabRating += furIter->reliabRating;
+                        furIter = segIter->erase(furIter);
                     }else
                     {
                         furIter++;
@@ -1264,7 +1787,14 @@ namespace ns_database
                 }
             }
 
-            segIter++;
+            // Delete the segment if no furniture in this segment
+            if(segIter->size() == 0)
+            {
+                segIter = _furnitureList.erase(segIter);
+            }else
+            {
+                segIter++;
+            }
         }
 
         ReleaseMutex(_hMutexMemory);
@@ -1658,18 +2188,28 @@ namespace ns_database
         return true;
     }
 
-    bool databaseServer::saveRoadVecAndFurToKml(IN std::string fileName)
+    bool databaseServer::saveRoadVecAndFurToKml(IN list<list<vector<point3D_t>>> &allLines,
+        										IN list<list<furAttributesServer_t>> &furnitureList,
+												IN std::string fileName, 
+												IN point3D_t &standPoint)
     {
-        list<list<vector<point3D_t>>> allLines;
-        list<list<lineAttributes_t>>  lineAttr;
-        getAllVectors(allLines, lineAttr);
-
-        list<list<furAttributesServer_t>> furnitureList;
-        getAllFurnitures(furnitureList);
+		//
+        //list<list<vector<point3D_t>>> allLines;
+        //list<list<lineAttributes_t>>  lineAttr;
+        //getAllVectors(allLines, lineAttr);
+		//
 
         // Output to kml file
         int sectionIdx = 1;
         int furIdx = 1;
+
+        double offsetX = 0;
+        double offsetY = 0;
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+        // shift meters to match better with google earth
+        offsetX = 1.5;
+        offsetY = -2;
+#endif
 
         FILE* fp = fopen(fileName.c_str(), "wt");
         if (fp == NULL)
@@ -1683,23 +2223,6 @@ namespace ns_database
         // tags: <Style>, <StyleMap>
         fprintf(fp, "    <Style id=\"greenLineStyle\"><LineStyle><color>ff00ff00</color></LineStyle></Style>\n");
         fprintf(fp, "    <StyleMap id=\"greenLine\"><Pair><key>normal</key><styleUrl>#greenLineStyle</styleUrl></Pair></StyleMap>\n");
-
-        point3D_t standPoint;
-#if (RD_LOCATION == RD_US_DETROIT)
-        standPoint.lat = 42.296855933108084;
-        standPoint.lon = -83.213250649943689;
-#elif (RD_LOCATION == RD_GERMAN_LEHRE)
-        standPoint.lat = 52.352999550000001;
-        standPoint.lon = 10.693509536666666;
-#elif (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
-        standPoint.lat = 48.354788999999997;
-        standPoint.lon = 11.758086000000000;
-#elif (RD_LOCATION == RD_US_PALO_ALTO)
-        standPoint.lat = 37.39630022;
-        standPoint.lon = -122.05374589;
-#else
-        return false;
-#endif
 
         // Vectors
         // For each segment
@@ -1738,8 +2261,8 @@ namespace ns_database
                     point3D_t outGpsPoint;
 
                     pointRelative3D_t relPoint;
-                    relPoint.x = pointIter->lon;
-                    relPoint.y = pointIter->lat;
+                    relPoint.x = pointIter->lon + offsetX;
+                    relPoint.y = pointIter->lat + offsetY;
                     calcGpsFromRelativeLocation(&standPoint, &relPoint, &outGpsPoint);
                     
 #if (KML_PAINT_ONLY_FLAG == ON)
@@ -1779,8 +2302,8 @@ namespace ns_database
                 point3D_t outGpsPoint;
 
                 pointRelative3D_t relPoint;
-                relPoint.x = furInSegIter->location.lon;
-                relPoint.y = furInSegIter->location.lat;
+                relPoint.x = furInSegIter->location.lon + offsetX;
+                relPoint.y = furInSegIter->location.lat + offsetY;
                 calcGpsFromRelativeLocation(&standPoint, &relPoint, &outGpsPoint);
 
                 fprintf(fp, "%.7f,%.7f,%f", outGpsPoint.lon, outGpsPoint.lat, alt);
@@ -1878,6 +2401,10 @@ namespace ns_database
 
                         tlvCfgP = &_tlvCfg_dataPoint_a[data_mergeCounter_e - data_pointBase_e];
                         setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, pointTmp.count);
+                        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+                        tlvCfgP = &_tlvCfg_dataPoint_a[data_pointPaintLength_e - data_pointBase_e];
+                        setTvlCommon(&tlvTmp, tlvCfgP->typeId, 1, tlvCfgP->tlvType, tlvCfgP->length, *(uint32*)&(pointTmp.paintLength));
                         byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
 
                         ++bgPointIter;

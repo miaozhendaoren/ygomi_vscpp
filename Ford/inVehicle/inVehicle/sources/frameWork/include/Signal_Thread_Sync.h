@@ -20,3 +20,4 @@
 
 extern HANDLE g_readySema_GPS;
 extern HANDLE g_readySema_DiffDet;  //semaphore to control Difference detect and report thread.
+extern HANDLE g_readySema_SocketReady;

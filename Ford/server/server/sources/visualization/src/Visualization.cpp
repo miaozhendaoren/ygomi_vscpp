@@ -42,6 +42,7 @@ OPENGL_3D_ENGINE::OPENGL_3D_ENGINE()
 	serverEyeBackBufIdx = 0;
 	eyeLookaheadBackBufIdx = 0;
 	quadBackBufIdx = 0;
+	triBackBufIdx = 0;
 	serverCharBackBufIdx = 0;
 	CarShowList = 0;
 
@@ -55,11 +56,7 @@ OPENGL_3D_ENGINE::OPENGL_3D_ENGINE()
 	serverEyeBuffer[0].index = 0;
 	eyeBufferLookahead[0].number = 0;
 	eyeBufferLookahead[0].index = 0;
-	//quadBuffer[0].number = 0;
 
-	//signBuffer[1].number = 0;
-	//roadLineBuffer[1].number = 0;
-	//lineBuffer[1].number = 0;
 	charBuffer[1].number = 0;
 	eyeBuffer[1].number  = 0;
 	eyeBuffer[1].index  = 0;
@@ -67,7 +64,6 @@ OPENGL_3D_ENGINE::OPENGL_3D_ENGINE()
 	serverEyeBuffer[1].index = 0;
 	eyeBufferLookahead[1].number = 0;
 	eyeBufferLookahead[1].index = 0;
-	//quadBuffer[1].number = 0;
 
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_DEPTH_TEST);
@@ -109,7 +105,8 @@ OPENGL_3D_ENGINE::~OPENGL_3D_ENGINE()
 GLboolean OPENGL_3D_ENGINE::AddSignInfo(
 	vector<signInfo_t>& buffer)
 {
-	for(int index = 0; index < buffer.size(); index++)
+	int bufferSize = (int)buffer.size();
+	for(int index = 0; index < bufferSize; index++)
 	{
 		signBuffer[signBackbufIdx].push_back(buffer[index]);
 	}
@@ -126,12 +123,24 @@ GLboolean OPENGL_3D_ENGINE::AddQuadInfo(int number, quadInfo_t* buffer)
 	return GL_TRUE;
 }
 
-GLboolean OPENGL_3D_ENGINE::AddOneLineInfo(lineTypeEnum_t type, baseColor_t color, vector<point3DFloat_t>& buffer)
+GLboolean OPENGL_3D_ENGINE::AddTriInto(int number, triangle_t* buffer)
+{
+	for(int index = 0; index < number; index++)
+	{
+		triBuffer[triBackBufIdx].push_back(buffer[index]);
+	}
+
+	return GL_TRUE;
+}
+
+GLboolean OPENGL_3D_ENGINE::AddOneLineInfo(lineTypeEnum_t type, baseColor_t color, bool showFlag, vector<point3DFloat_t>& buffer)
 {
 	lineInfo_t tempLine;
 	tempLine.color = color;
 	tempLine.type = type;
-	for(int index = 0; index < buffer.size(); index++)
+	tempLine.showFlag = showFlag;
+	int bufferSize = (int)buffer.size();
+	for(int index = 0; index < bufferSize; index++)
 	{
 		tempLine.position.push_back(buffer[index]);
 	}
@@ -140,12 +149,14 @@ GLboolean OPENGL_3D_ENGINE::AddOneLineInfo(lineTypeEnum_t type, baseColor_t colo
 	return GL_TRUE;
 }
 
-GLboolean OPENGL_3D_ENGINE::AddOneRoadLineInfo(lineTypeEnum_t type, baseColor_t color, vector<point3DFloat_t>& buffer)
+GLboolean OPENGL_3D_ENGINE::AddOneRoadLineInfo(lineTypeEnum_t type, baseColor_t color, bool showFlag, vector<point3DFloat_t>& buffer)
 {
 	lineInfo_t tempLine;
 	tempLine.color = color;
 	tempLine.type = type;
-	for(int index = 0; index < buffer.size(); index++)
+	tempLine.showFlag = showFlag;
+	int bufferSize = (int)buffer.size();
+	for(int index = 0; index < bufferSize; index++)
 	{
 		tempLine.position.push_back(buffer[index]);
 	}
@@ -236,8 +247,11 @@ GLboolean OPENGL_3D_ENGINE::Swap3DBuffers(void)
 	roadLineBackBufIdx ^= 1;
 	signBackbufIdx ^= 1;
 	quadBackBufIdx ^= 1;
+	triBackBufIdx ^= 1;
+	serverCharBackBufIdx ^= 1;
+
 	//signBuffer[signBackbufIdx].number = 0;
-	charBuffer[charBackBufIdx].number = 0;
+	//charBuffer[charBackBufIdx].number = 0;
 	//lineBuffer[lineBackBufIdx].number = 0;
 	//roadLineBuffer[roadLineBackBufIdx].number = 0;
 	//quadBuffer[quadBackBufIdx].number = 0;
@@ -245,6 +259,8 @@ GLboolean OPENGL_3D_ENGINE::Swap3DBuffers(void)
 	lineBuffer[lineBackBufIdx].clear();
 	roadLineBuffer[roadLineBackBufIdx].clear();
 	quadBuffer[quadBackBufIdx].clear();
+	triBuffer[quadBackBufIdx].clear();
+	serverCharBuffer[serverCharBackBufIdx].clear();
 	ReleaseMutex(hMutex);
 	return GL_TRUE;
 }
@@ -255,6 +271,15 @@ GLboolean OPENGL_3D_ENGINE::SwapQuadBuffer(void)
 	quadBackBufIdx ^= 1;
 	//quadBuffer[quadBackBufIdx].number = 0;
 	quadBuffer[quadBackBufIdx].clear();
+	ReleaseMutex(hMutex);
+	return GL_TRUE;
+}
+
+GLboolean OPENGL_3D_ENGINE::SwapTriBuffer(void)
+{
+	WaitForSingleObject(hMutex,INFINITE);
+	triBackBufIdx ^= 1;
+	triBuffer[quadBackBufIdx].clear();
 	ReleaseMutex(hMutex);
 	return GL_TRUE;
 }
@@ -368,7 +393,7 @@ void OPENGL_3D_ENGINE::setClientEyeOnce(eyeLookAt_t eye, modeViewEnum_t mode,GLf
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
-	gluPerspective(90,aspect,1,2000);
+	gluPerspective(90,aspect,3,2000);
 	
 	
 	glMatrixMode(GL_MODELVIEW);
@@ -438,34 +463,45 @@ void OPENGL_3D_ENGINE::setServerEyeOnce(eyeLookAt_t eye, GLfloat aspect)
 
 void OPENGL_3D_ENGINE::DrawFrontBufferClient()
 {
-	int signIdx,lineIdx,quadIdx;
+	int signIdx,lineIdx,quadIdx,triIdx;
 	int signFrontBufIdx = signBackbufIdx^1;
 	int lineFrontBufIdx = lineBackBufIdx^1;
 	int roadLineFrontBufIdx = roadLineBackBufIdx^1;
 	int quadFrontBufIdx = quadBackBufIdx^1;
+	int triFrontBufIdx = triBackBufIdx^1;
 
 	if(_signFlag)
 	{
 		//draw all the sign
-		for(signIdx = 0; signIdx < signBuffer[signFrontBufIdx].size(); signIdx++)
+		int signSize = (int)signBuffer[signFrontBufIdx].size();
+		for(signIdx = 0; signIdx < signSize; signIdx++)
 		{
-			if(4 == signBuffer[signFrontBufIdx][signIdx].sideFlag)
+			if(signBuffer[signFrontBufIdx][signIdx].showFlag)
 			{
-				DrawSignOnRoad(signBuffer[signFrontBufIdx][signIdx]);
-			}else
-			{
-				DrawSignClient(signBuffer[signFrontBufIdx][signIdx]);
+				if(4 == signBuffer[signFrontBufIdx][signIdx].sideFlag)
+				{
+					DrawSignOnRoad(signBuffer[signFrontBufIdx][signIdx]);
+				}else
+				{
+					DrawSignClient(signBuffer[signFrontBufIdx][signIdx]);
+				}
 			}
-			
 		}
 	}
 
 	//draw road
 	list<lineInfo_t>::iterator lineIter = roadLineBuffer[roadLineFrontBufIdx].begin();
-
-	for(lineIdx = 0; lineIdx < (roadLineBuffer[roadLineFrontBufIdx].size()/2); lineIdx++)
+	int roadLineSize = (int)(roadLineBuffer[roadLineFrontBufIdx].size()/2);
+	for(lineIdx = 0; lineIdx < roadLineSize; lineIdx++)
 	{
-		DrawRoadwithLine(&(*lineIter++),&(*lineIter++));//,&roadLineBuffer[roadLineFrontBufIdx].line[lineIdx*2+1]);
+		if(lineIter->showFlag)
+		{
+			DrawRoadwithLine(&(*lineIter++),&(*lineIter++));//,&roadLineBuffer[roadLineFrontBufIdx].line[lineIdx*2+1]);
+		}else
+		{
+			++lineIter;
+			++lineIter;
+		}
 		//DrawRoadSide(&roadLineBuffer[roadLineFrontBufIdx].line[lineIdx*2]);
 		//DrawRoadSide(&roadLineBuffer[roadLineFrontBufIdx].line[lineIdx*2+1]);
 	}
@@ -474,46 +510,66 @@ void OPENGL_3D_ENGINE::DrawFrontBufferClient()
 	list<lineInfo_t>::iterator lineIter2 = lineBuffer[lineFrontBufIdx].begin();
 	while(lineIter2 != lineBuffer[lineFrontBufIdx].end())
 	{
-		DrawLine(&(*lineIter2),ClientMode_3DEngine);
-		lineIter2++;
+		if(lineIter2->showFlag)
+		{
+			DrawLine(&(*lineIter2),ClientMode_3DEngine);
+		}
+		++lineIter2;
 	}
 
 	//draw quad sharp
-	for(quadIdx = 0; quadIdx < quadBuffer[quadFrontBufIdx].size(); quadIdx++)
+	int quadSize = (int)quadBuffer[quadFrontBufIdx].size();
+	for(quadIdx = 0; quadIdx < quadSize; quadIdx++)
 	{
-		DrawQuad(quadBuffer[quadFrontBufIdx][quadIdx]);
+		if(quadBuffer[quadFrontBufIdx][quadIdx].showFlag)
+		{
+			DrawQuad(quadBuffer[quadFrontBufIdx][quadIdx]);
+		}
+	}
+
+	int triSize = (int)triBuffer[triFrontBufIdx].size();
+	for(triIdx = 0; triIdx < triSize; triIdx++)
+	{
+		if(triBuffer[triFrontBufIdx][triIdx].showFlag)
+		{
+			DrawTriangle(triBuffer[triFrontBufIdx][triIdx]);
+		}
 	}
 }
 
 void OPENGL_3D_ENGINE::DrawFrontBufferServer()
 {
-	int signIdx,lineIdx,quadIdx, serverCharIdx;
+	int signIdx,lineIdx,quadIdx, serverCharIdx,triIdx;
 	int charFrontBufIdx = charBackBufIdx^1;
 	int signFrontBufIdx = signBackbufIdx^1;
 	int lineFrontBufIdx = lineBackBufIdx^1;
 	int roadLineFrontBufIdx = roadLineBackBufIdx^1;
 	int quadFrontBufIdx = quadBackBufIdx^1;
 	int serverCharFrontBufIdx = serverCharBackBufIdx^1;
+	int serverEyeIdx = serverEyeBackBufIdx^1;
+	int triFrontBufIdx = triBackBufIdx^1;
+	float viewHeight = serverEyeBuffer[serverEyeIdx].buffer[serverEyeBuffer[serverEyeIdx].index].eyePosition.y;
 
 	if(_signFlag)
 	{
 		//draw all the sign
-		for(signIdx = 0; signIdx < signBuffer[signFrontBufIdx].size(); signIdx++)
+		int signSize = (int)signBuffer[signFrontBufIdx].size();
+		for(signIdx = 0; signIdx < signSize; signIdx++)
 		{
 			if(4 == signBuffer[signFrontBufIdx][signIdx].sideFlag)
 			{
 				DrawSignOnRoad(signBuffer[signFrontBufIdx][signIdx]);
 			}else
 			{
-				DrawSignServer(signBuffer[signFrontBufIdx][signIdx]);
+				DrawSignServer(signBuffer[signFrontBufIdx][signIdx],viewHeight);
 			}
 		}
 	}
 
 		//draw road
 	list<lineInfo_t>::iterator lineIter = roadLineBuffer[roadLineFrontBufIdx].begin();
-
-	for(lineIdx = 0; lineIdx < (roadLineBuffer[roadLineFrontBufIdx].size()/2); lineIdx++)
+	int roadLineSize = (int)(roadLineBuffer[roadLineFrontBufIdx].size()/2);
+	for(lineIdx = 0; lineIdx < roadLineSize; lineIdx++)
 	{
 		DrawRoadwithLine(&(*lineIter++),&(*lineIter++));//,&roadLineBuffer[roadLineFrontBufIdx].line[lineIdx*2+1]);
 		//DrawRoadSide(&roadLineBuffer[roadLineFrontBufIdx].line[lineIdx*2]);
@@ -521,19 +577,29 @@ void OPENGL_3D_ENGINE::DrawFrontBufferServer()
 	}
 
 	//draw all the vectors
-	//list<lineInfo_t>::iterator lineIter2 = lineBuffer[lineFrontBufIdx].begin();
-	//while(lineIter2 != lineBuffer[lineFrontBufIdx].end())
-	//{
-	//	DrawLine(&(*lineIter2),ServerMode_3DEngine);
-	//	lineIter2++;
-	//}
+	if(viewHeight <= 70)
+	{
+		list<lineInfo_t>::iterator lineIter2 = lineBuffer[lineFrontBufIdx].begin();
+		while(lineIter2 != lineBuffer[lineFrontBufIdx].end())
+		{
+			DrawLine(&(*lineIter2),ServerMode_3DEngine);
+			lineIter2++;
+		}
+	}
 
 	//draw quad sharp
-	for(quadIdx = 0; quadIdx < quadBuffer[quadFrontBufIdx].size(); quadIdx++)
+	int quadSize = (int)quadBuffer[quadFrontBufIdx].size();
+	for(quadIdx = 0; quadIdx < quadSize; quadIdx++)
 	{
 		DrawQuad(quadBuffer[quadFrontBufIdx][quadIdx]);
 	}
 	
+	int triSize = (int)triBuffer[triFrontBufIdx].size();
+	for(triIdx = 0; triIdx < triSize; triIdx++)
+	{
+		DrawTriangle(triBuffer[triFrontBufIdx][triIdx]);
+	}
+
 	//draw server side char
 	baseColor_t color;
 	color.R = 1;
@@ -541,9 +607,13 @@ void OPENGL_3D_ENGINE::DrawFrontBufferServer()
 	color.B = 0;
 	//selectFont(8, ANSI_CHARSET);
 	//glScalef(0.5,0.5,0.5);
-	for(serverCharIdx = 0; serverCharIdx < serverCharBuffer[serverCharFrontBufIdx].size(); serverCharIdx++)
+	if(viewHeight <= HEIHT_SHOW_CHAR)
 	{
-		DrawChar(serverCharBuffer[serverCharFrontBufIdx][serverCharIdx].position, serverCharBuffer[serverCharFrontBufIdx][serverCharIdx].drawChar, color);
+		int charSize = (int)serverCharBuffer[serverCharFrontBufIdx].size();
+		for(serverCharIdx = 0; serverCharIdx < charSize; serverCharIdx++)
+		{
+			DrawChar(serverCharBuffer[serverCharFrontBufIdx][serverCharIdx].position, serverCharBuffer[serverCharFrontBufIdx][serverCharIdx].drawChar, color);
+		}
 	}
 }
 
@@ -836,7 +906,7 @@ void OPENGL_3D_ENGINE::DrawCar(point3DFloat_t position, GLfloat angle)
 	glPopMatrix();
 }
 
-void OPENGL_3D_ENGINE::DrawSignServer(signInfo_t sign)
+void OPENGL_3D_ENGINE::DrawSignServer(signInfo_t sign, float showHeight)
 {
 	GLint last_texture_ID;
 	if((int)(sign.type) > MAX_BUFFER_DEPTH_2D_TXETURE)
@@ -898,35 +968,28 @@ void OPENGL_3D_ENGINE::DrawSignServer(signInfo_t sign)
 	//glPopMatrix();
 
 	//glPushMatrix();
-
-	//add a flag number beside the sign
-	char info[6];
-	//int flag = sign.attribute>=5?5:sign.attribute;
-	int showNum = sign.attribute;
-	if(sign.attribute > 99)
+	if(showHeight < HEIHT_SHOW_CHAR)
 	{
-		showNum = 99;
+		//add a flag number beside the sign
+		char info[6];
+		//int flag = sign.attribute>=5?5:sign.attribute;
+		int showNum = sign.attribute;
+		if(sign.attribute > 99)
+		{
+			showNum = 99;
+		}
+
+		sprintf_s(info,sizeof(info),"%d",showNum);
+
+		//GLfloat red = 1-0.25*(flag-1);
+		//GLfloat green = (flag-1)*0.25;
+		glColor3f(0, 1, 0);
+
+		glRasterPos3f(0, 0, (HALF_WIDTH_SIGN_OVERLOOKING+2)*ratio);
+		//glRotatef(-serverHeadAngle,0,1,0);
+
+		DrawCharWithOutPos(info);
 	}
-	if(showNum < 10)
-	{
-		sprintf(&info[0],"%d",showNum);
-		memset(&info[1],0,1);
-	}else
-	{
-		sprintf(&info[0],"%d",(showNum/10));
-		sprintf(&info[1],"%d",(showNum%10));
-		memset(&info[2],0,1);
-	}
-
-	//GLfloat red = 1-0.25*(flag-1);
-	//GLfloat green = (flag-1)*0.25;
-	glColor3f(0, 1, 0);
-
-	glRasterPos3f(0, 0, (HALF_WIDTH_SIGN_OVERLOOKING+2)*ratio);
-	//glRotatef(-serverHeadAngle,0,1,0);
-
-	DrawCharWithOutPos(info);
-
 
 	glPopMatrix();
 }
@@ -1157,6 +1220,17 @@ void OPENGL_3D_ENGINE::DrawQuad(quadInfo_t quad)
 	glEnd();
 }
 
+void OPENGL_3D_ENGINE::DrawTriangle(triangle_t tri)
+{
+	glBegin(GL_TRIANGLES);
+	glColor3f(tri.color.R,tri.color.G,tri.color.B);
+	
+	glVertex3f(tri.vertex[0].x,tri.vertex[0].y,tri.vertex[0].z);
+	glVertex3f(tri.vertex[1].x,tri.vertex[1].y,tri.vertex[1].z);
+	glVertex3f(tri.vertex[2].x,tri.vertex[2].y,tri.vertex[2].z);
+	glEnd();
+}
+
 void OPENGL_3D_ENGINE::DrawLine(lineInfo_t *line,mode3DEngineEnum_t type)
 {
 	int index = 1;
@@ -1173,7 +1247,7 @@ void OPENGL_3D_ENGINE::DrawLine(lineInfo_t *line,mode3DEngineEnum_t type)
 			glColor3f(line->color.R, line->color.G, line->color.B);
 			int step = 6;
 			GLfloat offset = 0.1;
-			for(index = 0; index < ((line->position.size())-1); index++)
+			for(index = 0; index < ((int)(line->position.size())-1); index++)
 			{
 				//compute step
 				GLfloat total_x = (line->position[index+1].x - line->position[index].x);
@@ -1225,7 +1299,7 @@ void OPENGL_3D_ENGINE::DrawLine(lineInfo_t *line,mode3DEngineEnum_t type)
 			glColor3f(line->color.R, line->color.G, line->color.B);
 			int step = 6;
 			GLfloat offset = 0.1;
-			for(index = 0; index < ((line->position.size())-1); index++)
+			for(index = 0; index < ((int)(line->position.size())-1); index++)
 			{
 				//compute step
 				GLfloat total_x = (line->position[index+1].x - line->position[index].x);
@@ -1270,7 +1344,7 @@ void OPENGL_3D_ENGINE::DrawLine(lineInfo_t *line,mode3DEngineEnum_t type)
 		//set the color of line
 		//glColor3f(1.0f,0.95f,0.9f);  //white
 		glColor3f(line->color.R, line->color.G, line->color.B);
-		for(index = 0; index < line->position.size(); index++)
+		for(index = 0; index < (int)line->position.size(); index++)
 		{
 			glVertex3f(line->position[index].x, line->position[index].y+0.005, line->position[index].z);
 		}
@@ -1329,7 +1403,7 @@ void OPENGL_3D_ENGINE::DrawRoadSide(lineInfo_t* line1)
 	{
 		glColor3f(0.2f,0.2f,0.2f);
 		glBegin(GL_QUADS);
-		for(index = 0; index < (line1->position.size()-1); index++)
+		for(index = 0; index < ((int)(line1->position.size())-1); index++)
 		{
 			glVertex3f(line1->position[index].x,line1->position[index].y,line1->position[index].z);
 			glVertex3f(line1->position[index+1].x,line1->position[index+1].y,line1->position[index+1].z);
@@ -1410,7 +1484,7 @@ void OPENGL_3D_ENGINE::DrawRoadwithLine(lineInfo_t* line1, lineInfo_t* line2)
 	if((line1->position.size()) > (line2->position.size()))
 	{
 		glVertex3f(line2->position[stripNum-1].x,line2->position[stripNum-1].y,line2->position[stripNum-1].z);
-		for(index = (stripNum-1); index < (line1->position.size()); index++)
+		for(index = (stripNum-1); index < (int)(line1->position.size()); index++)
 		{
 			glVertex3f(line1->position[index].x,line1->position[index].y,line1->position[index].z);
 		}
@@ -1419,7 +1493,7 @@ void OPENGL_3D_ENGINE::DrawRoadwithLine(lineInfo_t* line1, lineInfo_t* line2)
 	if((line1->position.size()) < (line2->position.size()))
 	{
 		glVertex3f(line1->position[stripNum-1].x,line1->position[stripNum-1].y,line1->position[stripNum-1].z);
-		for(index = (stripNum-1); index < (line2->position.size()); index++)
+		for(index = (stripNum-1); index < (int)(line2->position.size()); index++)
 		{
 			glVertex3f(line2->position[index].x,line2->position[index].y,line2->position[index].z);
 		}
@@ -1559,8 +1633,9 @@ GLboolean OPENGL_3D_ENGINE::load_bmp24_texture(const char* file_name, int type)
 	GLuint last_texture_ID, texture_ID = 0;
 
 	// open the file, if failed, reture
-	FILE* pFile = fopen(file_name, "rb");
-	if( pFile == 0 )
+	FILE* pFile;
+	errno_t err = fopen_s(&pFile,file_name, "rb");
+	if( 0 != err )
 		return GL_FALSE;
 
 	if(type > MAX_BUFFER_DEPTH_2D_TXETURE)

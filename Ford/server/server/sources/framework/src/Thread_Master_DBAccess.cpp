@@ -28,13 +28,30 @@
 using namespace ns_database;
 using namespace laneSpace;
 laneQueueClass laneQueueBuff;
-void storeLaneInfoInBuffer(uint8* tlvBuff,int bufferLen);
+void storeLaneInfoInBuffer(uint8* tlvBuff,int bufferLen,int laneId);
 bool processLaneBuffer();
 void calcMsgPduHeaderLen(messageProcessClass *msgIn,uint32 *pduHeaderLen);
 bool checkLineFusionCondition(queue<laneType_t> *laneQueuePtr);
 bool prepareAllDataToVehicle(IN messageProcessClass &sendMsg);
+void preprocStopLines(INOUT vector<furAttributes_t> &furUpdateVec);
 
 extern uint8 *test;
+
+#if (RD_LOCATION == RD_US_DETROIT)
+	point3D_t standPoint={42.296855933108084, -83.213250649943689, 0, 0, 0, 0};
+#elif (RD_LOCATION == RD_GERMAN_LEHRE)
+	point3D_t standPoint = {52.352999550000001, 10.693509536666666, 0, 0, 0, 0};
+#elif (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+	point3D_t standPoint = {48.354788999999997, 11.758086000000000, 0, 0, 0, 0};
+#elif (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+    point3D_t standPoint = { 48.350662000000000, 11.733637999999999, 0, 0, 0, 0};
+#elif (RD_LOCATION == RD_US_PALO_ALTO)
+	point3D_t standPoint={37.39630022, -122.05374589, 0, 0, 0, 0};
+#elif (RD_LOCATION == RD_US_MOUNTAINVIEW)
+	point3D_t standPoint = { 37.398907028, -122.039406609, 0, 0, 0, 0};
+#else
+	#error ("undfined RD_LOCATION");
+#endif
 
 #if SERVER_PLAY_BACK_MODE==1
 #include <iostream>
@@ -95,7 +112,7 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
             diffRptMsg_t* diffRptMsgPtr;
 			messageProcessClass sendMsg;
             messageProcessClass currentMsg;
-            messageQueue_gp->front(&currentMsg);
+            messageQueue_gp->top(&currentMsg);
 			messageQueue_gp->pop();
      
             diffRptMsgPtr = currentMsg.getDiffRptMsg();
@@ -123,17 +140,32 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 								case loadSaveDatabase_e:
 									if(1 == value) //save
 									{
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+                                        roadVecGen2_gp->BGSectionDataSave("./log/airportBackSave/");
+#else
                                         database_gp->saveRoadVecToFile("log/roadVecSave.bin");
                                         database_gp->saveRoadVecToFile("log/roadVecRevDirSave.bin", true);
+#endif
+
                                         database_gp->saveFurToFile("log/furnitureSave.bin");
-                                        database_gp->saveRoadVecAndFurToKml("log/roadVec_furniture.kml");
+                                        
+										list<list<vector<point3D_t>>> allLines;
+										list<list<lineAttributes_t>>  lineAttr;
+                                        list<list<furAttributesServer_t>> furnitureList;
+										database_gp->getAllVectors(allLines, lineAttr);
+                                        database_gp->getAllFurnitures(furnitureList);
+                                        database_gp->saveRoadVecAndFurToKml(allLines, furnitureList, "log/roadVec_furniture.kml", standPoint);
+
 									}else if(2 == value) //load
 									{
-                                        // Load pre-stored data
+#if(RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+                                        roadVecGen2_gp->BGSectionDataLoad( "./log/airportBackLoad/");
+#else
                                         database_gp->loadRoadVecFromFile("log/roadVec.bin");
-                                        database_gp->loadRoadVecFromFile("log/roadVecRevDir.bin", true);
-#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
-                                        roadVecGen2_gp->loadDefaultSegData(11, "log/section11.txt");// 11: empty section ID
+									    database_gp->loadRoadVecFromFile("log/roadVecRevDir.bin", true);
+                                        #if(RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+										roadVecGen2_gp->loadDefaultSegData(11, "log/section11.txt");// 11: empty section ID
+                                        #endif
 #endif
                                         database_gp->loadFurFromFile("log/furniture.bin");
 
@@ -218,12 +250,14 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 									int16 version = database_gp->getFurnitureVersion();
 									if(value != version)
 									{
-                                        if(prepareAllDataToVehicle(sendMsg))
+									    database_gp->addAllIdToUpdateIdList();
+                                        database_gp->setFurUpdateFlag(1);
+                                        /*if(prepareAllDataToVehicle(sendMsg))
                                         {
                                             database_gp->resetFurUpdateFlag();
                                             database_gp->resetUpateSectionIdList();
 										    ReleaseSemaphore(g_readySema_readDb,1,NULL);
-                                        }
+                                        }*/
 									}
 								}
 								break;  
@@ -274,10 +308,17 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 								case ADD_LANE_POINT:
 									{
 										uint8 *pduStartPtr = diffRptMsgPtr->payload + diffRptMsgPtr->payloadHeader.pduHeader[pduIdx].pduOffset;
-										storeLaneInfoInBuffer(pduStartPtr,pduLen);
+										storeLaneInfoInBuffer(pduStartPtr,pduLen,0);
 										laneProcessFlag = true;
 									}
 									break;
+                                case SIDE_LANE_INFO:
+                                    {
+                                        uint8 *pduStartPtr = diffRptMsgPtr->payload + diffRptMsgPtr->payloadHeader.pduHeader[pduIdx].pduOffset;
+										//TODO
+                                        storeLaneInfoInBuffer(pduStartPtr,pduLen,1);
+                                        break;
+                                    }
 								case ADD_ALL_VECTORLIST:
 									// add a vector list for specified segment.
 									database_gp->addAllVectorsInSegTlv(diffRptMsgPtr->payload + diffRptMsgPtr->payloadHeader.pduHeader[pduIdx].pduOffset,pduLen);
@@ -306,16 +347,63 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 						    {
 							    if(processLaneBuffer())
 							    {
-                                    database_gp->resetFurnitureRoadSideLoc2();
-                                    database_gp->setFurUpdateFlag(1);
+							        uint32 updateListSize = database_gp->getUpateSectionIdListSize();
+                                    if(0 < updateListSize)
+                                    {
+                                        int32 segNumOfFur;
+                                        database_gp->getSegNumOfFurniture(&segNumOfFur);
+                                        if(segNumOfFur > 0)
+                                        {
+                                            database_gp->resetFurnitureRoadSideLoc3();
+                                            database_gp->setFurUpdateFlag(1);
+                                        }
+                                    }
                                     
                                     updateFlag = true;
 							    }
 						    }
 
 							// furntiure update message
+
+                            // Preprocess on the stop lines
+                            // For US PALO ALTO temp use only!!
+#if (RD_LOCATION == RD_US_PALO_ALTO) && (RD_ROAD_SIGN_DETECT & RD_ROAD_SIGN_DETECT_STOPLINE_MASK)
+                            preprocStopLines(furUpdateVec);
+#endif
+
 						    if(furUpdateVec.size() > 0)
 						    {
+#if(KML_RECV_NEW_DATA == ON)
+		                        SYSTEMTIME systime;
+		                        GetLocalTime(&systime);
+		                        std::string strKMLlfilename;
+		                        char cKMLlfilename[30];
+		                        sprintf(cKMLlfilename, "%d-%02d-%02d_%02d%02d%02d_%03d_furn",
+			                        systime.wYear,
+			                        systime.wMonth,
+			                        systime.wDay,
+			                        systime.wHour,
+			                        systime.wMinute,
+			                        systime.wSecond,
+			                        systime.wMilliseconds);
+		                        strKMLlfilename = cKMLlfilename;
+		                        strKMLlfilename="log/" + strKMLlfilename + ".kml";
+
+                                list<list<furAttributesServer_t>> furnitureList;
+                                list<furAttributesServer_t> furnitureInSeg;
+                                
+                                for(int furIdx = 0; furIdx < furUpdateVec.size(); ++furIdx)
+                                {
+                                    furAttributes_t furAttr = furUpdateVec[furIdx];
+                                    furAttributesServer_t furnSrv(&furAttr);
+                                    furnitureInSeg.push_back(furnSrv);
+                                }
+                                furnitureList.push_back(furnitureInSeg);
+
+                                list<list<vector<point3D_t>>> newDataList;
+		                        database_gp->saveRoadVecAndFurToKml(newDataList, furnitureList, strKMLlfilename, standPoint);
+#endif
+
                                 for(int furIdx = 0; furIdx < furUpdateVec.size(); ++furIdx)
                                 {
                                     furAttributes_t furAttr = furUpdateVec[furIdx];
@@ -354,15 +442,19 @@ unsigned int __stdcall Thread_Master_DBAccess(void *data)
 					}
                     break;
                 }
-				delete diffRptMsgPtr->payload;
-				diffRptMsgPtr->payload = NULL;
+
+                if(diffRptMsgPtr->msgHeader.payloadLen != 0)
+                {
+    				delete diffRptMsgPtr->payload;
+    				diffRptMsgPtr->payload = NULL;
+                }
             }
         }
 		RD_ADD_TS(tsFunId_eThread_DBUpdate,14);
     }
     return 0;
 }
-void storeLaneInfoInBuffer(uint8* tlvBuff,int bufferLen)
+void storeLaneInfoInBuffer(uint8* tlvBuff,int bufferLen,int laneId )
 {
 	void*  inputLoc = tlvBuff;
     void** input = &inputLoc;
@@ -372,7 +464,7 @@ void storeLaneInfoInBuffer(uint8* tlvBuff,int bufferLen)
     while(laneInfoList.size() > 0)
     {
         laneType_t laneInfoTemp = laneInfoList.front();
-	    laneQueueBuff.addLanePoint(0,laneInfoTemp); // Always push data to lane 0 // laneInfoTemp.laneId
+	    laneQueueBuff.addLanePoint(laneId,laneInfoTemp); // Always push data to lane 0 // laneInfoTemp.laneId
         laneInfoList.pop_front();
     }
 }
@@ -396,6 +488,26 @@ bool processLaneBuffer()
         list<vector<point3D_t>> newDataGps;
         laneQueueBuff.getAllVectors(newDataList, newDataGps);
 
+#if(KML_RECV_NEW_DATA == ON)
+		SYSTEMTIME systime;
+		GetLocalTime(&systime);
+		std::string strKMLlfilename;
+		char cKMLlfilename[30];
+		sprintf(cKMLlfilename, "%d-%02d-%02d_%02d%02d%02d_%03d_road",
+			systime.wYear,
+			systime.wMonth,
+			systime.wDay,
+			systime.wHour,
+			systime.wMinute,
+			systime.wSecond,
+			systime.wMilliseconds);
+		strKMLlfilename = cKMLlfilename;
+		strKMLlfilename="log/" + strKMLlfilename + ".kml";
+
+        list<list<furAttributesServer_t>> furnitureList;
+		database_gp->saveRoadVecAndFurToKml(newDataList, furnitureList, strKMLlfilename, standPoint);
+#endif
+
         database_gp->setNewDataVec(*(newDataList.begin()));
 
         list<list<vector<point3D_t>>> fgData;
@@ -405,8 +517,6 @@ bool processLaneBuffer()
         bool flag = false;
         flag = roadVecGen2_gp->roadSectionsGen(newDataList, newDataGps, fgData, modifiedIdList);
 
-        database_gp->mergeIdListToUpdateIdList(modifiedIdList);
-
         if (flag == false)
         {
             return false;
@@ -414,6 +524,8 @@ bool processLaneBuffer()
         {
             list<list<lineAttributes_t>> lineAttr;
             database_gp->resetAllVectors(fgData, lineAttr);
+            
+            database_gp->mergeIdListToUpdateIdList(modifiedIdList);
         }
 
 		storeLane.clear();
@@ -512,4 +624,119 @@ bool prepareAllDataToVehicle(IN messageProcessClass &sendMsg)
     databaseQueue_gp->push(&sendMsg);
 
     return true;
+}
+
+void preprocStopLines(INOUT vector<furAttributes_t> &furUpdateVec)
+{
+    list<furAttributes_t> stopLines;
+    vector<furAttributes_t>::iterator furIter = furUpdateVec.begin();
+
+    // Get all stop lines from furniture
+    while (furIter != furUpdateVec.end())
+    {
+        // On the road furniture
+        if ((furIter->sideFlag_used == 1) && (furIter->sideFlag == onTheRoad_e))
+        {
+            // If stop line
+            if ((furIter->type_used == 1) && (furIter->type == 1000))
+            {
+                stopLines.push_back(*furIter);
+                furIter = furUpdateVec.erase(furIter);
+            }else
+            {
+                ++furIter;
+            }
+        }else
+        {
+            ++furIter;
+        }
+    }
+
+    // Check number of stop lines in range
+    list<furAttributes_t> stopLinesInRange;
+    list<furAttributes_t>::iterator stoplineIter = stopLines.begin();
+    while (stoplineIter != stopLines.end())
+    {
+        furAttributes_t firstStopline = *stoplineIter;
+        stopLinesInRange.push_back(firstStopline);
+        stoplineIter = stopLines.erase(stoplineIter);
+
+        if (firstStopline.location_used == 1)
+        {
+            while (stoplineIter != stopLines.end())
+            {
+                if ((stoplineIter->location_used == 1) && 
+                    (checkRelGpsInRange(&firstStopline.location, &stoplineIter->location, 40)))
+                {
+                    stopLinesInRange.push_back(*stoplineIter);
+                    stoplineIter = stopLines.erase(stoplineIter);
+                }else
+                {
+                    ++stoplineIter;
+                }
+            }
+
+            if (stopLinesInRange.size() == 4)
+            {
+                const double LON_THRESH = -300;
+                if (stopLinesInRange.begin()->location.lon > LON_THRESH)
+                // East side
+                {
+                    // check vehicle moving direction
+                    double lonBegin = stopLinesInRange.front().location.lon;
+                    double lonEnd   = stopLinesInRange.back().location.lon;
+
+                    if (lonBegin > lonEnd)
+                    // forward
+                    {
+                        list<furAttributes_t>::iterator stopLinesInRangeIter = stopLinesInRange.end();
+                        --stopLinesInRangeIter; // stop line
+                        furUpdateVec.push_back(*stopLinesInRangeIter);
+                        --stopLinesInRangeIter;
+                        stopLinesInRangeIter->type = 1001; // crosswalk
+                        furUpdateVec.push_back(*stopLinesInRangeIter);
+                    }else
+                    // reverse
+                    {
+                        list<furAttributes_t>::iterator stopLinesInRangeIter = stopLinesInRange.begin(); // stop line
+                        stopLinesInRangeIter->type = 1002; // stop line
+                        furUpdateVec.push_back(*stopLinesInRangeIter);
+                        ++stopLinesInRangeIter;
+                        stopLinesInRangeIter->type = 1003; // crosswalk
+                        furUpdateVec.push_back(*stopLinesInRangeIter);
+                    }
+                }else
+                // west side
+                {
+                    // check vehicle moving direction
+                    double lonBegin = stopLinesInRange.front().location.lon;
+                    double lonEnd   = stopLinesInRange.back().location.lon;
+
+                    if (lonBegin > lonEnd)
+                    // forward
+                    {
+                        list<furAttributes_t>::iterator stopLinesInRangeIter = stopLinesInRange.begin(); // stop line
+                        furUpdateVec.push_back(*stopLinesInRangeIter);
+                        ++stopLinesInRangeIter;
+                        stopLinesInRangeIter->type = 1001; // crosswalk
+                        furUpdateVec.push_back(*stopLinesInRangeIter);
+                    }else
+                    // reverse
+                    {
+                        list<furAttributes_t>::iterator stopLinesInRangeIter = stopLinesInRange.end();
+                        --stopLinesInRangeIter; // stop line
+                        stopLinesInRangeIter->type = 1002; // stop line
+                        furUpdateVec.push_back(*stopLinesInRangeIter);
+                        --stopLinesInRangeIter;
+                        stopLinesInRangeIter->type = 1003; // crosswalk
+                        furUpdateVec.push_back(*stopLinesInRangeIter);
+                    }
+                }
+
+            }
+        }
+
+        stopLinesInRange.clear();
+        stoplineIter = stopLines.begin();
+    }
 }

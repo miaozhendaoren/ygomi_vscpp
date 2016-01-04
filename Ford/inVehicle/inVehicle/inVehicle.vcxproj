@@ -9,6 +9,18 @@
       <Configuration>Detroit_Video_Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="DE_Frankfurt_Camera_All_Release|Win32">
+      <Configuration>DE_Frankfurt_Camera_All_Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DE_Frankfurt_Camera_Large_Release|Win32">
+      <Configuration>DE_Frankfurt_Camera_Large_Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DE_Frankfurt_Video_Large_Release|Win32">
+      <Configuration>DE_Frankfurt_Video_Large_Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="DE_Lehre2_Video_Release|Win32">
       <Configuration>DE_Lehre2_Video_Release</Configuration>
       <Platform>Win32</Platform>
@@ -35,6 +47,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="sources\configParse\src\RoadSeg.cpp" />
+    <ClCompile Include="sources\configParse\src\tinystr.cpp" />
+    <ClCompile Include="sources\configParse\src\tinyxml.cpp" />
+    <ClCompile Include="sources\configParse\src\tinyxmlerror.cpp" />
+    <ClCompile Include="sources\configParse\src\tinyxmlparser.cpp" />
+    <ClCompile Include="sources\configParse\src\XMLParser.cpp" />
     <ClCompile Include="sources\database\src\database.cpp" />
     <ClCompile Include="sources\database\src\databaseInVehicle.cpp" />
     <ClCompile Include="sources\database\src\databaseMath.cpp" />
@@ -69,7 +87,7 @@
     <ClInclude Include="include\configure.h" />
     <ClInclude Include="include\statisticsFurInfo.h" />
     <ClInclude Include="include\typeDefine.h" />
-    <ClInclude Include="sources\configParse\include\configParse.h" />
+    <ClInclude Include="sources\configParse\include\RoadSeg.h" />
     <ClInclude Include="sources\configParse\include\tinystr.h" />
     <ClInclude Include="sources\configParse\include\tinyxml.h" />
     <ClInclude Include="sources\configParse\include\XMLParser.h" />
@@ -131,6 +149,24 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DE_Frankfurt_Video_Large_Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DE_Frankfurt_Camera_Large_Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DE_Frankfurt_Camera_All_Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DE_Lehre_Video_Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -170,6 +206,15 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Frankfurt_Video_Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DE_Frankfurt_Video_Large_Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DE_Frankfurt_Camera_Large_Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DE_Frankfurt_Camera_All_Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DE_Lehre_Video_Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -202,6 +247,24 @@
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Frankfurt_Video_Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DE_Frankfurt_Video_Large_Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DE_Frankfurt_Camera_Large_Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OpenCV)\x86\vc10\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DE_Frankfurt_Camera_All_Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <ExecutablePath>$(OpenCV)\x86\vc10\bin;$(ExecutablePath)</ExecutablePath>
     <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\detectImage\include;$(ProjectDir)\sources\frameWork\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\imageBuffer\include;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
@@ -327,6 +390,72 @@ xcopy "$(ProjectDir)\config" "$(OutDir)\config" /s/y
 xcopy "$(ProjectDir)\resource\carModel" "$(OutDir)\resource\carModel" /s/y
 xcopy "$(ProjectDir)\resource\DHD" "$(OutDir)\resource\DHD" /s/y
 xcopy "$(ProjectDir)\resource\Germany" "$(OutDir)\resource\Germany" /s/y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DE_Frankfurt_Video_Large_Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_FRANKFORT_LARGE_VIDEO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DE_Frankfurt_Camera_Large_Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_FRANKFORT_LARGE_CAMERA;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DE_Frankfurt_Camera_All_Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_FRANKFORT_ALL_CAMERA;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DE_Lehre_Video_Release|Win32'">

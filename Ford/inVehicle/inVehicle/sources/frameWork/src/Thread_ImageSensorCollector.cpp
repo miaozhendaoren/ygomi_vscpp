@@ -15,6 +15,8 @@
 *******************************************************************************
 */
 #include <stdlib.h>
+#include <Windows.h>
+#include <MMSystem.h>  //for window timer.
 #include <time.h>
 #include <opencv2\core\core.hpp>
 #include <opencv2\highgui\highgui.hpp>
@@ -42,21 +44,23 @@ VideoCapture capture;
 
 #define LAST_FRAME_NUM 100
 #if(RD_MODE == RD_CAMERA_MODE) 
-CNEMA_GPGGA_PROC gNemaGpggaProc;
-#define NC_UDP_GPS_DATA_BUF_LEN        (1500)
-char nc_udpGpsBuffer[NC_UDP_GPS_DATA_BUF_LEN];
-CacheBuffer cacheBuffer;
-volatile SOCKET g_ServerSockUDP;
+    CNEMA_GPGGA_PROC gNemaGpggaProc;
+    #define NC_UDP_GPS_DATA_BUF_LEN        (1500)
+    char nc_udpGpsBuffer[NC_UDP_GPS_DATA_BUF_LEN];
+    CacheBuffer cacheBuffer;
+    volatile SOCKET g_ServerSockUDP;
 #elif(RD_MODE == RD_VIDEO_BUFFER_MODE)
-char aviNames[50][100];
-char gpsNames[50][100];
-HANDLE g_readySema_VideoReader;
-unsigned int timeDelay;
-volatile SOCKET g_EmulatorSockUDP;
-SOCKADDR_IN emulatorAddr;
+    char aviNames[300][100];
+    char gpsNames[300][100];
+    int inParamIdxs[300];
+    HANDLE g_readySema_VideoReader;
+    unsigned int timeDelay;
+    volatile SOCKET g_EmulatorSockUDP;
+    SOCKADDR_IN emulatorAddr;
 #elif(RD_MODE == RD_VIDEO_LOAD_MODE)
-char aviNames[50][100];
-char gpsNames[50][100];
+    char aviNames[300][100];
+    char gpsNames[300][100];
+    int inParamIdxs[300];
 #endif
 
 #if(RD_MODE == RD_CAMERA_MODE)
@@ -233,6 +237,8 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
     imageBuffer.setImageSize(capture.get(CV_CAP_PROP_FRAME_WIDTH),
         capture.get(CV_CAP_PROP_FRAME_HEIGHT));
 
+	WaitForSingleObject(g_readySema_SocketReady, INFINITE);
+
 	if(!InitGpsSocket_UDP())
 	{
 		logPrintf(logLevelInfo_e, "IMAGE_COLLECTOR", "Open GPS UDP socket failed!");
@@ -249,6 +255,15 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 		//recevie the GPS information
 		RD_ADD_TS(tsFunId_eThread_ImageCollect,3);
 		gpsSensorCollect_UDP();
+
+		gGpsInfo.inParamIdxsPrePre = gGpsInfo.inParamIdxsPre;
+		gGpsInfo.inParamIdxsPrePre = gGpsInfo.inParamIdxs;
+#if(RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+		gGpsInfo.inParamIdxs = 1;
+#else
+		gGpsInfo.inParamIdxs = 0;
+#endif
+
 		RD_ADD_TS(tsFunId_eThread_ImageCollect,4);
 		if(init)
 		{
@@ -290,7 +305,7 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 
 			point3D_t outPoint;
 			coordinateChange(&endPoint,&startPoint,&outPoint);
-			if(sqrt((outPoint.lat*outPoint.lat)+(outPoint.lon*outPoint.lon)) > 200)
+			if(sqrt((outPoint.lat*outPoint.lat)+(outPoint.lon*outPoint.lon)) > 100)
 			{
 				if(imageBuffer.getCurrentImageNum() < LAST_FRAME_NUM)
 				{
@@ -330,8 +345,15 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 
 				//save image to imagebuffer
 				imageBuffer.setSaveFlag();
-				imageBuffer.addImage((*imageIter).image,currentGps,preGps,0,0);
-
+#if(RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+#if(ON == RD_REPORT_RESULT)
+				imageBuffer.addImage((*imageIter).image,currentGps,preGps,0,0, 1); // camera mode only use small loop for airport area
+#else
+				imageBuffer.addImage((*imageIter).image,currentGps,preGps,0,0, 3);
+#endif
+#else
+                imageBuffer.addImage((*imageIter).image,currentGps,preGps,0,0, 0);
+#endif
 				preGps = currentGps;
 			}
 			RD_ADD_TS(tsFunId_eThread_ImageCollect,14);
@@ -363,19 +385,22 @@ std::string GetFileNameByFilePath(const std::string filepath)
 	return "";
 }
 
-void updateGpsInfo(point3D_t gpsPoint)
+void updateGpsInfo(point3D_t gpsPoint, int inParam)
 {
 	gGpsInfo.dLatitudePrePre = gGpsInfo.dLatitudePre;
 	gGpsInfo.dLongitudePrePre = gGpsInfo.dLongitudePre;
 	gGpsInfo.altitudePrePre = gGpsInfo.altitudePre;
+	gGpsInfo.inParamIdxsPrePre = gGpsInfo.inParamIdxsPre;
 
 	gGpsInfo.dLatitudePre = gGpsInfo.dLatitude;
 	gGpsInfo.dLongitudePre = gGpsInfo.dLongitude;
 	gGpsInfo.altitudePre = gGpsInfo.altitude;
+	gGpsInfo.inParamIdxsPre = gGpsInfo.inParamIdxs;
 
 	gGpsInfo.dLatitude = gpsPoint.lat;
 	gGpsInfo.dLongitude = gpsPoint.lon;
 	gGpsInfo.altitude = gpsPoint.alt;
+	gGpsInfo.inParamIdxs = inParam;
 }
 
 bool openVideoFile(char* videoFileName,VideoCapture& capture ,int &numFrame)
@@ -407,6 +432,9 @@ bool readImageAndGps(VideoCapture& capture, FILE* fp, Mat& image, point3D_t& gps
 	{
 		fscanf(fp,"%lf,%lf\n",&gpsPoint.lat,&gpsPoint.lon);
 		gpsPoint.alt = 0;
+	}else
+	{
+		return false;
 	}
 	return true;
 }
@@ -478,43 +506,87 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	cv::Mat image;
 	RD_ADD_TS(tsFunId_eThread_ImageCollect,1);
 
+	WaitForSingleObject(g_readySema_SocketReady, INFINITE);
 	InitTimeOffsetSocket_UDP();
+    
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
-    FILE* fp = fopen("./config/DE_Airport2_aviGpsFiles.txt", "r");
+    vector<string> aviGpsFileName(1, "");
+    aviGpsFileName[0] = "./config/DE_Airport2_aviGpsFiles.txt";
+#elif (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+    vector<string> aviGpsFileName(5, "");
+    aviGpsFileName[0] = "./config/DE_Airport_aviGpsFiles.txt";
+    aviGpsFileName[1] = "./config/DE_Airport2_aviGpsFiles.txt";
+	aviGpsFileName[2] = "./config/DE_Airport3_aviGpsFiles.txt";
+    aviGpsFileName[3] = "./config/DE_Airport4_aviGpsFiles.txt";
+	aviGpsFileName[4] = "./config/DE_AirportTcross_aviGpsFiles.txt";
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
-    FILE* fp = fopen("./config/DE_Lehre_aviGpsFiles.txt", "r");
+    vector<string> aviGpsFileName(1, "");
+    aviGpsFileName[0] = "./config/DE_Lehre_aviGpsFiles.txt";
 #elif (RD_LOCATION == RD_GERMAN_LEHRE2)
-    FILE* fp = fopen("./config/DE_Lehre2_aviGpsFiles.txt", "r");
+    vector<string> aviGpsFileName(1, "");
+    aviGpsFileName[0] = "./config/DE_Lehre2_aviGpsFiles.txt";
 #elif (RD_LOCATION == RD_US_DETROIT)
-	FILE* fp = fopen("./config/US_Detroit_aviGpsFiles.txt", "r"); 
+    vector<string> aviGpsFileName(1, "");
+    aviGpsFileName[0] = "./config/US_Detroit_aviGpsFiles.txt";
 #elif (RD_LOCATION == RD_US_PALO_ALTO)
-	FILE* fp = fopen("./config/US_Palo_Alto_aviGpsFiles.txt", "r"); 
+    vector<string> aviGpsFileName(1, "");
+    aviGpsFileName[0] = "./config/US_Palo_Alto_aviGpsFiles.txt";
 #endif
-	
-	if(fp == NULL)
-	{
-		printf("cannot open the aviGpsFiles.txt file\n");
-	}
-	int readIdx = 0;
-	while(!feof(fp))
-	{
-		if((readIdx&0x1) == 0)
-		{
-			fscanf(fp,"%s",aviNames[readIdx>>1]);
-		}else
-		{
-			fscanf(fp,"%s",gpsNames[readIdx>>1]);
-		}
-		readIdx++;
-	}
 
-	numFiles = (readIdx>>1);
-	fclose(fp);
+    int readIdx = 0;
+    for(int aviGpsFileIdx = 0; aviGpsFileIdx < aviGpsFileName.size(); ++aviGpsFileIdx)
+    {
+        FILE* fp = fopen(aviGpsFileName[aviGpsFileIdx].c_str(), "r");
+	
+	    if(fp == NULL)
+	    {
+		    //printf("cannot open the aviGpsFiles.txt file\n");
+		    logPrintf(logLevelError_e, "ImageCollector", "cannot open the aviGpsFiles.txt file");
+		    return -1;
+	    }
+	    
+	    while(!feof(fp))
+	    {
+            int returnVal;
+
+            if((readIdx&0x1) == 0)
+            {
+                returnVal = fscanf(fp,"%s",aviNames[readIdx>>1]);
+            }else
+            {
+                returnVal = fscanf(fp,"%s",gpsNames[readIdx>>1]);
+            }
+
+            if(returnVal > 0)
+            {
+                inParamIdxs[readIdx>>1] = aviGpsFileIdx;
+
+		        readIdx++;
+            }
+	    }
+
+	    fclose(fp);
+    }
+
+    numFiles = (readIdx>>1);
+
 	srand((unsigned)time(NULL));
 	//idxFile = generateRandFileIdx(numFiles);
-	printf("select video %d\n",idxFile);
+	//printf("select video %d\n",idxFile);
+	{
+		std::stringstream msgStr;
+        msgStr << "select video " << idxFile;
+		logPrintf(logLevelInfo_e, "ImageCollector", msgStr.str(),FOREGROUND_BLUE|FOREGROUND_GREEN);
+	}
 
 	FILE* gpsFile = fopen(gpsNames[idxFile],"r");
+	if(NULL == gpsFile)
+	{
+		std::stringstream msgStr;
+        msgStr << "cannot open file " << gpsNames[idxFile];
+		logPrintf(logLevelInfo_e, "ImageCollector",msgStr.str());
+		return -1;
+	}
 	fseek(gpsFile, 0, SEEK_SET);
 	fscanf(gpsFile,"%lf,%lf\n",&preGps.lat,&preGps.lon);
 	preGps.alt = 0;
@@ -522,24 +594,35 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 
 	if( !openVideoFile(aviNames[idxFile],capture ,numFrame))
 	{
-		printf("can't open file: %s",aviNames[idxFile]);
+		//printf("can't open file: %s",aviNames[idxFile]);
+		std::stringstream msgStr;
+        msgStr << "cannot open file " << aviNames[idxFile];
+		logPrintf(logLevelError_e, "ImageCollector", msgStr.str());
+		return -1;
 	}
 	totalNumFrame = numFrame;
 	fps = capture.get(CV_CAP_PROP_FPS);  //get the frames per seconds of the video
-
-	imageBuffer.setImageSize(capture.get(CV_CAP_PROP_FRAME_WIDTH),
-	    capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-	showSize.height = capture.get(CV_CAP_PROP_FRAME_HEIGHT) * inParam.imageScaleHeight;
-	showSize.width = capture.get(CV_CAP_PROP_FRAME_WIDTH) * inParam.imageScaleWidth;
 
 	timeDelay = (unsigned int)(1000/fps);
 	//glutTimerFunc(timeDelay,&imageTimer,3);
 	MMRESULT timer_id;
 	timer_id = timeSetEvent(timeDelay,1,(LPTIMECALLBACK)imageTimer, DWORD(11),TIME_PERIODIC);
 
+    int inParamIdx = inParamIdxs[idxFile];
+
+	showSize.height = capture.get(CV_CAP_PROP_FRAME_HEIGHT) * inParamVec[inParamIdx].imageScaleHeight;
+	showSize.width = capture.get(CV_CAP_PROP_FRAME_WIDTH) * inParamVec[inParamIdx].imageScaleWidth;
+
+    imageBuffer.setImageSize(capture.get(CV_CAP_PROP_FRAME_WIDTH),
+	    capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+
+    imageBuffer.setInParamIdx(inParamIdx);
+
     const int MAX_FRAME_INTERVAL = 1;
     int frameInterval = 0;
 	RD_ADD_TS(tsFunId_eThread_ImageCollect,2);
+
+	bool addFlag = true;
 	while(1)
 	{
 		//cv::Mat image;
@@ -551,20 +634,39 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 			if(idxFile >= numFiles)
 			{
 				idxFile = 0;
+#if(ON == RD_PAUSE_BUFFER_FULL)
+				logPrintf(logLevelNotice_e, "ImageCollector", "play video finished!");
+				return -1;
+#endif
 			}
 
 			//idxFile = generateRandFileIdx(numFiles);
-			printf("select video %d\n",idxFile);
+			//printf("select video %d\n",idxFile);
+			{
+				std::stringstream msgStr;
+				msgStr << "select video " << idxFile;
+				logPrintf(logLevelInfo_e, "ImageCollector", msgStr.str(),FOREGROUND_BLUE|FOREGROUND_GREEN);
+			}
 			capture.release();
 			if( !openVideoFile(aviNames[idxFile],capture ,numFrame))
 			{
-				printf("can't open file: %s",aviNames[idxFile]);
+				//printf("can't open file: %s",aviNames[idxFile]);
+				std::stringstream msgStr;
+				msgStr << "cannot open file " << aviNames[idxFile];
+				logPrintf(logLevelError_e, "ImageCollector", msgStr.str());
 				continue;
 			}
 			fclose(gpsFile);
 			totalNumFrame = numFrame;
 
 			gpsFile = fopen(gpsNames[idxFile],"r");
+			if(NULL == gpsFile)
+			{
+				std::stringstream msgStr;
+				msgStr << "cannot open file " << gpsNames[idxFile];
+				logPrintf(logLevelInfo_e, "ImageCollector",msgStr.str());
+				return -1;
+			}
 			fseek(gpsFile, 0, SEEK_SET);
 			
 			//make sure the video start point the previous GPS is the same.
@@ -657,16 +759,20 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 				}
 			}
 
-			if(!readImageAndGps(capture, gpsFile, image, currentGps))
+#if(ON == RD_PAUSE_BUFFER_FULL)
+			if(addFlag)
+#endif
 			{
+				if(!readImageAndGps(capture, gpsFile, image, currentGps))
+				{
+					numFrame--;
+					continue;
+				}
 				numFrame--;
-				continue;
 			}
-			numFrame--;
 		}
 
-		updateGpsInfo(currentGps);
-		historyInfoP.saveCurrentGps(currentGps);
+		//historyInfoP.saveCurrentGps(currentGps);
 		
 		float speed, direction;
 		getSpeedAndDirectionInfo(currentGps,preGps,fps,speed,direction);
@@ -678,8 +784,15 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 			imageBuffer.setSaveFlag();
 		}
 		
-		imageBuffer.addImage(image,currentGps,preGps,speed,direction);
+		addFlag = imageBuffer.addImage(image,currentGps,preGps,speed,direction, inParamIdxs[idxFile]);
 
+#if(ON == RD_PAUSE_BUFFER_FULL)
+		if(!addFlag)
+		{
+			continue;
+		}
+#endif
+		updateGpsInfo(currentGps,inParamIdxs[idxFile]);
 		preGps = currentGps;
         
         // only display image in certian interval
@@ -712,42 +825,65 @@ unsigned int __stdcall Thread_ImageSensorCollector(void *data)
 	int counter = 0;
 
 	RD_ADD_TS(tsFunId_eThread_ImageCollect,1);
-#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
-    FILE* fp = fopen("./config/DE_Airport2_aviGpsFiles.txt", "r");
-#elif (RD_LOCATION == RD_GERMAN_LEHRE)
-    FILE* fp = fopen("./config/DE_Lehre_aviGpsFiles.txt", "r");
-#elif (RD_LOCATION == RD_GERMAN_LEHRE2)
-    FILE* fp = fopen("./config/DE_Lehre2_aviGpsFiles.txt", "r");
-#elif (RD_LOCATION == RD_US_DETROIT)
-	FILE* fp = fopen("./config/US_Detroit_aviGpsFiles.txt", "r"); 
-#elif (RD_LOCATION == RD_US_PALO_ALTO)
-	FILE* fp = fopen("./config/US_Palo_Alto_aviGpsFiles.txt", "r"); 
-#endif
 	
-	if(fp == NULL)
-	{
-		printf("cannot open the aviGpsFiles.txt file\n");
-	}
-	int readIdx = 0;
-	while(!feof(fp))
-	{
-		if((readIdx&0x1) == 0)
-		{
-			fscanf(fp,"%s",aviNames[readIdx>>1]);
-		}else
-		{
-			fscanf(fp,"%s",gpsNames[readIdx>>1]);
-		}
-		readIdx++;
-	}
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+    vector<string> aviGpsFileName(1, "");
+    aviGpsFileName[0] = "./config/DE_Airport2_aviGpsFiles.txt";
+#elif (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+    vector<string> aviGpsFileName(5, "");
+    aviGpsFileName[0] = "./config/DE_Airport_aviGpsFiles.txt";
+    aviGpsFileName[1] = "./config/DE_Airport1_aviGpsFiles.txt";
+    aviGpsFileName[2] = "./config/DE_Airport2_aviGpsFiles.txt";
+    aviGpsFileName[3] = "./config/DE_Airport3_aviGpsFiles.txt";
+    aviGpsFileName[4] = "./config/DE_AirportTcross_aviGpsFiles.txt";
+#elif (RD_LOCATION == RD_GERMAN_LEHRE)
+    vector<string> aviGpsFileName(1, "");
+    aviGpsFileName[0] = "./config/DE_Lehre_aviGpsFiles.txt";
+#elif (RD_LOCATION == RD_GERMAN_LEHRE2)
+    vector<string> aviGpsFileName(1, "");
+    aviGpsFileName[0] = "./config/DE_Lehre2_aviGpsFiles.txt";
+#elif (RD_LOCATION == RD_US_DETROIT)
+    vector<string> aviGpsFileName(1, "");
+    aviGpsFileName[0] = "./config/US_Detroit_aviGpsFiles.txt";
+#elif (RD_LOCATION == RD_US_PALO_ALTO)
+    vector<string> aviGpsFileName(1, "");
+    aviGpsFileName[0] = "./config/US_Palo_Alto_aviGpsFiles.txt";
+#endif
 
-	numFiles = (readIdx>>1);
-	fclose(fp);
+    for(int aviGpsFileIdx = 0; aviGpsFileIdx < aviGpsFileName.size(); ++aviGpsFileIdx)
+    {
+        FILE* fp = fopen(aviGpsFileName[aviGpsFileIdx].c_str(), "r");
 
-	for(int Idx = 0; Idx < numFiles; Idx++)
-	{
-		imageBuffer.addVideoAndGpsName(aviNames[Idx],gpsNames[Idx]);
-	}
+	    if(fp == NULL)
+	    {
+		    //printf("cannot open the aviGpsFiles.txt file\n");
+		    logPrintf(logLevelError_e, "ImageCollector", "cannot open the aviGpsFiles.txt file");
+	    }
+
+        int readIdx = 0;
+
+	    while(!feof(fp))
+	    {
+		    if((readIdx&0x1) == 0)
+		    {
+			    fscanf(fp,"%s",aviNames[readIdx>>1]);
+		    }else
+		    {
+			    fscanf(fp,"%s",gpsNames[readIdx>>1]);
+		    }
+		    readIdx++;
+	    }
+
+	    fclose(fp);
+
+        numFiles = (readIdx>>1);
+
+        for(int Idx = 0; Idx < numFiles; Idx++)
+	    {
+		    imageBuffer.addVideoAndGpsName(aviNames[Idx],gpsNames[Idx], aviGpsFileIdx);
+	    }
+    }
+    
 	imageBuffer.addVideoFinish();
 	RD_ADD_TS(tsFunId_eThread_ImageCollect,2);
 	while(1)

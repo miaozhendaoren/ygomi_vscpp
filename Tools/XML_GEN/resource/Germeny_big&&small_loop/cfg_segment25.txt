@@ -1,0 +1,11 @@
+StartSegmentID:71
+segmentnum:2
+PreSegmentID:70
+NextSegmentID:73
+PlaceMark:65,91,66
+lane_num:3
+line_num:4
+LineTypeIndex:1101
+LaneDrectionIndex:100
+LaneAssign:111
+LineConn:1,73,1,4

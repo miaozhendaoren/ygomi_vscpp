@@ -19,11 +19,12 @@
 #include "typeDefine.h"
 #include "messageProcessClass.h"
 using namespace std;
+
 class messageQueueClass
 {
 private:
 	int32  queueNum;
-	queue<messageProcessClass> _msgQueue;
+	priority_queue<messageProcessClass> _msgQueue;
 	//HANDLE _hMutex;
 public:
 	messageQueueClass(void);
@@ -32,7 +33,8 @@ public:
 	bool pop();
 	bool empty();
 	int32 size();
-	bool front(messageProcessClass* msgInPtr);
-	bool back(messageProcessClass* msgInPtr);
+	//bool front(messageProcessClass* msgInPtr);
+	//bool back(messageProcessClass* msgInPtr);
+    bool top(messageProcessClass* msgInPtr);
 	~messageQueueClass(void);
 };

@@ -9,7 +9,7 @@
 
 using namespace ns_database;
 
-#define MAX_VIDEO_NUM            50
+#define MAX_VIDEO_NUM            300
 #define MAX_VIDEO_FILENAME_LEN   100
 
 #if (RD_LOCATION == RD_GERMAN_LEHRE || RD_LOCATION == RD_GERMAN_LEHRE2)
@@ -46,7 +46,9 @@ class ImageBuffer
 		bool closeReadFiles(void);
 		bool setImageToStart(void);
 		bool setFileName(const char* imageFileName, const char* gpsFileName);
-		bool getImageSize(int& width, int& height);
+        void setInParamIdx(int);
+        int getInParamIdx();
+        void getImageSize(int& width,int& height);
 
 	private:
 		char saveFileName[2][MAX_VIDEO_FILENAME_LEN];
@@ -59,6 +61,7 @@ class ImageBuffer
 		point3D_t preGps;
 		int _imageHeight;
 		int _imageWidth;
+        int inParamIdx;
 };
 
 class ImageBufferAll
@@ -67,9 +70,10 @@ class ImageBufferAll
 		ImageBufferAll();
 		~ImageBufferAll();
 		bool getBuffer(ImageBuffer **buffer);
-        void getImageSize(int& width,int& height);
-		bool addVideoAndGpsName(const char* imageFileName, const char* gpsFileName);
+		bool addVideoAndGpsName(const char* imageFileName, const char* gpsFileName, const int aviGpsFileIdx);
 		void addVideoFinish(void);
+        int getInParamIdx();
+        void getImageSize(int& width,int& height);
 
 	private:
 		ImageBuffer *imageBuffer;
@@ -78,6 +82,7 @@ class ImageBufferAll
 		bool readyFlag;
 		char aviNames[MAX_VIDEO_NUM][MAX_VIDEO_FILENAME_LEN];
 		char gpsNames[MAX_VIDEO_NUM][MAX_VIDEO_FILENAME_LEN];
+        int  inParamIdxs[MAX_VIDEO_NUM];
 };
 
 #else
@@ -86,7 +91,7 @@ class ImageBuffer
 {
 	public:
 		ImageBuffer(const char* imageFileName, const char* gpsFileName);
-		bool addImage(cv::Mat &image, point3D_t gpsInfo, point3D_t gpsInfoPre, float speed, float direction);
+		bool addImage(cv::Mat &image, point3D_t gpsInfo, point3D_t gpsInfoPre, float speed, float direction, int inParamIdx);
 		bool getCurrentImage(imageInfo_t *outImage);
 		int getImageNumber(void);
 		void cleanBuffer(void);
@@ -95,8 +100,13 @@ class ImageBuffer
 		bool openWriteFiles(cv::Size frameSize);
 		bool closeWriteFiles(void);
 		bool openReadFiles(void);
+		bool openReadFiles_nofilter(void);
 		bool closeReadFiles(void);
 		bool setImageToStart(void);
+        void setInParamIdx(int);
+        int getInParamIdx();
+        void setImageSize(int width,int height);
+        void getImageSize(int& width,int& height);
 
 	private:
 		//imageInfo_t Buffer[IMAGE_BUFFER_DEPTH];
@@ -112,18 +122,24 @@ class ImageBuffer
 		bool writeFileFlag;
 		bool readFileFlag;
 		HANDLE _hMutex;
+        point3D_t preGps;
+        int inParamIdx;
+        int _imageHeight;
+        int _imageWidth;
 };
 
 class ImageBufferAll
 {
 	public:
 		ImageBufferAll();
-		void addImage(cv::Mat &image, point3D_t gpsInfo, point3D_t gpsInfoPre, float speed, float direction);
+		bool addImage(cv::Mat &image, point3D_t gpsInfo, point3D_t gpsInfoPre, float speed, float direction, int inParamIdx);
 		bool getBuffer(ImageBuffer **buffer);
 		void cleanCurrentBuffer(void);
 		void setReadyFlag(void);
 		int  getCurrentImageNum(void);
 		void setSaveFlag(void);
+        void setInParamIdx(int);
+        int getInParamIdx();
         void setImageSize(int width,int height);
         void getImageSize(int& width,int& height);
 
@@ -131,8 +147,6 @@ class ImageBufferAll
 		ImageBuffer *imageBuffer[IMAGE_BUFFER_NUM];
 		int readIdx;
 		bool saveFlag;
-        int _imageHeight;
-        int _imageWidth;
 		HANDLE _hMutex;
 };
 

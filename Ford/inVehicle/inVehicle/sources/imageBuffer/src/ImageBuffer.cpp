@@ -7,6 +7,7 @@
 #include "ImageBuffer.h"
 #include "Signal_Thread_Sync.h"
 #include "database.h"   // lookAheadOnTrack
+#include "LogInfo.h"
 
 #if(RD_MODE == RD_VIDEO_LOAD_MODE)
 ImageBuffer::ImageBuffer()
@@ -42,6 +43,12 @@ bool ImageBuffer::getCurrentImage(imageInfo_t *outImage)
 	if(readIdx == 0)
 	{
 		reader.set(CV_CAP_PROP_POS_AVI_RATIO, 0);
+        // skip 3 frames to match with smoothGps
+		imageInfo_t image;
+        reader.read(image.image);
+        reader.read(image.image);
+        reader.read(image.image);
+
 		fseek(readFp,0,SEEK_SET);
 	}
 
@@ -51,6 +58,12 @@ bool ImageBuffer::getCurrentImage(imageInfo_t *outImage)
 bool ImageBuffer::setImageToStart(void)
 {
 	reader.set(CV_CAP_PROP_POS_AVI_RATIO, 0);
+    // skip 3 frames to match with smoothGps
+    imageInfo_t image;
+    getCurrentImage(&image);
+    getCurrentImage(&image);
+    getCurrentImage(&image);
+
 	fseek(readFp,0,SEEK_SET);
 	readIdx = 0;
 	return true;
@@ -71,64 +84,106 @@ void ImageBuffer::cleanBuffer(void)
 
 bool ImageBuffer::openReadFiles()
 {
-    printf("Open video: %s\n",saveFileName[0]);
+    //printf("Open video: %s\n",saveFileName[0]);
+	{
+		std::stringstream msgStr;
+		msgStr << "Open video "<< saveFileName[0];
+		logPrintf(logLevelInfo_e,"ImageBuffer", msgStr.str().c_str());
+	}
+
 	if(!readFileFlag)
 	{
 		reader.open(saveFileName[0]);
 		if(!reader.isOpened())
 		{
-			printf("cannot open reader %s file\n",saveFileName[0]);
+			//printf("cannot open reader %s file\n",saveFileName[0]);
+			std::stringstream msgStr;
+			msgStr << "cannot open reader "<< saveFileName[0] << "file";
+			logPrintf(logLevelError_e,"ImageBuffer", msgStr.str().c_str());
 			return false;
 		}
 		bufferSize = reader.get(CV_CAP_PROP_FRAME_COUNT);
 		_imageWidth = reader.get(CV_CAP_PROP_FRAME_WIDTH);
 		_imageHeight = reader.get(CV_CAP_PROP_FRAME_HEIGHT);
-		
+
 		readFp = fopen(saveFileName[1],"r");
 		if(readFp == NULL)
 		{
-			printf("cannot open the reader %s file\n",saveFileName[1]);
+			//printf("cannot open the reader %s file\n",saveFileName[1]);
+			std::stringstream msgStr;
+			msgStr << "cannot open reader "<< saveFileName[1] << "file";
+			logPrintf(logLevelError_e,"ImageBuffer", msgStr.str().c_str());
 			return false;
 		}
+
+        // Distance compensation to minimize systematic error
+        //if (0)
+        {
+            // read existing location from file
+            std::vector<point3D_t> locVec, locSmoothed,locVecAhead;
+
+            for(int idx = 0; idx < bufferSize; idx++)
+            {
+                point3D_t locPoint;
+
+                fscanf(readFp,"%lf,%lf\n",&locPoint.lat, &locPoint.lon);
+
+                locVec.push_back(locPoint);
+    		}
+
+            // smooth the gps by 7-order average filter
+            ns_database::smoothGps(7,locVec,locSmoothed);
+
+            // skip 3 frames
+            imageInfo_t image;
+            getCurrentImage(&image);
+            getCurrentImage(&image);
+            getCurrentImage(&image);
+
+    		fclose(readFp);
+
+            // look ahead
+            ns_database::lookAheadOnTrack(locSmoothed, inParamVec[0].offsetDist, locVecAhead);
+
+            char compensationFileName[50] = "c.txt";
+            // write new location to file
+            readFp = fopen(compensationFileName, "wt");
+            if(readFp == NULL)
+    		{
+    			printf("cannot open the reader %s file\n", compensationFileName);
+    			return false;
+    		}
+
+            for(int idx = 0; idx < locVecAhead.size(); idx++)
+            {
+                point3D_t locPoint;
+
+                fprintf(readFp, "%.14lf,%.14lf\n",locVecAhead[idx].lat, locVecAhead[idx].lon);
+            }
+
+            fclose(readFp);
+            readFp = fopen(compensationFileName, "rt");
+            if(readFp == NULL)
+    		{
+    			printf("cannot open the reader %s file\n", compensationFileName);
+    			return false;
+    		}
+
+            bufferSize = locVecAhead.size();
+
+            if(0 >= bufferSize)
+            {                
+                readFileFlag = true; // read file already open, set the flag to true before return
+                return false;
+            }
+
+    		// reset read index to 0
+            readIdx = 0;
+        }
 		readFileFlag = true;
-	}
-
-    // Distance compensation to minimize systematic error
-    //if (0)
-    {
-        // read existing location from file
-        std::vector<point3D_t> locVec, locVecAhead;
-
-        for(int idx = 0; idx < bufferSize; idx++)
-        {
-            point3D_t locPoint;
-
-            fscanf(readFp,"%lf,%lf\n",&locPoint.lat, &locPoint.lon);
-
-            locVec.push_back(locPoint);
-        }
-
-        fclose(readFp);
-
-        // look ahead
-        ns_database::lookAheadOnTrack(locVec, inParam.offsetDist, locVecAhead);
-
-        // write new location to file
-        readFp = fopen("c.txt", "wt");
-
-        for(int idx = 0; idx < locVecAhead.size(); idx++)
-        {
-            point3D_t locPoint;
-
-            fprintf(readFp, "%.14lf,%.14lf\n",locVecAhead[idx].lat, locVecAhead[idx].lon);
-        }
-
-        fclose(readFp);
-        readFp = fopen("c.txt", "rt");
-
-        bufferSize = locVecAhead.size();
-    }
-	return true;
+		return true;
+	}    
+	return false;
 }
 
 bool ImageBuffer::closeReadFiles()
@@ -152,11 +207,20 @@ bool ImageBuffer::setFileName(const char* imageFileName, const char* gpsFileName
 	return true;
 }
 
-bool ImageBuffer::getImageSize(int& width, int& height)
+void ImageBuffer::getImageSize(int& width, int& height)
 {
 	width  = _imageWidth;
 	height = _imageHeight; 
-	return true;
+}
+
+void ImageBuffer::setInParamIdx(int input)
+{
+    inParamIdx = input;
+}
+
+int ImageBuffer::getInParamIdx()
+{
+    return inParamIdx;
 }
 
 ImageBufferAll::ImageBufferAll()
@@ -177,15 +241,21 @@ ImageBufferAll::~ImageBufferAll()
 	delete imageBuffer;
 }
 
-bool ImageBufferAll::addVideoAndGpsName(const char* imageFileName, const char* gpsFileName)
+bool ImageBufferAll::addVideoAndGpsName(const char* imageFileName, const char* gpsFileName, const int aviGpsFileIdx)
 {
 	if(totalNum >= MAX_VIDEO_NUM)
 	{
-		printf("file number is bigger than %d\n",MAX_VIDEO_NUM );
+		//printf("file number is bigger than %d\n",MAX_VIDEO_NUM );
+		std::stringstream msgStr;
+		msgStr << "file number is bigger than "<< MAX_VIDEO_NUM;
+		logPrintf(logLevelError_e,"ImageBuffer", msgStr.str().c_str());
 		return false;
 	}
 	strcpy(aviNames[totalNum],imageFileName);
 	strcpy(gpsNames[totalNum],gpsFileName);
+
+    inParamIdxs[totalNum] = aviGpsFileIdx;
+
 	totalNum++;
 	
 	return true;
@@ -211,7 +281,8 @@ bool ImageBufferAll::getBuffer(ImageBuffer **buffer)
 	imageBuffer->closeReadFiles();
 	
 	imageBuffer->setFileName(aviNames[proIdx],gpsNames[proIdx]);
-	
+	imageBuffer->setInParamIdx(inParamIdxs[proIdx]);
+
 	proIdx++;
 	if(proIdx > totalNum)
 	{
@@ -221,13 +292,26 @@ bool ImageBufferAll::getBuffer(ImageBuffer **buffer)
         static bool firstTimeFlag = true;
         if (firstTimeFlag == true)
         {
-            printf("load files finished\n");
+            //printf("load files finished\n");
+			logPrintf(logLevelInfo_e,"imageBuffer","load files finished!");
+
             firstTimeFlag = false;
+
+            // Output kml file
+            Sleep(30000); // 30000 = 30s
+
+            point3D_t standPoint;
+            standPoint.lat = inParamVec[0].GPSref.x;
+            standPoint.lon = inParamVec[0].GPSref.y;
+            database_gp->saveRoadVecAndFurToKml("log/roadVec_furniture_vehicle.kml", standPoint);
         }
         return false;
-	}
+    }
 
-    imageBuffer->openReadFiles();
+    if(false == imageBuffer->openReadFiles())
+    {
+        return false;
+    }
 
 	*buffer = imageBuffer;
 	return true;
@@ -257,13 +341,19 @@ bool ImageBuffer::openWriteFiles(cv::Size frameSize)
 		writer = new cv::VideoWriter(saveFileName[0],CV_FOURCC('P','I','M','1'),30,frameSize);
 		if(!writer->isOpened())
 		{
-			printf("cannot open the %s file\n",saveFileName[0]);
+			//printf("cannot open the %s file\n",saveFileName[0]);
+			std::stringstream msgStr;
+			msgStr << "cannot open the "<< saveFileName[0] << "file";
+			logPrintf(logLevelInfo_e,"ImageBuffer",msgStr.str().c_str());
 			return false;
 		}
 		writeFp = fopen(saveFileName[1],"w");
 		if(writeFp == NULL)
 		{
-			printf("cannot open the %s file\n",saveFileName[1]);
+			//printf("cannot open the %s file\n",saveFileName[1]);
+			std::stringstream msgStr;
+			msgStr << "cannot open the "<< saveFileName[1] << "file";
+			logPrintf(logLevelInfo_e,"ImageBuffer",msgStr.str().c_str());
 			return false;
 		}
 		writeFileFlag = true;
@@ -273,12 +363,14 @@ bool ImageBuffer::openWriteFiles(cv::Size frameSize)
 
 bool ImageBuffer::closeWriteFiles()
 {
+    WaitForSingleObject(_hMutex,INFINITE);
 	if(writeFileFlag)
 	{
 	delete writer;
 	fclose(writeFp);
 	writeFileFlag = false;
 	}
+    ReleaseMutex(_hMutex);
 	return true;
 }
 
@@ -289,32 +381,141 @@ bool ImageBuffer::openReadFiles()
 		reader.open(saveFileName[0]);
 		if(!reader.isOpened())
 		{
-			printf("cannot open reader %s file\n",saveFileName[0]);
+			//printf("cannot open reader %s file\n",saveFileName[0]);
+			std::stringstream msgStr;
+			msgStr << "cannot open reader "<< saveFileName[0] << "file";
+			logPrintf(logLevelInfo_e,"ImageBuffer",msgStr.str().c_str());
 			return false;
 		}
 		readFp = fopen(saveFileName[1],"r");
 		if(readFp == NULL)
 		{
-			printf("cannot open the reader %s file\n",saveFileName[1]);
+			//printf("cannot open the reader %s file\n",saveFileName[1]);
+			std::stringstream msgStr;
+			msgStr << "cannot open reader "<< saveFileName[1] << "file";
+			logPrintf(logLevelInfo_e,"ImageBuffer",msgStr.str().c_str());
+			return false;
+		}
+
+        // Distance compensation to minimize systematic error
+        //if (0)
+        {
+            // read existing location from file
+            std::vector<point3D_t> locVec, locSmoothed,locVecAhead;
+
+            for(int idx = 0; idx < bufferSize; idx++)
+            {
+                point3D_t locPoint;
+
+                fscanf(readFp,"%lf,%lf\n",&locPoint.lat, &locPoint.lon);
+
+                locVec.push_back(locPoint);
+    		}
+
+            // smooth the gps by 7-order average filter
+            ns_database::smoothGps(7,locVec,locSmoothed);
+
+            // skip 3 frames
+            imageInfo_t image;
+            getCurrentImage(&image);
+            getCurrentImage(&image);
+            getCurrentImage(&image);
+
+    		fclose(readFp);
+
+            // look ahead
+            ns_database::lookAheadOnTrack(locSmoothed, inParamVec[inParamIdx].offsetDist, locVecAhead);
+
+            char compensationFileName[50];
+            int fileNameLen = strlen(saveFileName[1]);
+            
+            memset(compensationFileName, 0, sizeof(compensationFileName));
+            memcpy(compensationFileName, saveFileName[1], fileNameLen-4);
+            strcat(compensationFileName, "_c.txt");
+
+            // write new location to file
+            readFp = fopen(compensationFileName, "wt");
+            if(readFp == NULL)
+    		{
+    			printf("cannot open the reader %s file\n", compensationFileName);
+    			return false;
+    		}		
+
+            for(int idx = 0; idx < locVecAhead.size(); idx++)
+            {
+                point3D_t locPoint;
+
+                fprintf(readFp, "%.14lf,%.14lf\n",locVecAhead[idx].lat, locVecAhead[idx].lon);
+            }
+
+            fclose(readFp);
+            readFp = fopen(compensationFileName, "rt");
+            if(readFp == NULL)
+    		{
+    			printf("cannot open the reader %s file\n", compensationFileName);
+    			return false;
+    		}
+
+            bufferSize = locVecAhead.size();
+            if(0 >= bufferSize)
+            {                
+		        readFileFlag = true; // read file already open, set the flag to true before return
+                return false;
+            }
+
+            // reset read index to 0
+            readIdx = 0;
+        }
+		readFileFlag = true;
+		return true;
+	}
+    
+	return false;
+}
+
+bool ImageBuffer::openReadFiles_nofilter(void)
+{
+	if(!readFileFlag)
+	{
+		reader.open(saveFileName[0]);
+		if(!reader.isOpened())
+		{
+			//printf("cannot open reader %s file\n",saveFileName[0]);
+			std::stringstream msgStr;
+			msgStr << "cannot open reader "<< saveFileName[0] << "file";
+			logPrintf(logLevelInfo_e,"ImageBuffer",msgStr.str().c_str());
+			return false;
+		}
+		readFp = fopen(saveFileName[1],"r");
+		if(readFp == NULL)
+		{
+			//printf("cannot open the reader %s file\n",saveFileName[1]);
+			std::stringstream msgStr;
+			msgStr << "cannot open reader "<< saveFileName[1] << "file";
+			logPrintf(logLevelInfo_e,"ImageBuffer",msgStr.str().c_str());
 			return false;
 		}
 		readFileFlag = true;
+		return true;
 	}
-	return true;
+	return false;
 }
+
 
 bool ImageBuffer::closeReadFiles()
 {
+    WaitForSingleObject(_hMutex,INFINITE);
 	if(readFileFlag)
 	{
 		reader.release();
 		fclose(readFp);
 	}
 	readFileFlag = false;
+    ReleaseMutex(_hMutex);
 	return true;
 }
 
-bool ImageBuffer::addImage(cv::Mat &image, point3D_t gpsInfo, point3D_t gpsInfoPre, float speed, float direction)
+bool ImageBuffer::addImage(cv::Mat &image, point3D_t gpsInfo, point3D_t gpsInfoPre, float speed, float direction, int inParamIdx)
 {
 	WaitForSingleObject(_hMutex,INFINITE);
 	
@@ -325,12 +526,16 @@ bool ImageBuffer::addImage(cv::Mat &image, point3D_t gpsInfo, point3D_t gpsInfoP
 		if(writeIdx == 0)
 		{
 			bool flag = openWriteFiles(image.size());
+
+            setImageSize(image.cols, image.rows);
+
+            setInParamIdx(inParamIdx);
 		}
 		//Buffer[writeIdx].image = image.clone();
 		if(writeFileFlag)
 		{
 			writer->write(image);
-			fprintf(writeFp,"%.14lf,%.14lf,%.14lf,%.14lf,%.14lf,%.14lf\n",gpsInfo.lat,gpsInfo.lon,gpsInfo.alt,gpsInfoPre.lat,gpsInfoPre.lon,gpsInfoPre.alt);
+			fprintf(writeFp,"%.14lf,%.14lf\n",gpsInfo.lat,gpsInfo.lon);
 			writeIdx++;
 			bufferSize = writeIdx;
 			if(writeIdx >= IMAGE_BUFFER_DEPTH)
@@ -338,20 +543,28 @@ bool ImageBuffer::addImage(cv::Mat &image, point3D_t gpsInfo, point3D_t gpsInfoP
 				writeIdx = 0;
 				closeWriteFiles();
 				ready_flag = true;
-				printf("image buffer is full\n");
+				//printf("image buffer is full\n");
+				logPrintf(logLevelInfo_e,"ImageBuffer","image buffer is full!",FOREGROUND_BLUE|FOREGROUND_GREEN);
 			}
 		}
-
+		ReleaseMutex(_hMutex);
+		return true;
 	}
 	
 	ReleaseMutex(_hMutex);
-	return true;
+	return false;
 }
 
 bool ImageBuffer::setImageToStart(void)
 {
 	WaitForSingleObject(_hMutex,INFINITE);
 	reader.set(CV_CAP_PROP_POS_AVI_RATIO, 0);
+    // skip 3 frames to match with smoothGps
+    imageInfo_t image;
+    getCurrentImage(&image);
+    getCurrentImage(&image);
+    getCurrentImage(&image);
+
 	fseek(readFp,0,SEEK_SET);
 	readIdx = 0;
 	ReleaseMutex(_hMutex);
@@ -362,20 +575,42 @@ bool ImageBuffer::getCurrentImage(imageInfo_t *outImage)
 {
 	WaitForSingleObject(_hMutex,INFINITE);
 	//*outImage = &Buffer[readIdx];
-	reader.read(outImage->image);
+	bool status = reader.read(outImage->image);
+
+    if(status == false)
+    {
+        logPrintf(logLevelError_e, "ImageCollector", "Failed to get image from buffer",FOREGROUND_RED);
+        ReleaseMutex(_hMutex);
+        return false;
+    }
+
 	if(!feof(readFp))
 	{
-		fscanf(readFp,"%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",&outImage->gpsInfo.lat,
-			&outImage->gpsInfo.lon,
-			&outImage->gpsInfo.alt,
-			&outImage->gpsInfoPre.lat,
-			&outImage->gpsInfoPre.lon,
-			&outImage->gpsInfoPre.alt);
+		fscanf(readFp,"%lf,%lf\n",&outImage->gpsInfo.lat,
+			&outImage->gpsInfo.lon);
+
+        outImage->gpsInfo.alt = 0;
+
+        //if it is the first point, the previous gps should be the same
+		if(readIdx == 0)
+		{
+			outImage->gpsInfoPre = outImage->gpsInfo;
+		}else
+		{
+			outImage->gpsInfoPre = preGps;
+		}
+		preGps = outImage->gpsInfo;
 	}
 	readIdx = ((readIdx+1)%bufferSize);
 	if(readIdx == 0)
 	{
 		reader.set(CV_CAP_PROP_POS_AVI_RATIO, 0);
+        // skip 3 frames to match with smoothGps
+        imageInfo_t image;
+        reader.read(image.image);
+        reader.read(image.image);
+        reader.read(image.image);
+
 		fseek(readFp,0,SEEK_SET);
 	}
 	ReleaseMutex(_hMutex);
@@ -384,8 +619,10 @@ bool ImageBuffer::getCurrentImage(imageInfo_t *outImage)
 
 int ImageBuffer::getImageNumber(void)
 {
-	//return (readIdx < writeIdx)?(writeIdx - readIdx):(IMAGE_BUFFER_DEPTH + writeIdx - readIdx);
-	return bufferSize;
+	WaitForSingleObject(_hMutex,INFINITE);
+    int buffSizeTmp = bufferSize;
+    ReleaseMutex(_hMutex);
+    return buffSizeTmp;
 }
 
 void ImageBuffer::cleanBuffer(void)
@@ -401,8 +638,10 @@ void ImageBuffer::cleanBuffer(void)
 bool ImageBuffer::getReadyFlag(void)
 {
 	WaitForSingleObject(_hMutex,INFINITE);
+    bool flagTmp = ready_flag;
 	ReleaseMutex(_hMutex);
-	return ready_flag;
+
+	return flagTmp;
 }
 
 void ImageBuffer::setReadyFlag(void)
@@ -411,6 +650,37 @@ void ImageBuffer::setReadyFlag(void)
 	ready_flag = true;
 	closeWriteFiles();
 	ReleaseMutex(_hMutex);
+}
+
+void ImageBuffer::setInParamIdx(int input)
+{
+    WaitForSingleObject(_hMutex,INFINITE);
+    inParamIdx = input;
+    ReleaseMutex(_hMutex);
+}
+
+int ImageBuffer::getInParamIdx()
+{
+    WaitForSingleObject(_hMutex,INFINITE);
+    int inParamIdxTmp = inParamIdx;
+    ReleaseMutex(_hMutex);
+    return inParamIdxTmp;
+}
+
+void ImageBuffer::setImageSize(int width,int height)
+{
+    WaitForSingleObject(_hMutex,INFINITE);
+    _imageHeight = height;
+    _imageWidth = width;
+    ReleaseMutex(_hMutex);
+}
+
+void ImageBuffer::getImageSize(int& width,int& height)
+{
+    WaitForSingleObject(_hMutex,INFINITE);
+    width = _imageWidth;
+    height = _imageHeight;
+    ReleaseMutex(_hMutex);
 }
 
 ImageBufferAll::ImageBufferAll()
@@ -424,12 +694,18 @@ ImageBufferAll::ImageBufferAll()
 	imageBuffer[1] = new ImageBuffer("b.avi","b.txt");
 }
 
-void ImageBufferAll::addImage(cv::Mat &image, point3D_t gpsInfo, point3D_t gpsInfoPre, float speed, float direction)
+bool ImageBufferAll::addImage(cv::Mat &image, point3D_t gpsInfo, point3D_t gpsInfoPre, float speed, float direction, int inParamIdx)
 {
+	WaitForSingleObject(_hMutex,INFINITE);
 	if(saveFlag)
 	{
-		imageBuffer[readIdx]->addImage(image,gpsInfo,gpsInfoPre,speed,direction);
-	}
+		//imageBuffer[readIdx]->addImage(image,gpsInfo,gpsInfoPre,speed,direction, inParamIdx);
+		 bool flag = imageBuffer[readIdx]->addImage(image,gpsInfo,gpsInfoPre,speed,direction,inParamIdx);
+         ReleaseMutex(_hMutex);
+         return flag;
+    }
+    ReleaseMutex(_hMutex);
+    return false;
 }
 
 bool ImageBufferAll::getBuffer(ImageBuffer **buffer)
@@ -438,15 +714,42 @@ bool ImageBufferAll::getBuffer(ImageBuffer **buffer)
 	saveFlag = true;
 	if(imageBuffer[readIdx]->getReadyFlag())
 	{
+		int oldIdx = readIdx;
 		*buffer = (imageBuffer[readIdx]);
 		//imageBuffer[readIdx]->closeWriteFiles();
-		imageBuffer[readIdx]->openReadFiles();
+		//imageBuffer[readIdx]->openReadFiles();
 		readIdx = (readIdx+1)%IMAGE_BUFFER_NUM;
 		imageBuffer[readIdx]->cleanBuffer();
 		imageBuffer[readIdx]->closeReadFiles();
+
+#if(ON == RD_PAUSE_BUFFER_FULL)  //copy previous half buffer to current buffer
+		
+		if(imageBuffer[oldIdx]->getImageNumber() == IMAGE_BUFFER_DEPTH)
+		{
+			imageBuffer[oldIdx]->openReadFiles_nofilter();
+			int inParamIdx = imageBuffer[oldIdx]->getInParamIdx();
+			
+			for(int idx = 0; idx < IMAGE_BUFFER_DEPTH; idx++)
+			{
+				imageInfo_t image;
+				imageBuffer[oldIdx]->getCurrentImage(&image);
+				if(idx >= (IMAGE_BUFFER_DEPTH/2))
+				{
+					imageBuffer[readIdx]->addImage(image.image, image.gpsInfo, image.gpsInfoPre, image.speed, image.direction,inParamIdx);
+				}
+			}
+			imageBuffer[oldIdx]->setImageToStart();
+			imageBuffer[oldIdx]->closeReadFiles();
+		}
+
+#endif
+
+
+		bool flag = imageBuffer[oldIdx]->openReadFiles();
+
 		saveFlag = false;
 		ReleaseMutex(_hMutex);
-		return true;
+		return flag;
 	}
 	else
 	{
@@ -474,8 +777,9 @@ void ImageBufferAll::cleanCurrentBuffer(void)
 int ImageBufferAll::getCurrentImageNum(void)
 {
 	WaitForSingleObject(_hMutex,INFINITE);
+    int frameNum = imageBuffer[readIdx]->getImageNumber();
 	ReleaseMutex(_hMutex);
-	return imageBuffer[readIdx]->getImageNumber();
+	return frameNum;
 }
 
 void ImageBufferAll::setReadyFlag(void)
@@ -485,16 +789,33 @@ void ImageBufferAll::setReadyFlag(void)
 	ReleaseMutex(_hMutex);
 }
 
+void ImageBufferAll::setInParamIdx(int input)
+{
+    WaitForSingleObject(_hMutex,INFINITE);
+    imageBuffer[readIdx]->setInParamIdx(input);
+    ReleaseMutex(_hMutex);
+}
+
+int ImageBufferAll::getInParamIdx()
+{
+    WaitForSingleObject(_hMutex,INFINITE);
+    int inParamIdxTmp = imageBuffer[readIdx]->getInParamIdx();
+    ReleaseMutex(_hMutex);
+    return inParamIdxTmp;
+}
+
 void ImageBufferAll::setImageSize(int width,int height)
 {
-    _imageHeight = height;
-    _imageWidth = width;
+    WaitForSingleObject(_hMutex,INFINITE);
+    imageBuffer[readIdx]->setImageSize(width, height);
+    ReleaseMutex(_hMutex);
 }
 
 void ImageBufferAll::getImageSize(int& width,int& height)
 {
-    width = _imageWidth;
-    height = _imageHeight;
+    WaitForSingleObject(_hMutex,INFINITE);
+    imageBuffer[readIdx]->getImageSize(width, height);
+    ReleaseMutex(_hMutex);
 }
 
 #endif

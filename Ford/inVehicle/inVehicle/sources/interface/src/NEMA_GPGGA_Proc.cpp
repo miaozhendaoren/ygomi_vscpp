@@ -125,7 +125,7 @@ void CNEMA_GPGGA_PROC::NEMA_GPGGA_parser(char *string)
                 if(j >= sizeof(block))  
                     break;                
             }
-            if(string[i-1] == ',')
+            if(0 != i && string[i-1] == ',')
             {  
                 block[0] = '0';
             }  

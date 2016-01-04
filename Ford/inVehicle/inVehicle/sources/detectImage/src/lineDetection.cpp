@@ -339,7 +339,7 @@ int findNewVP (Mat src,Mat Image,Mat Image2, Point &VP)
         double a2 = lines[i][2];
         double b2 = lines[i][3];
 
-        double K = (b1-b2)/(a2-a1);
+        double K = (b1-b2)/(a2-a1 + 0.0000000001);
 
         if ((a1 < Center.x)&&(b1 > Center.y)&& (K > 0.2))
         {
@@ -404,7 +404,7 @@ int findNewVP (Mat src,Mat Image,Mat Image2, Point &VP)
             double C = y1*y2 - y1*y1 - x1*x2 + x1*x1;
 
             // distance between point to line((x1,y1),(x2,y2)).
-            double distance = abs(A *vanishPoint[k].x + B*vanishPoint[k].y + C)/sqrt(A*A + B*B);    
+            double distance = abs(A *vanishPoint[k].x + B*vanishPoint[k].y + C)/sqrt(A*A + B*B + 0.0000000001);    
             area += distance * sqrt(B*B+A*A);
         }
 
@@ -419,7 +419,7 @@ int findNewVP (Mat src,Mat Image,Mat Image2, Point &VP)
             double B = y1 - y2;
             double C = y1*y2 - y1*y1 - x1*x2 + x1*x1;
 
-            double distance = abs(A *vanishPoint[k].x + B*vanishPoint[k].y + C)/sqrt(A*A + B*B);    
+            double distance = abs(A *vanishPoint[k].x + B*vanishPoint[k].y + C)/sqrt(A*A + B*B + 0.0000000001);    
             area += distance * sqrt(B*B+A*A);
         }
         error.push_back(area);

@@ -22,8 +22,6 @@ typedef enum
 {
 	VideoPlayEnum_normal = 0,
 	VideoPlayEnum_1_2,
-	VideoPlayEnum_1_4,
-	VideoPlayEnum_1_8,
 	VideoPlayEnum_pause
 }VideoPlayEnum;
 

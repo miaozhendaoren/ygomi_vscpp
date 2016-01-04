@@ -40,7 +40,7 @@ namespace ns_roadScan
 #endif
 
 #define SCALE 50
-#define HH  28
+#define HH  100
 #define BIRDVIEWROW    (10)
 #define CUT 32765.0
 
@@ -61,6 +61,7 @@ const float MIN_DISTANCE = 400.0;
 //const int START_ROW = 0;
 //const int END_ROW = 1800;
 const float THESHOLD = 0.1;//0.35
+const float laneWidthThreshold = 60.0; // FIXME
 
 struct landMarkInfo
 {
@@ -164,6 +165,8 @@ struct Parameters
 	int downSampling;
 
 	double distancePerPixel;
+    double distancePerPixelX;
+    double distancePerPixelY;
 
 	Point2d GPSref;
 
@@ -176,6 +179,12 @@ struct Parameters
     bool discardRoadDataAfterLaneChange;
 
     float offsetDist;
+
+    float laneScaleX;
+    float laneScaleY;
+    int   startRowCurLane;
+    int   startRowAllLane;
+    int   rowDownMoveNumber;
 };
 
 struct SLineInfo
@@ -215,12 +224,20 @@ struct boundaryPoint
     Point downPt;
 };
 
-int roadImageGen(Mat imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Point2d *GPS_next, 
+int roadImageGen(Mat &imageIn, Mat &history, int *rowIndex, Point2d *GPS_abs, Point2d *GPS_next, Mat &H, double cmPerPixel, int startRow,
     gpsInformationAndInterval *gpsAndInterval, int *intrtmp, Parameters inParam,Point2d &GPS_stop,bool &stopFlg);
-void roadImageProc2(Mat longLane, Parameters &inParam, vector<gpsInformationAndInterval> &GPSAndInterval, vector<dataEveryRow> &roadPaintData, 
-     vector<landMark> &vecLandMark);
+
+void roadImageProc2(Mat &longLane, Parameters &inParam, vector<gpsInformationAndInterval> &GPSAndInterval, vector<dataEveryRow> &roadPaintData, 
+     vector<landMark> &vecLandMark, Mat &DrawMarker);
 
 bool readParamRoadScan(char* paramFileName, Parameters& inParam);
+
+bool currentLaneMatched(Mat &roadDetected, Mat &historyROI1, Mat &historyROI2, 
+                        vector<gpsInformationAndInterval> &GPSAndInterval1 ,
+                        vector<gpsInformationAndInterval> &GPSAndInterval2,
+                        Parameters& inParam,Mat &outImage, float *width, float *meanX,Mat &invertH, Mat &laneH);
+bool neighborLaneDetect(Mat &allLanes,float width, float meanX, vector<gpsInformationAndInterval> &GPSAndInterval,
+                                Parameters& inParam, vector<dataEveryRow> &roadPaintData);
 
 }
 #endif

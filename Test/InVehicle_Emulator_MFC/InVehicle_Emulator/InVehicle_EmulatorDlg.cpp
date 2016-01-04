@@ -29,7 +29,7 @@ volatile char pause_flag =  FALSE;
 
 #define RECV_BUF_LEN  10000
 uint8 recvBuf[RECV_BUF_LEN];
-volatile int timeDelay = 5000;
+volatile int timeDelay = 3000;
 
 HANDLE threadHandle[3];
 
@@ -182,32 +182,34 @@ unsigned int __stdcall Thread_SendMsg(LPVOID lpParam)
 				continue;
 			}
 		}
-
-		//printf("message Count = %d\n",counter);
-		//display message count
-		PostMessage(pInfo->hWnd,WM_DISPLAYCOUNT,NULL,counter);
-		counter++;
-
-		//send header
-		nRet = send(sockClient,(char*)&headerBuf,headerBuf.msgHeader.headerLen,0);
-		if ((nRet == SOCKET_ERROR) || (nRet == 0))
+		
+		if(headerBuf.msgHeader.payloadLen != 0)
 		{
-			trySetConnectSocket(true);
-		}
-		else
-		{
-			if((headerBuf.msgHeader.payloadLen > 0))
+			//printf("message Count = %d\n",counter);
+			//display message count
+			PostMessage(pInfo->hWnd,WM_DISPLAYCOUNT,NULL,counter);
+			counter++;
+
+			//send header
+			nRet = send(sockClient,(char*)&headerBuf,headerBuf.msgHeader.headerLen,0);
+			if ((nRet == SOCKET_ERROR) || (nRet == 0))
 			{
-				nRet = send(sockClient,(char*)payloadBuf,headerBuf.msgHeader.payloadLen,0);
-				if ((nRet == SOCKET_ERROR) || (nRet == 0))
+				trySetConnectSocket(true);
+			}
+			else
+			{
+				if((headerBuf.msgHeader.payloadLen > 0))
 				{
-					trySetConnectSocket(true);
+					nRet = send(sockClient,(char*)payloadBuf,headerBuf.msgHeader.payloadLen,0);
+					if ((nRet == SOCKET_ERROR) || (nRet == 0))
+					{
+						trySetConnectSocket(true);
+					}
 				}
 			}
-		}
 		
-		Sleep(timeDelay);
-
+			Sleep(timeDelay);
+		}
 	}
 
 	fclose(fpMsg);
@@ -364,7 +366,7 @@ CInVehicle_EmulatorDlg::CInVehicle_EmulatorDlg(CWnd* pParent /*=NULL*/)
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_strFilePath = _T(".\\config\\messages.bin"); //set default path
 	m_port = _T("6000"); //set default port
-	m_timedelay = _T("5");
+	m_timedelay = _T("3");
 }
 
 void CInVehicle_EmulatorDlg::DoDataExchange(CDataExchange* pDX)

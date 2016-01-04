@@ -9,6 +9,10 @@
       <Configuration>DE_Airport_Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="DE_Airport_Large_Release|Win32">
+      <Configuration>DE_Airport_Large_Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="DE_Lehre_Video_Release|Win32">
       <Configuration>DE_Lehre_Video_Release</Configuration>
       <Platform>Win32</Platform>
@@ -55,6 +59,12 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DE_Airport_Large_Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='US_Detroit_Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -82,6 +92,9 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DE_Airport_Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DE_Airport_Large_Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='US_Detroit_Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -91,7 +104,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\framework\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\roadVecGen2\include;$(ProjectDir)\..\..\..\Tools\libicp\src;$(ProjectDir)\..\..\..\Tools;$(IncludePath)</IncludePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\framework\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\roadVecGen2\include;$(ProjectDir)\..\..\..\Tools\libicp\src;$(ProjectDir)\..\..\..\Tools;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(ProjectDir)\lib\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -109,6 +122,11 @@
     <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\framework\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\roadVecGen2\include;$(ProjectDir)\..\..\..\Tools\libicp\src;$(ProjectDir)\..\..\..\Tools;$(IncludePath)</IncludePath>
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(ProjectDir)\lib\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DE_Airport_Large_Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\framework\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\roadVecGen2\include;$(ProjectDir)\..\..\..\Tools\libicp\src;$(ProjectDir)\..\..\..\Tools;;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OpenCV)\x86\vc10\lib;$(ProjectDir)\lib\;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='US_Detroit_Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\framework\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\roadVecGen2\include;$(ProjectDir)\..\..\..\Tools\libicp\src;$(ProjectDir)\..\..\..\Tools;$(IncludePath)</IncludePath>
@@ -116,7 +134,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='US_Palo_Alto_Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\framework\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\roadVecGen2\include;$(ProjectDir)\..\..\..\Tools\libicp\src;$(ProjectDir)\..\..\..\Tools;$(IncludePath)</IncludePath>
+    <IncludePath>$(OpenCV)\include;$(OpenCV)\include\opencv2;$(OpenCV)\include\opencv;$(ProjectDir)\include;$(ProjectDir)\sources\database\include;$(ProjectDir)\sources\framework\include;$(ProjectDir)\sources\interface\include;$(ProjectDir)\sources\log\include;$(ProjectDir)\sources\visualization\include;$(ProjectDir)\sources\roadVecGen2\include;$(ProjectDir)\..\..\..\Tools\libicp\src;$(ProjectDir)\..\..\..\Tools;$(ProjectDir)\sources\configParse\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(OpenCV)\x86\vc10\lib;$(ProjectDir)\lib\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -228,6 +246,38 @@ xcopy "$(ProjectDir)\resource" "$(OutDir)\resource" /s/y</Command>
 copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib\libicp.lib"</Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DE_Airport_Large_Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_FRANKFORT_LARGE_VIDEO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Async</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>libicp.lib;opencv_calib3d2410.lib;opencv_contrib2410.lib;opencv_core2410.lib;opencv_features2d2410.lib;opencv_flann2410.lib;opencv_gpu2410.lib;opencv_highgui2410.lib;opencv_imgproc2410.lib;opencv_legacy2410.lib;opencv_ml2410.lib;opencv_nonfree2410.lib;opencv_objdetect2410.lib;opencv_photo2410.lib;opencv_stitching2410.lib;opencv_ts2410.lib;opencv_video2410.lib;opencv_videostab2410.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(OutDir)\config" md "$(OutDir)\config"
+if not exist "$(OutDir)\resource" md "$(OutDir)\resource"
+if not exist "$(OutDir)\log" md "$(OutDir)\log"
+if not exist "$(OutDir)\log\airportBackLoad" md "$(OutDir)\log\airportBackLoad"
+if not exist "$(OutDir)\log\airportBackSave" md "$(OutDir)\log\airportBackSave"
+xcopy "$(ProjectDir)\config" "$(OutDir)\config" /s/y
+xcopy "$(ProjectDir)\resource" "$(OutDir)\resource" /s/y</Command>
+    </PostBuildEvent>
+    <PreLinkEvent>
+      <Command>if not exist "$(ProjectDir)\lib" md "$(ProjectDir)\lib"
+copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib\libicp.lib"</Command>
+    </PreLinkEvent>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='US_Detroit_Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -289,6 +339,12 @@ copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib
     </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="sources\configParse\src\RoadSeg.cpp" />
+    <ClCompile Include="sources\configParse\src\tinystr.cpp" />
+    <ClCompile Include="sources\configParse\src\tinyxml.cpp" />
+    <ClCompile Include="sources\configParse\src\tinyxmlerror.cpp" />
+    <ClCompile Include="sources\configParse\src\tinyxmlparser.cpp" />
+    <ClCompile Include="sources\configParse\src\XMLParser.cpp" />
     <ClCompile Include="sources\database\src\database.cpp" />
     <ClCompile Include="sources\database\src\databaseMath.cpp" />
     <ClCompile Include="sources\database\src\databaseServer.cpp" />
@@ -305,7 +361,9 @@ copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib
     <ClCompile Include="sources\log\src\TimeStamp.cpp" />
     <ClCompile Include="sources\roadVecGen2\src\polynomialFit.cpp" />
     <ClCompile Include="sources\roadVecGen2\src\RoadVecGen2.cpp" />
+    <ClCompile Include="sources\roadVecGen2\src\RoadVecGen3.cpp" />
     <ClCompile Include="sources\roadVecGen2\src\SecRptData.cpp" />
+    <ClCompile Include="sources\roadVecGen2\src\SecRptData2.cpp" />
     <ClCompile Include="sources\roadVecGen2\src\VisualizationApis.cpp" />
     <ClCompile Include="sources\visualization\src\Loader3DS.cpp" />
     <ClCompile Include="sources\visualization\src\Visualization.cpp" />
@@ -314,6 +372,10 @@ copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib
   <ItemGroup>
     <ClInclude Include="include\configure.h" />
     <ClInclude Include="include\typeDefine.h" />
+    <ClInclude Include="sources\configParse\include\RoadSeg.h" />
+    <ClInclude Include="sources\configParse\include\tinystr.h" />
+    <ClInclude Include="sources\configParse\include\tinyxml.h" />
+    <ClInclude Include="sources\configParse\include\XMLParser.h" />
     <ClInclude Include="sources\database\include\database.h" />
     <ClInclude Include="sources\database\include\databaseDef.h" />
     <ClInclude Include="sources\database\include\databaseServer.h" />
@@ -327,6 +389,15 @@ copy "$(ProjectDir)\..\..\..\Tools\libicp\Release\libicp.lib" "$(ProjectDir)\lib
     <ClInclude Include="sources\interface\include\messageQueueClass.h" />
     <ClInclude Include="sources\log\include\LogInfo.h" />
     <ClInclude Include="sources\log\include\TimeStamp.h" />
+    <ClInclude Include="sources\roadVecGen2\include\apiDataStruct.h" />
+    <ClInclude Include="sources\roadVecGen2\include\ExtractSection.h" />
+    <ClInclude Include="sources\roadVecGen2\include\polynomialFit.h" />
+    <ClInclude Include="sources\roadVecGen2\include\RoadVecGen.h" />
+    <ClInclude Include="sources\roadVecGen2\include\RoadVecGen2.h" />
+    <ClInclude Include="sources\roadVecGen2\include\RoadVecGen3.h" />
+    <ClInclude Include="sources\roadVecGen2\include\SecRptData.h" />
+    <ClInclude Include="sources\roadVecGen2\include\SecRptData2.h" />
+    <ClInclude Include="sources\roadVecGen2\include\VisualizationApis.h" />
     <ClInclude Include="sources\visualization\include\3dsId.h" />
     <ClInclude Include="sources\visualization\include\Loader3DS.h" />
     <ClInclude Include="sources\visualization\include\Model3DS.h" />

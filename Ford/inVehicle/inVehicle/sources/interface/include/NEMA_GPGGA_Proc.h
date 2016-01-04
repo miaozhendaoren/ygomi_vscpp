@@ -28,6 +28,7 @@ public:
     double dLongitude;
 	double altitude;
 	unsigned int st;
+	int    inParamIdxs;
 
 	int positioningStatePre;
 	char cLatitudePre;  //latitude
@@ -36,6 +37,7 @@ public:
     double dLongitudePre;
 	double altitudePre;
 	unsigned int stPre;
+	int    inParamIdxsPre;
 
 	int positioningStatePrePre;
 	char cLatitudePrePre;  //latitude
@@ -44,6 +46,7 @@ public:
     double dLongitudePrePre;
 	double altitudePrePre;
 	unsigned int stPrePre;
+	int     inParamIdxsPrePre;
 };
 
 class CNEMA_GPGGA_PROC

@@ -19,7 +19,7 @@
 #include "typeDefine.h"
 #define MAX_PDU_NUM							300
 #define MAX_PAYLOAD_BYTE_NUM				(1024*5000)  //5000K
-#define MAX_ROAD_POINT_BYTES				(1024*100000) //100M
+#define MAX_ROAD_POINT_BYTES				(1024*10000) //10000K
 //message ID
 #define STATUS_UPDATE_RPT_MSG				0x0000
 #define STATUS_UPDATE_RSP_MSG				0x1000
@@ -36,13 +36,28 @@
 //#define MSG_ERR								0x0001
 
 //operation
-#define ADD_NEW_SEGMENT						0x00000000
-#define ADD_NEW_FURNITURE					0x00000001
-#define UPDATE_FURNITURE					0x00010001
-#define ADD_ALL_VECTORLIST					0x00000006
-#define REDUCE_ONE_FURNITURE				0x00020001
-#define ADD_LANE_POINT						0x00000002
-#define ADD_ALL_FURNITURE					0x00000005
+#define ADD_OPERATION                       0x0000
+#define UPDATE_OPERATION                    0x0001
+#define REDUCE_OPERATION                    0x0002
+
+
+// attributes
+#define SEGMENT                             0x0000
+#define FURNITURE                           0x0001
+#define VECTORLIST                          0x0006
+#define LANE_POINT                          0x0002
+#define SIDE_LANE                           0x0008
+#define FURNITURELIST                       0x0005
+//operation+attributes
+
+#define ADD_NEW_SEGMENT						(((uint32)ADD_OPERATION << 16) + SEGMENT)
+#define ADD_NEW_FURNITURE					(((uint32)ADD_OPERATION << 16) + FURNITURE) //0x00000001
+#define UPDATE_FURNITURE					(((uint32)UPDATE_OPERATION << 16) + FURNITURE) //0x00010001
+#define ADD_ALL_VECTORLIST					(((uint32)ADD_OPERATION << 16) + VECTORLIST) // 0x00000006
+#define REDUCE_ONE_FURNITURE				(((uint32)REDUCE_OPERATION << 16) + FURNITURE) //0x00020001
+#define ADD_LANE_POINT						(((uint32)ADD_OPERATION << 16) + LANE_POINT) //0x00000002
+#define SIDE_LANE_INFO                      (((uint32)ADD_OPERATION << 16) + SIDE_LANE) //0x00000003
+#define ADD_ALL_FURNITURE					(((uint32)ADD_OPERATION << 16) + FURNITURELIST)//0x00000005
 
 //structure
 enum statusMsgTag_e:uint8
@@ -54,14 +69,15 @@ enum statusMsgTag_e:uint8
 };
 enum pduType_e:uint16
 {
-	segmentInfo_e = 0x00,
+	segmentInfo_e = SEGMENT,
 	furnitureElement_e,
-	gpsInfo_e,
+	curLaneInfo_e,
 	vectorElement_e,
 	dynamicData_e,
 	furnitureList_e,
 	vectorList_e,
 	dynamicDataList_e,
+    sideLaneInfo_e,
 };
 enum operation_e:uint16
 {

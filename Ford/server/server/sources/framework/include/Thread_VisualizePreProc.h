@@ -19,3 +19,5 @@
 #include "Visualization.h"
 
 unsigned int __stdcall Thread_VisualizePreProc(void *data);
+
+#define MASK_BIT_LOW_24  0x0FFFFFF

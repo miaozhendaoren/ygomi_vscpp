@@ -17,8 +17,12 @@
 
 #include "configure.h"
 
-#define BUFFER_MODE 0
-#define BUFFER_LEN  100
+#define DIRECT_IO_ACCESS		0
+#define BUFFER_CONSTANT_ACCESS	1
+#define BUFFER_LOOP_ACCESS		2
+
+#define BUFFER_MODE		BUFFER_CONSTANT_ACCESS
+#define BUFFER_LEN  1024
 #define TIMESTAMP_FILENAME  "./log/TimeStampLog.bin"
 
 #if (ON == RD_TIMESTAMP)

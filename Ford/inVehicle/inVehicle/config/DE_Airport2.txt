@@ -32,9 +32,15 @@ downSampling:
 distancePerPixel:
 1.2138
 
+distancePerPixelX:
+2.138157895
+
+distancePerPixelY:
+1.45192308
+
 GPSref:
-48.354788999999997
-11.758086000000000
+48.350662000000000
+11.733637999999999
 
 imageScaleHeight:
 0.5
@@ -53,3 +59,18 @@ discardRoadDataAfterLaneChange:
 
 offsetDistance:
 7.5
+
+laneScaleX:
+0.45
+
+laneScaleY:
+0.5
+
+startRowCurLane:
+710
+
+startRowAllLane:
+300
+
+rowDownMoveNumber:
+120

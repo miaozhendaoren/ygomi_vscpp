@@ -30,6 +30,11 @@ namespace ns_database
 	#define COEFF_DD2METER (111320.0)
     #define MAX_RALIABILITY 5
     #define PI  3.1415926536f
+	#define LANE_DIR_BIT_SHIFT (24)
+	#define LANE_DIR_BIT_MASK  (1<<LANE_DIR_BIT_SHIFT) 
+	#define SET_LANE_DIR_BIT(dat, dir) ((dat) |= (dir << LANE_DIR_BIT_SHIFT))
+	#define GET_LANE_DIR_BIT(dat) ((dat>>LANE_DIR_BIT_SHIFT)&0x1)
+	#define CLEAN_LANE_DIR_BIT(dat) (dat&(~LANE_DIR_BIT_MASK)) 
 
     // Basic structure
     enum resource_e : uint32
@@ -116,6 +121,8 @@ namespace ns_database
         uint8  numDynamicData;
         uint8  uiLaneNum_used;
         uint8  uiLaneNum;
+        uint8  loopIdx_used;
+        uint8  loopIdx; // 0: big loop; 1: small loop; 2: T road
     };
 	 
     class furAttributes_t
@@ -145,6 +152,8 @@ namespace ns_database
         float  offset;
         uint8  reliabRating_used;
         uint8  reliabRating;
+        uint8  inLoopIdx_used;
+        uint8  inLoopIdx; // 0: big loop; 1: small loop; 2: T road
         uint8  boundary_used;
         std::vector<point3D_t> boundary;
 
@@ -420,6 +429,10 @@ namespace ns_database
     void lookAheadOnTrack(IN std::vector<point3D_t> &locVec, 
                           IN double distanceAhead, 
                           OUT std::vector<point3D_t> &locVecAhead);
+    
+    void smoothGps(IN int filterOrder,
+                   IN std::vector<point3D_t> &locVec, 
+                   OUT std::vector<point3D_t> &locSmoothed);
 
 }
 

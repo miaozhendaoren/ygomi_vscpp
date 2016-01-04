@@ -1,0 +1,11 @@
+stash:
+
+username:roaddbtest
+password:4rfvBHU*
+mail:roaddbtest@ygomi.com
+
+
+sftp:
+port:22
+username:roadDB
+password:WuiIBTKLjCglwh

@@ -94,6 +94,7 @@ namespace ns_database
 
         bool checkDbCompleteByGps(IN point3D_t *gpsIn);
 
+        bool databaseInVehicle::saveRoadVecAndFurToKml(IN std::string fileName, IN point3D_t &standPoint);
     private:
 
         std::list<std::list<furAttributesInVehicle_t>> _furnitureList; // segment list / furniture element

@@ -20,6 +20,7 @@
 #include <stdio.h>    // FILE
 #include <windows.h>  // CreateMutex, FOREGROUND_RED
 
+#include "configure.h"// KML_PAINT_ONLY_FLAG
 #include "LogInfo.h"  // logPrintf
 
 #include <iostream>   // cout
@@ -1053,5 +1054,132 @@ namespace ns_database
         //std::cout << "isCompleteFlag = " << isCompleteFlag << std::endl;
 
         return isCompleteFlag;
+    }
+
+    bool databaseInVehicle::saveRoadVecAndFurToKml(IN std::string fileName, IN point3D_t &standPoint)
+    {
+        list<list<vector<point3D_t>>> allLines;
+        list<list<lineAttributes_t>>  lineAttr;
+        getAllVectors(allLines, lineAttr);
+
+        list<list<furAttributesInVehicle_t>> furnitureList;
+        getAllFurnitures(furnitureList);
+
+        // Output to kml file
+        int sectionIdx = 1;
+        int furIdx = 1;
+
+        FILE* fp = fopen(fileName.c_str(), "wt");
+        if (fp == NULL)
+        {
+            return false;
+        }
+
+        // kml file header tags: <xml>, <kml>, <Document>
+        fprintf(fp, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<kml>\n<Document>\n");
+
+        // tags: <Style>, <StyleMap>
+        fprintf(fp, "    <Style id=\"greenLineStyle\"><LineStyle><color>ff00ff00</color></LineStyle></Style>\n");
+        fprintf(fp, "    <StyleMap id=\"greenLine\"><Pair><key>normal</key><styleUrl>#greenLineStyle</styleUrl></Pair></StyleMap>\n");
+
+        // Vectors
+        // For each segment
+        list<list<vector<point3D_t>>>::iterator lineIter = allLines.begin();
+        while (lineIter != allLines.end())
+        {
+            int lineIdx = 1;
+
+            // For each line
+            list<vector<point3D_t>>::iterator lineInSegIter = lineIter->begin();
+            while (lineInSegIter != lineIter->end())
+            {
+                // tags: <Placemark>, <name>
+                fprintf(fp, "    <Placemark>\n        <name>Section-%d-Line-%d</name>\n", sectionIdx, lineIdx);
+                
+                // tag: styleUrl
+                fprintf(fp, "        <styleUrl>#greenLine</styleUrl>\n");
+
+                // tag: <LineString>
+                fprintf(fp, "        <LineString>\n");
+
+#if (KML_PAINT_ONLY_FLAG == ON)
+                // tag: <altitudeMode>
+                fprintf(fp, "            <altitudeMode>relativeToGround</altitudeMode>\n");
+#endif
+
+                // tag: <coordinates>
+                fprintf(fp, "            <coordinates>\n                ");
+
+                // For each point
+                vector<point3D_t>::iterator pointIter = lineInSegIter->begin();
+                while (pointIter != lineInSegIter->end())
+                {
+                    double alt = 0;
+                    
+                    point3D_t outGpsPoint;
+
+                    pointRelative3D_t relPoint;
+                    relPoint.x = pointIter->lon;
+                    relPoint.y = pointIter->lat;
+                    calcGpsFromRelativeLocation(&standPoint, &relPoint, &outGpsPoint);
+                    
+#if (KML_PAINT_ONLY_FLAG == ON)
+                    if (pointIter->paintFlag < 0.5)
+                        alt = -0.5;
+                    else
+                        alt = 0;
+#endif
+
+                    fprintf(fp, "%.7f,%.7f,%f ", outGpsPoint.lon, outGpsPoint.lat, alt);
+
+                    ++pointIter;
+                }
+
+                fprintf(fp, "\n            </coordinates>\n        </LineString>\n    </Placemark>\n");
+
+                ++lineInSegIter;
+                ++lineIdx;
+            }
+
+            ++lineIter;
+            ++sectionIdx;
+        }
+
+        // Traffic signs
+        // For each segment
+        list<list<furAttributesInVehicle_t>>::iterator furIter = furnitureList.begin();
+        while (furIter != furnitureList.end())
+        {
+            // For each furniture
+            list<furAttributesInVehicle_t>::iterator furInSegIter = furIter->begin();
+            while (furInSegIter != furIter->end())
+            {
+                fprintf(fp, "    <Placemark>\n        <name>Sign-%d</name>\n        <Point>\n            <coordinates>\n                ", furIdx);
+
+                double alt = 0;
+                point3D_t outGpsPoint;
+
+                pointRelative3D_t relPoint;
+                relPoint.x = furInSegIter->location.lon;
+                relPoint.y = furInSegIter->location.lat;
+                calcGpsFromRelativeLocation(&standPoint, &relPoint, &outGpsPoint);
+
+                fprintf(fp, "%.7f,%.7f,%f", outGpsPoint.lon, outGpsPoint.lat, alt);
+
+                fprintf(fp, "\n            </coordinates>\n        </Point>\n    </Placemark>\n");
+
+                ++furIdx;
+                ++furInSegIter;
+            }
+
+            ++furIter;
+        }
+
+        // End tags
+        fprintf(fp, "</Document>\n</kml>");
+
+        fclose(fp);
+
+        return true;
     }
 }

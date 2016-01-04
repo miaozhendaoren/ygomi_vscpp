@@ -85,7 +85,16 @@ void load_all_textures(void)
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/2004.bmp",45);
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/2005.bmp",46);
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/1000.bmp",47);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/1002.bmp",48);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/1050.bmp",48);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/10200.bmp",49);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/24100.bmp",50);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/28400.bmp",51);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/28500.bmp",52);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/28700.bmp",53);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/34100.bmp",54);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/10310.bmp",55);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/10320.bmp",56);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/22210.bmp",57);
 
 #else if((RD_LOCATION&RD_NATION_MASK) == RD_UNIT_STATES)
 
@@ -97,6 +106,11 @@ void load_all_textures(void)
     engine3DPtr->load_bmp24_texture("./resource/US/bmp/6.bmp",6);
     engine3DPtr->load_bmp24_texture("./resource/US/bmp/7.bmp",7);
     engine3DPtr->load_bmp24_texture("./resource/US/bmp/8.bmp",8);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/35.bmp",9);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/1000.bmp",10);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/1000.bmp",11);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/1000.bmp",12);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/1000.bmp",13);
 #endif
 }
 
@@ -194,7 +208,8 @@ void specialKeyFunc(int key, int x, int y)
 	case GLUT_KEY_DOWN:
 		{
 			GLfloat serverAngle = engine3DPtr->getServerAngle();
-			updateServerEye(&serverEyeInfo[0],(serverAngle+180),4);
+			GLfloat changeRng = abs((serverEyeInfo[0].eyePosition.y)/10);
+			updateServerEye(&serverEyeInfo[0],(serverAngle+180),changeRng);
 			engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
 			engine3DPtr->SwapServerEyeBuffer();
 		}
@@ -202,7 +217,8 @@ void specialKeyFunc(int key, int x, int y)
 	case GLUT_KEY_UP:
 		{
 			GLfloat serverAngle = engine3DPtr->getServerAngle();
-			updateServerEye(&serverEyeInfo[0],(serverAngle),4);
+			GLfloat changeRng = abs((serverEyeInfo[0].eyePosition.y)/10);
+			updateServerEye(&serverEyeInfo[0],(serverAngle),changeRng);
 			engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
 			engine3DPtr->SwapServerEyeBuffer();
 		}
@@ -210,7 +226,8 @@ void specialKeyFunc(int key, int x, int y)
 	case GLUT_KEY_LEFT:
 		{
 			GLfloat serverAngle = engine3DPtr->getServerAngle();
-			updateServerEye(&serverEyeInfo[0],(serverAngle+270),4);
+			GLfloat changeRng = abs((serverEyeInfo[0].eyePosition.y)/10);
+			updateServerEye(&serverEyeInfo[0],(serverAngle+270),changeRng);
 			engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
 			engine3DPtr->SwapServerEyeBuffer();
 		}
@@ -218,7 +235,8 @@ void specialKeyFunc(int key, int x, int y)
 	case GLUT_KEY_RIGHT:
 		{
 			GLfloat serverAngle = engine3DPtr->getServerAngle();
-			updateServerEye(&serverEyeInfo[0],(serverAngle+90),4);
+			GLfloat changeRng = abs((serverEyeInfo[0].eyePosition.y)/10);
+			updateServerEye(&serverEyeInfo[0],(serverAngle+90),changeRng);
 			engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
 			engine3DPtr->SwapServerEyeBuffer();
 		}
@@ -247,7 +265,7 @@ void keyboardFunc(unsigned char key, int x, int y)
 {
 	switch(key)
 	{
-	case 127:
+	case 127:  //:Delete
 	// reset database key event
 		{
 			messageProcessClass statusMessage;
@@ -257,23 +275,24 @@ void keyboardFunc(unsigned char key, int x, int y)
 			statusRptMsgPtr->payloadHeader.tlvArray[0].tag = 1;
 			statusRptMsgPtr->payloadHeader.tlvArray[0].len = 2;
 			statusRptMsgPtr->payloadHeader.tlvArray[0].value = 3;
+            statusMessage.messagePriority = highLevel_e;
 			messageQueue_gp->push(&statusMessage);
 			ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
 		}
 		break;
-	case 73: //zoom in
+	case 73: //zoom in /I
 	case 105:
 		{
-			serverEyeInfo[0].eyePosition.y -= 3;
+			serverEyeInfo[0].eyePosition.y -= abs(serverEyeInfo[0].eyePosition.y/10);
 			serverEyeInfo[0].eyePosition.y = (serverEyeInfo[0].eyePosition.y < 1.0f)?1.0f:serverEyeInfo[0].eyePosition.y;
 			engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
 			engine3DPtr->SwapServerEyeBuffer();
 		}
 		break;
-	case 79: //zoom out
+	case 79: //zoom out /O
 	case 111:
 		{
-			serverEyeInfo[0].eyePosition.y += 3;
+			serverEyeInfo[0].eyePosition.y += abs(serverEyeInfo[0].eyePosition.y/10);
 			serverEyeInfo[0].eyePosition.y = (serverEyeInfo[0].eyePosition.y < 1.0f)?1.0f:serverEyeInfo[0].eyePosition.y;
 			engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
 			engine3DPtr->SwapServerEyeBuffer();
@@ -283,7 +302,7 @@ void keyboardFunc(unsigned char key, int x, int y)
 	case 120:
 		engine3DPtr->setSignFlag();
 		break;
-	case 49: //reset the furnitures
+	case 49: //reset the furnitures /1
 		{
 			messageProcessClass statusMessage;
 			diffRptMsg_t* statusRptMsgPtr = statusMessage.getDiffRptMsg();
@@ -292,11 +311,12 @@ void keyboardFunc(unsigned char key, int x, int y)
 			statusRptMsgPtr->payloadHeader.tlvArray[0].tag = 1;
 			statusRptMsgPtr->payloadHeader.tlvArray[0].len = 2;
 			statusRptMsgPtr->payloadHeader.tlvArray[0].value = 4;
+            statusMessage.messagePriority = highLevel_e;
 			messageQueue_gp->push(&statusMessage);
 			ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
 		}
 		break;
-	case 50: //reset the road geometry
+	case 50: //reset the road geometry  /2
 		{
 			messageProcessClass statusMessage;
 			diffRptMsg_t* statusRptMsgPtr = statusMessage.getDiffRptMsg();
@@ -305,11 +325,12 @@ void keyboardFunc(unsigned char key, int x, int y)
 			statusRptMsgPtr->payloadHeader.tlvArray[0].tag = 1;
 			statusRptMsgPtr->payloadHeader.tlvArray[0].len = 2;
 			statusRptMsgPtr->payloadHeader.tlvArray[0].value = 5;
+            statusMessage.messagePriority = highLevel_e;
 			messageQueue_gp->push(&statusMessage);
 			ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
 		}
 		break;
-	case 83:    //s/S
+	case 83:    //s/S   save data
 	case 115:
 		{
 			messageProcessClass statusMessage;
@@ -319,11 +340,12 @@ void keyboardFunc(unsigned char key, int x, int y)
 			statusRptMsgPtr->payloadHeader.tlvArray[0].tag = 4;
 			statusRptMsgPtr->payloadHeader.tlvArray[0].len = 2;
 			statusRptMsgPtr->payloadHeader.tlvArray[0].value = 1;
+            statusMessage.messagePriority = highLevel_e;
 			messageQueue_gp->push(&statusMessage);
 			ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
 		}
 		break;
-	case 76:  //l/L
+	case 76:  //l/L   load data
 	case 108:
 		{
 			messageProcessClass statusMessage;
@@ -333,9 +355,16 @@ void keyboardFunc(unsigned char key, int x, int y)
 			statusRptMsgPtr->payloadHeader.tlvArray[0].tag = 4;
 			statusRptMsgPtr->payloadHeader.tlvArray[0].len = 2;
 			statusRptMsgPtr->payloadHeader.tlvArray[0].value = 2;
+            statusMessage.messagePriority = highLevel_e;
 			messageQueue_gp->push(&statusMessage);
 			ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
 		}
+		break;
+	case 82:   // r/R , reset the overview point to init
+	case 114:
+		serverEyeInfo[0] = serverEyeInfo[1];
+		engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
+		engine3DPtr->SwapServerEyeBuffer();
 		break;
 	default:
 		break;

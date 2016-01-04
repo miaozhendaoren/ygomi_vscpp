@@ -115,6 +115,7 @@ namespace ns_database
         seg_tunnel_e   = 0x0709,
         seg_furList_e  = 0x070A,
         seg_dynList_e  = 0x070B,
+        seg_loopIdx_e  = 0x070C,
         seg_max_e,
 
         vec_base_e = 0x1001,
@@ -133,6 +134,7 @@ namespace ns_database
         fur_offset_e       = 0x2008,
         fur_reliabRating_e = 0x2009,
         fur_segId_e        = 0x200A,
+        fur_inLoopIdx_e    = 0x200B,
         fur_max_e,
 
         // Dynamic data start from 0x3001

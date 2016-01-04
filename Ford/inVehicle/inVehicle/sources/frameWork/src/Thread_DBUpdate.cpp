@@ -24,6 +24,7 @@
 #include "AppInitCommon.h"
 #include "saveLinePointInSafe.h"
 #include "TimeStamp.h"
+#include "Signal_Thread_Sync.h"
 
 #pragma comment(lib, "ws2_32.lib") 
 
@@ -32,6 +33,9 @@ using ns_historyLine::saveLinePointInSafe;
 
 unsigned int __stdcall Thread_DBUpdate(void *data)
 {
+	startSocket();
+	sendDatabaseVersion();
+	ReleaseSemaphore(g_readySema_SocketReady, 1 ,NULL);
     while(1)
     {
 		
@@ -185,7 +189,7 @@ RESTART_LABEL:
                                 break;
                             case ADD_ALL_VECTORLIST:
                                 // add a vector list for specified segment.
-								historyInfoP.saveHistoryLine(database_gp);
+								// historyInfoP.saveHistoryLine(database_gp);
 								//database_gp->resetAllVectors();// Clear each section in function below -- addVectorsInSegTlv
                                 database_gp->addVectorsInSegTlv(recvHeader->payload + recvHeader->payloadHeader.pduHeader[pduIdx].pduOffset,pduLen);
                                 break;

@@ -22,6 +22,7 @@ using namespace std;
 
 messageProcessClass::messageProcessClass(void)
 {
+    messagePriority = lowLevel_e;
 	memset((void*)&diffRptMsg,0,sizeof(diffRptMsg));
 	memset((void*)&updateRptMsg,0,sizeof(updateRptMsg));
 }

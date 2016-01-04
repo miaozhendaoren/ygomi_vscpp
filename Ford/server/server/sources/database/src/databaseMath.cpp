@@ -378,14 +378,15 @@ namespace ns_database
                                IN float angleThresh)
     {
 	    bool sameFlag = false;
-	    bool usedFlag = fur1->location_used && fur1->sideFlag_used && fur1->type_used && fur1->angle_used
-                     && fur2->location_used && fur2->sideFlag_used && fur2->type_used && fur2->angle_used;
+	    bool usedFlag = fur1->location_used && fur1->sideFlag_used && fur1->type_used && fur1->angle_used && fur1->inLoopIdx_used
+                     && fur2->location_used && fur2->sideFlag_used && fur2->type_used && fur2->angle_used && fur2->inLoopIdx_used;
 
 	    if(usedFlag)
 	    {
 		    if((fur1->sideFlag == fur2->sideFlag) && (fur1->type == fur2->type) 
 			    && checkRelGpsInRange(&(fur1->location),&(fur2->location),distThreshMeter)
-			    && checkAngleInRange(fur1->angle, fur2->angle, angleThresh))
+			    && checkAngleInRange(fur1->angle, fur2->angle, angleThresh)
+			    && (fur1->inLoopIdx == fur2->inLoopIdx)) // add inParamIdx judgement
 		    {
 			    sameFlag = true;
 		    }

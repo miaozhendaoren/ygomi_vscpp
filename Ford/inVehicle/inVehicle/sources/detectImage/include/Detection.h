@@ -62,13 +62,13 @@ protected:
 
     void drawLine(cv::Mat image, std::vector<cv::Point> &approx, cv::Scalar color);
 
-    void loadFeat(std::vector<int> &feat, char *fileName);
-
 public:
     std::vector<float> offset;
     Detector(float highStep, double dist_per_piexl, int horizon_line);
     virtual void trafficSignDetect(cv::Mat image, TS_Structure &target) = 0;
-    void positionMeasure(ns_roadScan::Parameters &inParam, cv::Point2d &GPS_current, cv::Point2d &GPS_next, cv::Mat &imageIn, TS_Structure &target);
+    void positionMeasure(ns_roadScan::Parameters &inParam, cv::Point2d &GPS_current, cv::Point2d &GPS_next, cv::Mat &imageIn, TS_Structure &target, Mat &invertH);
+    
+    static void loadFeat(std::vector<int> &feat, char *fileName);
 };
 
 }

@@ -86,7 +86,16 @@ void load_all_textures(void)
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/2004.bmp",45);
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/2005.bmp",46);
 	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/1000.bmp",47);
-	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/1002.bmp",48);
+	engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/1050.bmp",48);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/10200.bmp",49);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/24100.bmp",50);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/28400.bmp",51);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/28500.bmp",52);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/28700.bmp",53);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/34100.bmp",54);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/10310.bmp",55);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/10320.bmp",56);
+    engine3DPtr->load_bmp24_texture("./resource/Germany/bmp/22210.bmp",57);
 
 #else if((RD_LOCATION&RD_NATION_MASK) == RD_UNIT_STATES)
 
@@ -98,6 +107,8 @@ void load_all_textures(void)
     engine3DPtr->load_bmp24_texture("./resource/US/bmp/6.bmp",6);
     engine3DPtr->load_bmp24_texture("./resource/US/bmp/7.bmp",7);
     engine3DPtr->load_bmp24_texture("./resource/US/bmp/8.bmp",8);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/35.bmp",9);
+    engine3DPtr->load_bmp24_texture("./resource/US/bmp/1000.bmp",10);
 #endif
 }
 
@@ -268,7 +279,7 @@ void keyboardFunc(unsigned char key, int x, int y)
 			 engine3DPtr->setMode(ServerMode_3DEngine);
 		 }
 		break;
-	case 73: //zoom in
+	case 73: //zoom in :I
 	case 105:
 		{
 			serverEyeInfo[0].eyePosition.y -= 3;
@@ -277,7 +288,7 @@ void keyboardFunc(unsigned char key, int x, int y)
 			engine3DPtr->SwapServerEyeBuffer();
 		}
 		break;
-	case 79: //zoom out
+	case 79: //zoom out :O
 	case 111:
 		{
 			serverEyeInfo[0].eyePosition.y += 3;
@@ -286,11 +297,11 @@ void keyboardFunc(unsigned char key, int x, int y)
 			engine3DPtr->SwapServerEyeBuffer();
 		}
 		break;
-	case 88: //turn on/off traffic sign
+	case 88: //turn on/off traffic sign :X
 	case 120:
 		engine3DPtr->setSignFlag();
 		break;
-	case 83:
+	case 83: //play video speed :S 
 	case 115:
 		if(VideoPlayEnum_pause == videoPlaySpeed)
 		{
@@ -299,6 +310,12 @@ void keyboardFunc(unsigned char key, int x, int y)
 		{
 			videoPlaySpeed = (VideoPlayEnum)((int)videoPlaySpeed + 1);
 		}
+		break;
+	case 82:   // r/R , reset the overview point to init
+	case 114:
+		serverEyeInfo[0] = serverEyeInfo[1];
+		engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
+		engine3DPtr->SwapServerEyeBuffer();
 		break;
 	default:
 		break;

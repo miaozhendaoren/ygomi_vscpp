@@ -80,13 +80,22 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 			{
 				if(FD_ISSET(clientListIdx->sockClient, &read_fds))
 				{
-					printf("Receive message ip: %d.%d.%d.%d, port:%d\n",
-						clientListIdx->client.sin_addr.S_un.S_un_b.s_b1,
-						clientListIdx->client.sin_addr.S_un.S_un_b.s_b2,
-						clientListIdx->client.sin_addr.S_un.S_un_b.s_b3,
-						clientListIdx->client.sin_addr.S_un.S_un_b.s_b4,
-						clientListIdx->client.sin_port
-						);
+					//printf("Receive message ip: %d.%d.%d.%d, port:%d\n",
+						//clientListIdx->client.sin_addr.S_un.S_un_b.s_b1,
+						//clientListIdx->client.sin_addr.S_un.S_un_b.s_b2,
+						//clientListIdx->client.sin_addr.S_un.S_un_b.s_b3,
+						//clientListIdx->client.sin_addr.S_un.S_un_b.s_b4,
+						//clientListIdx->client.sin_port
+						//);
+					{
+						std::stringstream msgStr;
+						msgStr << "Receive message ip:"<< (int)clientListIdx->client.sin_addr.S_un.S_un_b.s_b1
+							<<"."<<(int)clientListIdx->client.sin_addr.S_un.S_un_b.s_b2<<"."
+							<<(int)clientListIdx->client.sin_addr.S_un.S_un_b.s_b3<<"."
+							<<(int)clientListIdx->client.sin_addr.S_un.S_un_b.s_b4<<", port:"
+							<<clientListIdx->client.sin_port;
+						logPrintf(logLevelInfo_e,"RECEIVE_MSG", msgStr.str());
+					}
 					RD_ADD_TS(tsFunId_eThread_Recevie,3);
 					int   len = sizeof(struct sockaddr);
 					SOCKET sockTemp = clientListIdx->sockClient;
@@ -232,7 +241,13 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 						}
 					}
 					
-
+                    // set message priority
+                    {
+                        diffRptMsg_t *recvDiffMsg = (diffRptMsg_t*)recvMsg.getDiffRptMsg();
+                        diffMsgHeader_t *recvMsgHeader = &(recvDiffMsg->msgHeader);
+                        recvMsg.messagePriority = (msgLevel_e)recvMsgHeader->priority;
+                    }
+                    
 #if SERVER_LOG_DIFF_MSG==1
                     {
                         std::stringstream fileName;
@@ -252,8 +267,19 @@ unsigned int __stdcall Thread_Receive_Message(void *data)
 #endif
 #if SERVER_PLAY_BACK_MODE==0
 					RD_ADD_TS(tsFunId_eThread_Recevie,10);
-					messageQueue_gp->push(&recvMsg);
-					ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
+					if(false == messageQueue_gp->push(&recvMsg))
+                    {
+                        diffRptMsg_t *recvDiffMsg = (diffRptMsg_t*)recvMsg.getDiffRptMsg();
+                        if(recvDiffMsg->msgHeader.payloadLen != 0)
+                        {
+            				delete recvDiffMsg->payload;
+            				recvDiffMsg->payload = NULL;
+                        }
+                    }
+                    else
+                    {
+					    ReleaseSemaphore(g_readySema_msgQueue,1,NULL);
+                    }
 					RD_ADD_TS(tsFunId_eThread_Recevie,11);
 #endif
 

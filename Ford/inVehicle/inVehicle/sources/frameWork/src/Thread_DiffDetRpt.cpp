@@ -63,7 +63,7 @@ double roadLen = 3.75;//m
 double roadPixelNum = 400;
 
 void compareFurnitureList(furAttributesInVehicle_t *furDetIn,list<furAttributesInVehicle_t>* list2, list<furAttributesInVehicle_t>* listAddOut, list<furAttributesInVehicle_t>* listUpdateOut);
-void convertImageToFurniture(Size imageSize, ns_detection::TS_Structure &targetPtr,point3D_t* gpsInfoPtr,point3D_t* gpsInfoPrevP,point3D_t* refGps,list<furWithPosition_t>* furnListPtr);
+void convertImageToFurniture(Size imageSize, ns_detection::TS_Structure &targetPtr,point3D_t* gpsInfoPtr,point3D_t* gpsInfoPrevP,point3D_t* refGps, int paramIdx, list<furWithPosition_t>* furnListPtr);
 void filterFurToReport(Point2d refGps,point3D_t currentGps,list<statisticsFurInfo_t>* furnListInBuffPtr, list<furWithPosition_t>* furnListInDetPtr,list<furAttributesInVehicle_t>* outListPtr);
 void checkFurWhenBufferEnd(list<statisticsFurInfo_t> *furnListInBuffPtr,list<furAttributesInVehicle_t> *outListPtr);
 
@@ -104,16 +104,25 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
     //open the camera device.
     int nRet;
     int sendLen;
-    list<laneType_t> laneInfoList;
-
-    vector<dataEveryRow> roadPaintData;
-	vector<landMark> vecLandMark;
-	vector<gpsInformationAndInterval> GPSAndInterval;
-    gpsInformationAndInterval gpsAndInterval;
+	
+	Mat history;
+#if(RD_MODE != RD_VIDEO_LOAD_MODE)
+	// use inParamVec[0] to allocate the memory
+	history = Mat::zeros(IMAGE_BUFFER_DEPTH*HH,inParamVec[0].imageCols * inParamVec[0].imageScaleWidth, CV_8UC1);
+#endif
 
     while(1)
     {
         ImageBuffer *buffer;
+		vector<dataEveryRow> roadPaintData1;
+		vector<dataEveryRow> roadPaintData2;
+	
+		vector<gpsInformationAndInterval> GPSAndInterval1;
+		vector<gpsInformationAndInterval> GPSAndInterval2;
+		Mat DrawMarker;
+		Mat historyROI1;
+		vector<landMark> vecLandMark;
+
 		RD_ADD_TS(tsFunId_eThread_DifRpt,1);
         if(!imageBuffer.getBuffer(&buffer))
         {
@@ -122,13 +131,35 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
         }
 		RD_ADD_TS(tsFunId_eThread_DifRpt,2);
         int number = buffer->getImageNumber();
-        
+        int inParamIdx = buffer->getInParamIdx();
+
+		// roadscan and furniture report buffer
+		list<laneType_t> curLaneInfoList;
+		list<laneType_t> sideLaneInfoList;
+        list<furAttributesInVehicle_t> furInfoListAddReport;
+        list<furAttributesInVehicle_t> furInfoListUpdateReport;
         // Painting detection
+
+		// checke history buffer
+		int imageWidth, imageHeight;
+        buffer->getImageSize(imageWidth, imageHeight);
+		int imageWidthTemp = imageWidth * inParamVec[inParamIdx].imageScaleWidth; // change from inParam to inParamVec[0], to use the first inParam value
+		int imageHeightTemp = imageHeight * inParamVec[inParamIdx].imageScaleHeight;
+		int inti_width = imageWidth * inParamVec[inParamIdx].imageScaleWidth; 
+#if(RD_MODE == RD_VIDEO_LOAD_MODE)
+		// use inParamVec[0] to allocate the memory
+		history = Mat::zeros(number*HH,inti_width, CV_8UC1);
+#else
+		// change the memory size if the image columns been changed
+		if (inParamVec[0].imageCols * inParamVec[0].imageScaleWidth != imageWidthTemp)
+		{ resize(history,history,Size(history.rows,imageWidthTemp));}
+#endif
+
 #if(RD_ROAD_DETECT == ON)
         {
+			logPrintf(logLevelInfo_e, "DIFF_DETECT", "RoadScan Start",FOREGROUND_BLUE);
             // start initialization
-            int imageWidth, imageHeight;
-            imageBuffer.getImageSize(imageWidth, imageHeight);
+            gpsInformationAndInterval gpsAndInterval;
 
             int lineIndex = 0;
             double leftWidth = 0;
@@ -141,8 +172,7 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
             measurement.setTo(Scalar(0));
             //Size S = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH), (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
             
-			int imageWidthTemp = imageWidth * inParam.imageScaleWidth;
-			int imageHeightTemp = imageHeight * inParam.imageScaleHeight;
+			
 			Size S = Size(imageWidthTemp,imageHeightTemp);
             Linedetector.initialVanishPointKF(KF,S);
 
@@ -153,10 +183,8 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
             Linedetector.iniLaneMarkKF(LaneMarkKF,S);
             // end initialization
 
-            Mat history = Mat::zeros(S.height *HH*SCALE,S.width, CV_8UC1);
-            int rowIndex = 0;
-            int Interval = 0;
-            int IntervalTmp = 0;
+            int rowIndex = history.rows;
+
             vector<point3D_t> gpsPointCar, gpsPointL, gpsPointR;
             vector<gpsCarInfo_t> gpsCarInfoVec;
 
@@ -175,10 +203,16 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
             bool stopFlg = false;
 
             int intrtmp = 0;
+
 			RD_ADD_TS(tsFunId_eThread_DifRpt,3);
+			
             for(int index = 0; index < number; index++)
             {
-                buffer->getCurrentImage(&image);
+                if(buffer->getCurrentImage(&image) == false)
+                {
+                    // get image from buffer failed
+                    break;
+                }
                 middlePixel = (image.image.cols) / 2;
 
                 //Linedetector.line_Detection(image->image, LaneMarkKF, KF, measurement, S, measLandMark, &lineIndex, &leftWidth, &rightWidth);
@@ -188,57 +222,59 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
                 GPS_next.x = image.gpsInfo.lat;
                 GPS_next.y = image.gpsInfo.lon;
 
-                int flag = roadImageGen(image.image, history, &rowIndex, &GPS_abs, &GPS_next, &gpsAndInterval, &intrtmp, inParam, GPS_stop, stopFlg);
-                
-				if(flag == -1)
+                // scan the current lane 
+                int flag1 = roadImageGen(image.image, history, &rowIndex, 
+                                        &GPS_abs, &GPS_next,HVec[inParamIdx], 
+                                        inParamVec[inParamIdx].distancePerPixel,
+                                        inParamVec[inParamIdx].startRowCurLane,  
+                                        &gpsAndInterval, &intrtmp, 
+                                        inParamVec[inParamIdx], GPS_stop, stopFlg);
+
+                // store the current GPS information 
+				if(flag1 == -1) 
 				{
-					goto CLEAN_ROADSCAN_BUFFER;
+					printf("-----------goto 1-----------\n");
+					goto CLEAN_ROADSCAN_BUFFER1;
 				}
 
                 if (gpsAndInterval.intervalOfInterception)
                 {
-                    GPSAndInterval.push_back(gpsAndInterval);
+                    GPSAndInterval1.push_back(gpsAndInterval);
                 }
-
-                gpsCarInfo_t gpsCarInfo;
-                gpsCarInfo.laneId = lineIndex;
-                gpsCarInfo.lineStyle = 0;
-                gpsCarInfo.laneWidth = 0;
-                gpsCarInfo.gpsInfo = image.gpsInfo;
-                gpsCarInfo.gpsInfoPre = image.gpsInfoPre;
-            
-                gpsCarInfoVec.push_back(gpsCarInfo);
-
-                lineIdxVec.push_back(lineIndex);
-                leftWidthVec.push_back(leftWidth);
-                rightWidthVec.push_back(rightWidth);
-                gpsVec.push_back(image.gpsInfo);
             }
-
 			RD_ADD_TS(tsFunId_eThread_DifRpt,4);
             char bufferTemp[32];                    
             sprintf(bufferTemp, "road_time.png");
             imwrite(bufferTemp, history );
-			if(!GPSAndInterval.empty())
+
+			if(!GPSAndInterval1.empty())
 			{
-				rowIndex = rowIndex - GPSAndInterval[GPSAndInterval.size()-1].intervalOfInterception;
-				Mat historyROI = history(Rect(0,rowIndex,history.cols,history.rows-rowIndex));
+				rowIndex = rowIndex - GPSAndInterval1[GPSAndInterval1.size()-1].intervalOfInterception;
+				if((rowIndex < 0)||((history.rows-rowIndex)<=0))
+				{
+					printf("----------error: roindex = %d, historyRow = %d-----------\n",rowIndex,history.rows);
+				}
+				historyROI1 = history(Rect(0,rowIndex,history.cols,history.rows-rowIndex));
+
+                DrawMarker = Mat::zeros(historyROI1.rows, historyROI1.cols, CV_8UC3);
 
 				sprintf(bufferTemp, "road_time_roi.png");
-				imwrite(bufferTemp, historyROI );
-
-				roadImageProc2(historyROI, inParam, GPSAndInterval, roadPaintData, vecLandMark);
+				imwrite(bufferTemp, historyROI1 );
+#if defined(_FRANKFORT_ALL_CAMERA)
+#else
+				roadImageProc2(historyROI1, inParamVec[inParamIdx], GPSAndInterval1, roadPaintData1, vecLandMark, DrawMarker);
+#endif
 
 				RD_ADD_TS(tsFunId_eThread_DifRpt,5);
-				for(int index = 0; index < roadPaintData.size(); index++)
+				for(int index = 0; index < roadPaintData1.size(); index++)
 				{
-					if( (0 != roadPaintData[index].Left_Middle_RelGPS.x) && (0 != roadPaintData[index].Left_Middle_RelGPS.y) && 
-						(0 != roadPaintData[index].Right_Middle_RelGPS.x) && (0 != roadPaintData[index].Right_Middle_RelGPS.y) )
+					if( (0 != roadPaintData1[index].Left_Middle_RelGPS.x) && (0 != roadPaintData1[index].Left_Middle_RelGPS.y) && 
+						(0 != roadPaintData1[index].Right_Middle_RelGPS.x) && (0 != roadPaintData1[index].Right_Middle_RelGPS.y) )
 					{
 						point3D_t outGpsInfoL = { 0 }, outGpsInfoR = { 0 }, outGpsInfo= { 0 };
-						outGpsInfoL.lat = roadPaintData[index].Left_Middle_RelGPS.x; outGpsInfoL.lon = roadPaintData[index].Left_Middle_RelGPS.y;
-						outGpsInfoR.lat = roadPaintData[index].Right_Middle_RelGPS.x; outGpsInfoR.lon = roadPaintData[index].Right_Middle_RelGPS.y;
-                        outGpsInfo.lat = roadPaintData[index].Middle_RelGPS.x; outGpsInfo.lon = roadPaintData[index].Middle_RelGPS.y;
+						outGpsInfoL.lat = roadPaintData1[index].Left_Middle_RelGPS.x; outGpsInfoL.lon = roadPaintData1[index].Left_Middle_RelGPS.y;
+						outGpsInfoR.lat = roadPaintData1[index].Right_Middle_RelGPS.x; outGpsInfoR.lon = roadPaintData1[index].Right_Middle_RelGPS.y;
+                        outGpsInfo.lat = roadPaintData1[index].Middle_RelGPS.x; outGpsInfo.lon = roadPaintData1[index].Middle_RelGPS.y;
 						laneType_t laneInfo;
 						laneInfo.gpsL = outGpsInfoL;
 						laneInfo.gpsR = outGpsInfoR;
@@ -247,25 +283,158 @@ unsigned int __stdcall Thread_DiffDetRpt(void *data)
 						laneInfo.laneWidth = 3.75;
 						laneInfo.lineStyle = 0;
 						laneInfo.laneChangeFlag = 0;
-						laneInfo.linePaintFlagL = roadPaintData[index].isPaint_Left;
-						laneInfo.linePaintFlagR = roadPaintData[index].isPaint_Right;
-						laneInfoList.push_back(laneInfo);
+						laneInfo.linePaintFlagL = roadPaintData1[index].isPaint_Left;
+						laneInfo.linePaintFlagR = roadPaintData1[index].isPaint_Right;
+						curLaneInfoList.push_back(laneInfo);
 					}
 				}
 			}
-
-            roadPaintData.clear();
+            roadPaintData1.clear();
         }
-CLEAN_ROADSCAN_BUFFER:
-		 GPSAndInterval.clear();
+        RD_ADD_TS(tsFunId_eThread_DifRpt,6);
+#if ((RD_SIDEWARD_LANE_DETECT == ON) && (RD_ROAD_DETECT == ON))
+     {
+            // start initialization
+            int lineIndex = 0;
+            double leftWidth = 0;
+            double rightWidth = 0;
+            //Step1:  Kalman initialization
+            LineDetect  Linedetector;
+            // For Vanishi Point
+            KalmanFilter KF(4, 2, 0);
+            Mat_<float> measurement(2,1); 
+            measurement.setTo(Scalar(0));
+            //Size S = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH), (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+            
+			Size S = Size(imageWidthTemp,imageHeightTemp);
+            Linedetector.initialVanishPointKF(KF,S);
+
+            // For Lane Marker
+            KalmanFilter LaneMarkKF(2, 2, 0);
+            Mat_<float> measLandMark(2,1); 
+            measLandMark.setTo(Scalar(0));
+            Linedetector.iniLaneMarkKF(LaneMarkKF,S);
+            // end initialization
+
+            
+
+
+            vector<point3D_t> gpsPointCar, gpsPointL, gpsPointR;
+            vector<gpsCarInfo_t> gpsCarInfoVec;
+
+            Mat roadT1, roadDraw3;
+
+            imageInfo_t image;
+
+            vector<int> lineIdxVec;
+            vector<double> leftWidthVec;
+            vector<double> rightWidthVec;
+            vector<point3D_t> gpsVec;
+        
+            double middlePixel;
+            Point2d GPS_abs, GPS_next;
+            Point2d GPS_stop = Point2d(0, 0);
+            bool stopFlg = false;
+            int intrtmp = 0;
+			int rowIndex = history.rows;
+			// clear the history buffer
+			//memset(history.data,0,history.rows*history.cols*history.channels()*history.step.buf[1]);
+
+            // reset the image buffer
+            buffer->setImageToStart();
+            gpsInformationAndInterval gpsAndInterval;
+
+            for(int index = 0; index < number; index++)
+            {
+                if(buffer->getCurrentImage(&image) == false)
+                {
+                    // get image from buffer failed
+                    break;
+                }
+                middlePixel = (image.image.cols) / 2;
+            
+                GPS_abs.x = image.gpsInfoPre.lat;
+                GPS_abs.y = image.gpsInfoPre.lon;
+                GPS_next.x = image.gpsInfo.lat;
+                GPS_next.y = image.gpsInfo.lon;
+                // scan the left and right lane of the current lane
+                int flag = roadImageGen(image.image, history, &rowIndex, 
+                                        &GPS_abs, &GPS_next,laneHVec[inParamIdx], 
+                                        inParamVec[inParamIdx].distancePerPixelY,
+                                        inParamVec[inParamIdx].startRowAllLane, 
+                                        &gpsAndInterval, 
+                                        &intrtmp, inParamVec[inParamIdx], 
+                                        GPS_stop,stopFlg);
+
+				if(flag == -1)
+				{
+					printf("-----------goto 2-----------\n");
+					goto CLEAN_ROADSCAN_BUFFER2;
+				}
+
+                if (gpsAndInterval.intervalOfInterception)
+                {
+                    GPSAndInterval2.push_back(gpsAndInterval);
+                }
+            }
+            if(!GPSAndInterval2.empty())
+			{
+				rowIndex = rowIndex - GPSAndInterval2[GPSAndInterval2.size()-1].intervalOfInterception;
+				Mat historyROI = history(Rect(0,rowIndex,history.cols,history.rows-rowIndex));
+
+                char bufferTemp[32]; 
+				sprintf(bufferTemp, "road_time_roi_sideward.png");
+				imwrite(bufferTemp, historyROI);
+
+                Mat outImage = Mat::zeros(historyROI.rows, historyROI.cols, CV_8UC3);
+                float width;
+                float meanX;
+
+                // detect the sideward lanes of the current lane
+                bool flag = currentLaneMatched(DrawMarker, historyROI1, historyROI, GPSAndInterval1, GPSAndInterval2, inParamVec[inParamIdx], outImage, &width, &meanX,invertHVec[inParamIdx], laneHVec[inParamIdx]);
+                if (flag == true)
+                { 
+                    bool successFlag = neighborLaneDetect(outImage, width, meanX, GPSAndInterval2, inParamVec[inParamIdx], roadPaintData2);
+
+                    if (successFlag == true)
+					{
+						for(int index = 0; index < roadPaintData2.size(); index++)
+						{
+							if( ((0 != roadPaintData2[index].Left_Middle_RelGPS.x) && (0 != roadPaintData2[index].Left_Middle_RelGPS.y)) 
+								&& ((0 != roadPaintData2[index].Right_Middle_RelGPS.x) && (0 != roadPaintData2[index].Right_Middle_RelGPS.y)) )
+							{
+								point3D_t outGpsInfoL = { 0 }, outGpsInfoR = { 0 }, outGpsInfo= { 0 };
+								outGpsInfoL.lat = roadPaintData2[index].Left_Middle_RelGPS.x; outGpsInfoL.lon = roadPaintData2[index].Left_Middle_RelGPS.y;
+								outGpsInfoR.lat = roadPaintData2[index].Right_Middle_RelGPS.x; outGpsInfoR.lon = roadPaintData2[index].Right_Middle_RelGPS.y;
+								laneType_t laneInfo;                  
+								laneInfo.gpsL = outGpsInfoL;
+								laneInfo.gpsR = outGpsInfoR;
+								laneInfo.gpsTrack = outGpsInfo;
+								laneInfo.laneId = 0;
+								laneInfo.laneWidth = width*inParamVec[inParamIdx].distancePerPixelX*0.01;//unit:meter
+								laneInfo.lineStyle = 0;
+								laneInfo.laneChangeFlag = 0;
+								laneInfo.linePaintFlagL = roadPaintData2[index].isPaint_Left;
+								laneInfo.linePaintFlagR = roadPaintData2[index].isPaint_Right;
+								sideLaneInfoList.push_back(laneInfo);
+							}
+						}
+					}
+                }
+            }
+            roadPaintData2.clear();
+        }
+
+CLEAN_ROADSCAN_BUFFER2:
+		 GPSAndInterval2.clear();
+#endif
+CLEAN_ROADSCAN_BUFFER1:
+		 GPSAndInterval1.clear();
+		 logPrintf(logLevelInfo_e, "DIFF_DETECT", "RoadScan Stop",FOREGROUND_BLUE);
 #endif
 
-		 RD_ADD_TS(tsFunId_eThread_DifRpt,6);
-        // Furniture detection
-        list<furAttributesInVehicle_t> furInfoListAddReport;
-        list<furAttributesInVehicle_t> furInfoListUpdateReport;
-
-		//check if there is some traffic sign on the road scamed by roadscam
+#if (RD_ROAD_SIGN_DETECT != RD_ROAD_SIGN_DETECT_OFF)
+		//check if there is some traffic sign on the road scamed by roadscan
         {
             if( vecLandMark.size() > 0)
             {
@@ -290,10 +459,10 @@ CLEAN_ROADSCAN_BUFFER:
 				vecLandMark.clear();
             }
         }
-
+#endif
 
 #if(RD_SIGN_DETECT != RD_SIGN_DETECT_OFF)
-
+		logPrintf(logLevelInfo_e, "DIFF_DETECT", "Traffic Sign Detect Start",FOREGROUND_BLUE);
 #ifdef TRAFFIC_SIGN_TEST
         fd = fopen("gpsInfo.txt","a");
         if (fd == NULL)
@@ -313,11 +482,16 @@ CLEAN_ROADSCAN_BUFFER:
                 ns_detection::TS_Structure detectedTrafficSign;
 
                 //buffer->getCurrentImage(&image); // skip one frame and process one frame
-                buffer->getCurrentImage(&image);
+                if(buffer->getCurrentImage(&image) == false)
+                {
+                    // get image from buffer failed
+                    break;
+                }
+
 #if (RD_LOCATION == RD_GERMAN_LEHRE)
                 resize(image.image,image.image,Size(image.image.cols/2,image.image.rows/2));
 #endif
-                trafficSignDetector->trafficSignDetect(image.image, detectedTrafficSign); // detect traffic signs
+                trafficSignDetectorVec[inParamIdx]->trafficSignDetect(image.image, detectedTrafficSign); // detect traffic signs
                 {
                     //cout << "detected sign number: "<< detectedTrafficSign.totalNumber << endl;
 
@@ -327,8 +501,8 @@ CLEAN_ROADSCAN_BUFFER:
                     if(detectedTrafficSign.trafficSign.size() > 0)
                     {
                         point3D_t refGps;
-                        refGps.lon = inParam.GPSref.y;
-                        refGps.lat = inParam.GPSref.x;
+                        refGps.lon = inParamVec[inParamIdx].GPSref.y;
+                        refGps.lat = inParamVec[inParamIdx].GPSref.x;
                         refGps.alt = 0;
 
                         Point2d GPS_abs, GPS_next;
@@ -337,8 +511,8 @@ CLEAN_ROADSCAN_BUFFER:
                         GPS_next.x = image.gpsInfo.lat;
                         GPS_next.y = image.gpsInfo.lon;
 
-                        trafficSignDetector->positionMeasure(inParam, GPS_abs, GPS_next, image.image, detectedTrafficSign);
-                        convertImageToFurniture(image.image.size(), detectedTrafficSign,&image.gpsInfo,&image.gpsInfoPre,&refGps,&furInfoListInDet);
+                        trafficSignDetectorVec[inParamIdx]->positionMeasure(inParamVec[inParamIdx], GPS_abs, GPS_next, image.image, detectedTrafficSign, invertHVec[inParamIdx]);
+                        convertImageToFurniture(image.image.size(), detectedTrafficSign,&image.gpsInfo,&image.gpsInfoPre,&refGps, inParamIdx, &furInfoListInDet);
 
 #ifdef TRAFFIC_SIGN_TEST
 
@@ -361,7 +535,7 @@ CLEAN_ROADSCAN_BUFFER:
                     }
                     
                     //filter the image
-                    filterFurToReport(inParam.GPSref,image.gpsInfo,&furnListInBuff, &furInfoListInDet,&furListTemp);
+                    filterFurToReport(inParamVec[inParamIdx].GPSref,image.gpsInfo,&furnListInBuff, &furInfoListInDet,&furListTemp);
 
                     if( furListTemp.size() > 0)
                     {
@@ -417,14 +591,14 @@ CLEAN_ROADSCAN_BUFFER:
 #ifdef TRAFFIC_SIGN_TEST
         fclose(fd);
 #endif
-
+		logPrintf(logLevelInfo_e, "DIFF_DETECT", "Traffic Sign Detect Stop",FOREGROUND_BLUE);
 #endif//(RD_SIGN_DETECT != RD_SIGN_DETECT_OFF)
 		RD_ADD_TS(tsFunId_eThread_DifRpt,8);
         // Generate message
         {
             messageProcessClass    diffMsg;
             diffRptMsg_t* msgHeaderPtr = diffMsg.getDiffRptMsg();
-            msgHeaderPtr->payload = new uint8[MAX_PAYLOAD_BYTE_NUM];
+            msgHeaderPtr->payload = new uint8[MAX_ROAD_POINT_BYTES];
             void* payloadPtr = (void*)(msgHeaderPtr->payload);
             
             if(msgHeaderPtr->payload == NULL)
@@ -432,18 +606,26 @@ CLEAN_ROADSCAN_BUFFER:
                 continue;
             }
 
-            int numRoadGeoPdu;
-            if(laneInfoList.size() > 0)
+            int numCurRoadPdu = 0,numSideRoadPdu = 0;
+            if(curLaneInfoList.size() > 0)
             {
-                numRoadGeoPdu = 1;
+                numCurRoadPdu = 1;
+            }else
+			{
+				numCurRoadPdu = 0;
+			}
+
+			if(sideLaneInfoList.size() > 0)
+            {
+                numSideRoadPdu = 1;
             }else
             {
-                numRoadGeoPdu = 0;
+                numSideRoadPdu = 0;
             }
 
             // fill the message header
             msgHeaderPtr->msgHeader.msgTypeID = DIFF_RPT_MSG;
-            msgHeaderPtr->msgHeader.numPDUs = numRoadGeoPdu + furInfoListUpdateReport.size() + furInfoListAddReport.size();
+            msgHeaderPtr->msgHeader.numPDUs = numSideRoadPdu + numCurRoadPdu + furInfoListUpdateReport.size() + furInfoListAddReport.size();
             msgHeaderPtr->msgHeader.priority = middLevel_e;
             msgHeaderPtr->msgHeader.vehicleID = g_VehicleID;
             msgHeaderPtr->msgHeader.headerLen = sizeof(msgHeaderPtr->msgHeader) + msgHeaderPtr->msgHeader.numPDUs * sizeof(msgHeaderPtr->payloadHeader.pduHeader[0]);
@@ -499,18 +681,100 @@ CLEAN_ROADSCAN_BUFFER:
 
             // Road geometry
             {
-                database_gp->getLaneGpsTlv(&laneInfoList,memory_e,(void**)&payloadPtr,&payloadLen);
+#ifdef ROAD_SCAN_UT
+                static int id = 0;
+                if(sideLaneInfoList.size() > 0)
+                {
+                    FILE *fd;
+                    stringstream index;
+                    string temp;
+                    index << id;
+                    id++;
+                    index >> temp;
+                    string imageName = "lanesData" + temp + ".m";
+                    errno_t err = fopen_s(&fd,imageName.c_str(),"w");
+                    if(0 != err)
+                    {
+	                    fclose(fd);
+                        return false;
+                    }
+                    list<laneType_t>::iterator laneIdx = curLaneInfoList.begin();
+                    fprintf(fd,"curLane.leftLine = [");
+                    for(int ii = 0; ii < curLaneInfoList.size(); ii++)
+                    {
+                        fprintf(fd,"%.14f %.14f; ",laneIdx->gpsL.lat,laneIdx->gpsL.lon);
+                        laneIdx++;
+                    }
+                    fprintf(fd,"];\n");
+                    laneIdx = curLaneInfoList.begin();
+                    fprintf(fd,"curLane.rightLine = [");
+                    for(int ii = 0; ii < curLaneInfoList.size(); ii++)
+                    {
+                        fprintf(fd,"%.14f %.14f; ",laneIdx->gpsR.lat,laneIdx->gpsR.lon);
+                        laneIdx++;
+                    }
+                    fprintf(fd,"];\n");
+
+                    laneIdx = sideLaneInfoList.begin();
+                    fprintf(fd,"sideLane.leftLine = [");
+                    for(int ii = 0; ii < sideLaneInfoList.size(); ii++)
+                    {
+                        fprintf(fd,"%.14f %.14f; ",laneIdx->gpsL.lat,laneIdx->gpsL.lon);
+                        laneIdx++;
+
+                    }
+                    fprintf(fd,"];\n");
+                    laneIdx = sideLaneInfoList.begin();
+                    fprintf(fd,"sideLane.rightLine = [");
+                    for(int ii = 0; ii < sideLaneInfoList.size(); ii++)
+                    {
+
+                        fprintf(fd,"%.14f %.14f; ",laneIdx->gpsR.lat,laneIdx->gpsR.lon);
+                        laneIdx++;
+                    }
+                    fprintf(fd,"];\n");
+                    fprintf(fd,"figure;\n");
+                    fprintf(fd,"plot(curLane.leftLine(:,2),curLane.leftLine(:,1),'r');\n");
+                    fprintf(fd,"hold on;\n");
+                    fprintf(fd,"plot(curLane.rightLine(:,2),curLane.rightLine(:,1),'b');\n");
+                    fprintf(fd,"hold on;\n");
+                    fprintf(fd,"plot(sideLane.leftLine(:,2),sideLane.leftLine(:,1),'m');\n");
+                    fprintf(fd,"hold on;\n");
+                    fprintf(fd,"plot(sideLane.rightLine(:,2),sideLane.rightLine(:,1),'g');\n");
+                    fprintf(fd,"hold off;\n");
+                    fclose(fd);
+                }
+                
+#endif
+
+                // current lane information
+                database_gp->getLaneGpsTlv(&curLaneInfoList,memory_e,(void**)&payloadPtr,&payloadLen);
                 payloadSize += payloadLen;
                 msgHeaderPtr->msgHeader.payloadLen = payloadSize;
 
                 // fill the pdu header
-                for(int idx = 0; idx < numRoadGeoPdu; ++idx)
+                for(int idx = 0; idx < numCurRoadPdu; ++idx)
                 {
-                    diffMsg.setDiffRptPduMsgHeader(pduIdx,gpsInfo_e,addDatabase_e,pduoffset);
+                    diffMsg.setDiffRptPduMsgHeader(pduIdx,curLaneInfo_e,addDatabase_e,pduoffset);
                     
                     pduoffset += payloadLen;
                     pduIdx++;
                 }
+
+                // sideward lane information
+                database_gp->getLaneGpsTlv(&sideLaneInfoList,memory_e,(void**)&payloadPtr,&payloadLen);
+                payloadSize += payloadLen;
+                msgHeaderPtr->msgHeader.payloadLen = payloadSize;
+
+                // fill the pdu header
+                for(int idx = 0; idx < numSideRoadPdu; ++idx)
+                {
+                    diffMsg.setDiffRptPduMsgHeader(pduIdx,sideLaneInfo_e,addDatabase_e,pduoffset);
+                    
+                    pduoffset += payloadLen;
+                    pduIdx++;
+                }
+
             }
 
 			RD_ADD_TS(tsFunId_eThread_DifRpt,10);
@@ -519,13 +783,16 @@ CLEAN_ROADSCAN_BUFFER:
             {
                 //char *sendBuff = new char[msgHeaderPtr->msgHeader.headerLen];
                 //memcpy((void*)sendBuff,(void*)msgHeaderPtr,msgHeaderPtr->msgHeader.headerLen);
-
+#if(ON == RD_REPORT_RESULT)
                 int nRet = send(sockClient,(char*)msgHeaderPtr,msgHeaderPtr->msgHeader.headerLen,0);//,(SOCKADDR*)&serverAddr,g_SocketLen);//send response message data
-                if ((nRet == SOCKET_ERROR) || (nRet == 0))
+#else
+				int nRet = 1;
+#endif
+				if ((nRet == SOCKET_ERROR) || (nRet == 0))
                 {
                     int errorCode = WSAGetLastError();
                     trySetConnectSocket(true);
-                    logPrintf(logLevelInfo_e, "DIFF_DETECT", "Send message header to server failed!");
+                    logPrintf(logLevelInfo_e, "DIFF_DETECT", "Send message header to server failed!",FOREGROUND_RED);
                 
                     delete msgHeaderPtr->payload;
                     msgHeaderPtr->payload = NULL;
@@ -536,10 +803,14 @@ CLEAN_ROADSCAN_BUFFER:
 
                     if((msgHeaderPtr->payload != NULL) && (msgHeaderPtr->msgHeader.payloadLen > 0))
                     {
+#if (ON == RD_REPORT_RESULT)
                         int nRet = send(sockClient,(char*)msgHeaderPtr->payload,msgHeaderPtr->msgHeader.payloadLen,0);
+#else
+						int nRet = 1;
+#endif
                         if ((nRet == SOCKET_ERROR) || (nRet == 0))
                         {
-                            logPrintf(logLevelInfo_e, "DIFF_DETECT", "Send message payload to server failed!");
+                            logPrintf(logLevelInfo_e, "DIFF_DETECT", "Send message payload to server failed!",FOREGROUND_RED);
 
                             delete msgHeaderPtr->payload;
                             msgHeaderPtr->payload = NULL;
@@ -559,7 +830,8 @@ CLEAN_ROADSCAN_BUFFER:
             {
                 delete msgHeaderPtr->payload;
             }
-            laneInfoList.clear();
+            curLaneInfoList.clear();
+            sideLaneInfoList.clear();
         }
         //ReleaseSemaphore(g_readySema_DiffDet, 1 ,NULL);
 		RD_ADD_TS(tsFunId_eThread_DifRpt,11);
@@ -568,7 +840,7 @@ CLEAN_ROADSCAN_BUFFER:
     return 0;
 }
 
-void convertImageToFurniture(Size imageSize, ns_detection::TS_Structure &targetPtr,point3D_t* gpsInfoPtr,point3D_t* gpsInfoPrevP,point3D_t* gpsRef,list<furWithPosition_t>* furnListPtr)
+void convertImageToFurniture(Size imageSize, ns_detection::TS_Structure &targetPtr,point3D_t* gpsInfoPtr,point3D_t* gpsInfoPrevP,point3D_t* gpsRef, int paramIdx, list<furWithPosition_t>* furnListPtr)
 {
     int idx;
 
@@ -637,7 +909,6 @@ void convertImageToFurniture(Size imageSize, ns_detection::TS_Structure &targetP
             furniture.furAttri.type_used = 1;
             furniture.furAttri.type = targetPtr.trafficSign[idx].type;
 
-            furniture.furAttri.reliabRating = 1;    
             furniture.furAttri.reliabRating_used = 1;
             furniture.furAttri.reliabRating = 1;    
             // compute angle
@@ -659,6 +930,11 @@ void convertImageToFurniture(Size imageSize, ns_detection::TS_Structure &targetP
                 furniture.furAttri.sideFlag_used = 1;
                 furniture.furAttri.sideFlag = 1;
             }
+
+            // get loop index from furniture in loop index
+            uint8 loopIndex = getLoopIdxFromFurInLoopIdx(paramIdx);
+            furniture.furAttri.inLoopIdx_used = 1;
+            furniture.furAttri.inLoopIdx = loopIndex;
             //calcGpsRoadSide(gpsInfoPrevP, gpsInfoPtr, gpsRef, side, 5, &(furniture.location));
 
             // copy the latitude,longtitude and mutiple of sign's height
@@ -1054,21 +1330,6 @@ void filterFurToReport(Point2d refGps,point3D_t currentGps,list<statisticsFurInf
                         {
                             furAttributesInVehicle_t reportFur;
                             reportFur = furnListInBuffIdx->furAttri;
-                            switch(reportFur.type)
-                            {
-                                case 27553:
-                                    reportFur.type = 27453;
-                                    break;
-                                case 27554:
-                                    reportFur.type = 27454;
-                                    break;
-                                case 27555:
-                                    reportFur.type = 27455;
-                                    break;
-                                case 27556:
-                                    reportFur.type = 27456;
-                                    break;
-                            }
                             reportFur.location = gpsReport;
                             outListPtr->push_back(reportFur);
                         }
@@ -1178,22 +1439,6 @@ void filterFurToReport(Point2d refGps,point3D_t currentGps,list<statisticsFurInf
                                     furAttributesInVehicle_t reportFur;
                                     reportFur = furnListInBuffIdx->furAttri;
                                     reportFur.location = gpsReport;
-                                
-                                    switch(reportFur.type)
-                                    {
-                                        case 27553:
-                                            reportFur.type = 27453;
-                                            break;
-                                        case 27554:
-                                            reportFur.type = 27454;
-                                            break;
-                                        case 27555:
-                                            reportFur.type = 27455;
-                                            break;
-                                        case 27556:
-                                            reportFur.type = 27456;
-                                            break;
-                                    }
                                     outListPtr->push_back(reportFur);
                                 }
                             }
@@ -1215,4 +1460,5 @@ void filterFurToReport(Point2d refGps,point3D_t currentGps,list<statisticsFurInf
         }
     }
 }
+
 

@@ -59,6 +59,7 @@ namespace ns_database
         offset_used = 0;
         reliabRating_used = 0;
         boundary_used = 0;
+        inLoopIdx_used = 0;
     }
 
     database::database()
@@ -146,6 +147,7 @@ namespace ns_database
         setTvlCfg(&_tlvCfg_seg_a[seg_tunnel_e - seg_base_e], seg_tunnel_e, tvUint8_e, 1, 1, 0);
         setTvlCfg(&_tlvCfg_seg_a[seg_furList_e - seg_base_e], seg_furList_e, tlv_complexV_e, 0, 1, 0);
         setTvlCfg(&_tlvCfg_seg_a[seg_dynList_e - seg_base_e], seg_dynList_e, tlv_complexV_e, 0, 1, 0);
+        setTvlCfg(&_tlvCfg_seg_a[seg_loopIdx_e - seg_base_e], seg_loopIdx_e, tvUint8_e, 0, 1, 0);
 
         setTvlCfg(&_tlvCfg_vec_a[vec_segId_e - vec_base_e], vec_segId_e, tvUint32_e, 4, 1, 0);
         setTvlCfg(&_tlvCfg_vec_a[vec_vecList_e - vec_base_e], vec_vecList_e, tlv_complexV_e, 0, 1, 0);
@@ -160,6 +162,7 @@ namespace ns_database
         setTvlCfg(&_tlvCfg_fur_a[fur_offset_e - fur_base_e], fur_offset_e, tvSingle_e, 4, 1, 0);
         setTvlCfg(&_tlvCfg_fur_a[fur_reliabRating_e - fur_base_e], fur_reliabRating_e, tvUint8_e, 1, 1, 0);
         setTvlCfg(&_tlvCfg_fur_a[fur_segId_e - fur_base_e], fur_segId_e, tvUint32_e, 4, 1, 0);
+        setTvlCfg(&_tlvCfg_fur_a[fur_inLoopIdx_e - fur_base_e], fur_inLoopIdx_e, tvUint8_e, 1, 1, 0);
         
         setTvlCfg(&_tlvCfg_dataLine_a[data_lineId_e - data_lineBase_e], data_lineId_e, tvUint32_e, 4, 1, 0);
         setTvlCfg(&_tlvCfg_dataLine_a[data_lineWidth_e - data_lineBase_e], data_lineWidth_e, tvSingle_e, 4, 1, 0);
@@ -373,6 +376,12 @@ namespace ns_database
         setTvlCommon(&tlvTmp, tlvCfgP->typeId, segmentAttr->numDynamicData_used, tlvCfgP->tlvType, segmentAttr->numDynamicData, 0);
         byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
 
+        tlvCfgP = &_tlvCfg_seg_a[seg_loopIdx_e - seg_base_e];
+        setTvlCommon(&tlvTmp, tlvCfgP->typeId, segmentAttr->loopIdx_used, tlvCfgP->tlvType, segmentAttr->loopIdx, 0);
+        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+        
+
         *length = byteNum;
 
         if(sourceFlag == file_e)
@@ -453,10 +462,14 @@ namespace ns_database
 
         tlvCfgP = &_tlvCfg_fur_a[fur_reliabRating_e - fur_base_e];
         setTvlCommon(&tlvTmp, tlvCfgP->typeId, furnitureAttr->reliabRating_used, tlvCfgP->tlvType, tlvCfgP->length, (uint32)furnitureAttr->reliabRating);
-        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);        
 
         tlvCfgP = &_tlvCfg_fur_a[fur_segId_e - fur_base_e];
         setTvlCommon(&tlvTmp, tlvCfgP->typeId, furnitureAttr->segId_used, tlvCfgP->tlvType, tlvCfgP->length, furnitureAttr->segId);
+        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
+        tlvCfgP = &_tlvCfg_fur_a[fur_inLoopIdx_e - fur_base_e];
+        setTvlCommon(&tlvTmp, tlvCfgP->typeId, furnitureAttr->inLoopIdx_used, tlvCfgP->tlvType, tlvCfgP->length, furnitureAttr->inLoopIdx);
         byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
 
         *length = byteNum;
@@ -1277,6 +1290,7 @@ namespace ns_database
         segmentElement.tunnelFlag_used = 0;
         segmentElement.numFurniture_used = 0;
         segmentElement.numDynamicData_used = 0;
+        segmentElement.loopIdx_used = 0;
 
         // Read TLV from DB file
         tlvCommon_t tlvTmp;
@@ -1403,6 +1417,13 @@ namespace ns_database
                         {
                             segmentElement.numDynamicData_used = 1;
                             segmentElement.numDynamicData = tlvTmp.length;
+
+                            break;
+                        }
+                        case seg_loopIdx_e:
+                        {
+                            segmentElement.loopIdx_used = 1;
+                            segmentElement.loopIdx = tlvTmp.length;
 
                             break;
                         }
@@ -1866,6 +1887,7 @@ namespace ns_database
         furnitureElement->sideFlag_used = 0;
         furnitureElement->offset_used = 0;
         furnitureElement->reliabRating_used = 0;
+        furnitureElement->inLoopIdx_used = 0;
 
         // Read TLV from DB file
         tlvCommon_t tlvTmp;
@@ -1972,6 +1994,13 @@ namespace ns_database
                         {
                             furnitureElement->segId_used = 1;
                             furnitureElement->segId = tlvTmp.value;
+
+                            break;
+                        }
+                        case fur_inLoopIdx_e:
+                        {
+                            furnitureElement->inLoopIdx_used = 1;
+                            furnitureElement->inLoopIdx = tlvTmp.value;
 
                             break;
                         }

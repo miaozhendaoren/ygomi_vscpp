@@ -17,6 +17,7 @@
 #include "database.h"   // database
 #include "databaseServer.h" // databaseServer
 #include "RoadVecGen2.h" // CRoadVecGen2
+#include "RoadVecGen3.h"
 #include "appInitCommon.h"
 #include "LogInfo.h"
 #include "messageQueueClass.h"
@@ -24,6 +25,7 @@
 #include "VisualizeControl.h"
 #include "configure.h" // 
 #include "TimeStamp.h"
+#include "RoadSeg.h"
 
 SOCKET sockServer;			// socket
 SOCKET sockClient = 0;
@@ -39,15 +41,22 @@ HANDLE g_clientlistMutex;
 
 
 ns_database::databaseServer* database_gp;
+
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+ns_database::CRoadVecGen3 *roadVecGen2_gp;
+#else
 ns_database::CRoadVecGen2 *roadVecGen2_gp;
+#endif
+ns_roadsegment::All_RoadSegment *roadSegConfig_gp;
+
 messageQueueClass* messageQueue_gp;
 messageQueueClass* databaseQueue_gp;
 
 void appInitEvents(void)
 {
-	g_readySema_readDb = CreateSemaphore(NULL,0,10,NULL);
+	g_readySema_readDb = CreateSemaphore(NULL,0,300,NULL);
 	g_readySema_Redraw = CreateSemaphore(NULL,0,10,NULL);
-	g_readySema_msgQueue = CreateSemaphore(NULL,0,10,NULL);
+	g_readySema_msgQueue = CreateSemaphore(NULL,0,300,NULL);
 	g_clientlistMutex = CreateMutex(NULL,FALSE,NULL);
 
 	ReleaseMutex(g_clientlistMutex);
@@ -56,8 +65,13 @@ void appInitEvents(void)
 void databaseInit()
 {
     list<segAttributes_t> segConfigList;
-
-    roadVecGen2_gp = new ns_database::CRoadVecGen2();
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+	roadVecGen2_gp = new ns_database::CRoadVecGen3();
+#else
+	roadVecGen2_gp = new ns_database::CRoadVecGen2();
+#endif
+    
+    roadSegConfig_gp = new ns_roadsegment::All_RoadSegment();
 
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
     roadVecGen2_gp->setSectionConfigPath(".\\config\\DE_Airport_manualSeg.txt", segConfigList);
@@ -67,6 +81,13 @@ void databaseInit()
     roadVecGen2_gp->setSectionConfigPath(".\\config\\US_Detroit_manualSeg.txt", segConfigList);
 #elif (RD_LOCATION == RD_US_PALO_ALTO)
     roadVecGen2_gp->setSectionConfigPath(".\\config\\US_Palo_Alto_manualSeg.txt", segConfigList);
+#elif (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+    list<vector<uint32>> loopseg_List;
+    roadSegConfig_gp->AnalysisSegment("./config/DE_Airport_ParamConfig.xml");
+	roadSegConfig_gp->getRoadSegCfg_database(segConfigList);    
+    roadSegConfig_gp->getRoadLoopSegId(loopseg_List);
+    roadSegConfig_gp->setRoadLoopFlag(loopseg_List, segConfigList);
+	roadVecGen2_gp->InitRoadVecGen();
 #endif
 
 
@@ -115,7 +136,10 @@ void viewPointInit()
     bool readStatus = readOverViewPoint("./config/US_Detroit_overViewPoint.txt",serverEyeInfo[0]);
 #elif (RD_LOCATION == RD_US_PALO_ALTO)
     bool readStatus = readOverViewPoint("./config/US_Palo_Alto_overViewPoint.txt",serverEyeInfo[0]);
+#elif (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+    bool readStatus = readOverViewPoint("./config/DE_Airport_overViewPoint.txt",serverEyeInfo[0]);
 #endif
+	serverEyeInfo[1] = serverEyeInfo[0];
 	
 	if(!readStatus)
     {
@@ -238,13 +262,22 @@ unsigned int __stdcall startSocket(void *data)
 		clientInfo.client = server;
 		clientInfo.sockClient = sockClient;
 		clientList.push_back(clientInfo);
-		printf("Accept IP: %d.%d.%d.%d, Port:%d\n",
-						server.sin_addr.S_un.S_un_b.s_b1,
-						server.sin_addr.S_un.S_un_b.s_b2,
-						server.sin_addr.S_un.S_un_b.s_b3,
-						server.sin_addr.S_un.S_un_b.s_b4,
-						server.sin_port
-						);
+		//printf("Accept IP: %d.%d.%d.%d, Port:%d\n",
+		//				server.sin_addr.S_un.S_un_b.s_b1,
+		//				server.sin_addr.S_un.S_un_b.s_b2,
+		//				server.sin_addr.S_un.S_un_b.s_b3,
+		//				server.sin_addr.S_un.S_un_b.s_b4,
+		//				server.sin_port
+		//				);
+		{
+			std::stringstream msgStr;
+			msgStr << "Accept IP:"<< (int)server.sin_addr.S_un.S_un_b.s_b1
+				<<"."<<(int)server.sin_addr.S_un.S_un_b.s_b2<<"."
+				<<(int)server.sin_addr.S_un.S_un_b.s_b3<<"."
+				<<(int)server.sin_addr.S_un.S_un_b.s_b4<<", Port:"
+				<<server.sin_port;
+			logPrintf(logLevelInfo_e,"ACCEPT_IP", msgStr.str());
+		}
 
 	}
 	return 0;

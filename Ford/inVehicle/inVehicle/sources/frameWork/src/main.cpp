@@ -45,8 +45,7 @@ int main(int argc, char* argv[])
     }
 
 	//getVehicleID(&g_VehicleID);
-	startSocket();
-	sendDatabaseVersion();
+
 	//initialize the glut
 	 glutInit(&argc, argv);
      glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);

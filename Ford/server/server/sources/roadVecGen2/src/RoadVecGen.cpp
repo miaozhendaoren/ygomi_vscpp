@@ -334,6 +334,9 @@ bool isResampleSec(uint32 segId)
             segmentElement.segId      = sectionID;
             segmentElement.uiLaneNum_used = 1;
             segmentElement.uiLaneNum      = laneNum;
+            
+            segmentElement.loopIdx_used = 1;
+    		segmentElement.loopIdx      = 0;
             fscanf_s(fp, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,\n",
                 &segmentElement.ports[0].lon, &segmentElement.ports[0].lat,
                 &segmentElement.ports[1].lon, &segmentElement.ports[1].lat,

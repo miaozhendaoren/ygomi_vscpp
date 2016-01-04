@@ -13,14 +13,23 @@
 *      2015/10/15         wanglei          Create
 *******************************************************************************
 */
-#include <iostream>   
+#include <iostream>
 #include <Windows.h> 
 #include "TimeStamp.h"
-#if (BUFFER_MODE)
-    unsigned int TimeStampBuf[BUFFER_LEN];
-    int static bufindex=0;
-#endif
-int static DayOfMonth[12]={0,31,59,90,120,151,181,212,243,273,304,334};//year 2015:31,28,31,30,31,30,31,31,30,31,30,31
+#include "LogInfo.h"
+#include "typeDefine.h"
+
+static LARGE_INTEGER nFreq;
+static LARGE_INTEGER nStartTime = {0};
+
+static uint32 TimeStampBuf[BUFFER_LEN];
+typedef struct
+{
+	uint32 tsBufFullFlag;
+	uint32 bufindex;
+} TimeStampCtrl_t;
+static TimeStampCtrl_t TsCtrlBlock;
+
 __inout CRITICAL_SECTION cs;
 
 void change(unsigned int *data)
@@ -42,9 +51,19 @@ void TimeStampInit()
 
     InitializeCriticalSection(&cs);
 
-#if (BUFFER_MODE)
-    bufindex = 0;
-#endif
+	//get the timer frequence
+	QueryPerformanceFrequency(&nFreq);
+	//get the start the timer counter
+	QueryPerformanceCounter(&nStartTime);
+
+//#if (BUFFER_MODE == BUFFER_LOOP_ACCESS)
+	TsCtrlBlock.tsBufFullFlag = 0;
+	TsCtrlBlock.bufindex = 0;
+	//output the address of TimeStampBuf
+	char infobuffer[200];
+	sprintf_s(infobuffer, sizeof(infobuffer),"TimeStamp buffer startaddress is 0x%x,buffer size is %d.", (uint32)TimeStampBuf, BUFFER_LEN);
+	logPrintf(logLevelNotice_e, "TIMESTAMP", infobuffer);
+//#endif
 
     return;
 }
@@ -55,7 +74,7 @@ void TimeStampExit()
     return;
 }
 
-#if (!BUFFER_MODE)
+#if (BUFFER_MODE == DIRECT_IO_ACCESS)
 void FlushTimeStampBuf()
 {
 	
@@ -65,24 +84,23 @@ void TimeStamp(int func_id , int sub_id)
     EnterCriticalSection(&cs);
 
     FILE* fp;
-    unsigned long long systime_tmp;
+    uint64 systime_tmp = 0; 
     unsigned int output[2];
     char s[]= TIMESTAMP_FILENAME;
     fp = fopen(s,"ab+");
     if(NULL == fp)
-    {//logPrintf(logLevelInfo_e, "DIFF_DETECT", "e e e\n!");
+    {
     }
 
+	LARGE_INTEGER nCurTime;
+	QueryPerformanceCounter(&nCurTime);
+	double dfMinus, dfFreq, dfTim;
+	dfFreq = (double)nFreq.QuadPart;
+	dfMinus =(double)(nCurTime.QuadPart - nStartTime.QuadPart);
+	dfTim = dfMinus / dfFreq; //the time unit is second 
+	systime_tmp = (uint64)(dfTim*1000*1000);   //get current microsecond value	
+	
     //add time stamp
-    SYSTEMTIME sysTime;
-    GetLocalTime(&sysTime);
-    systime_tmp = sysTime.wMilliseconds +
-                  sysTime.wSecond*1000 +
-                  sysTime.wMinute*1000*60 + 
-                  sysTime.wHour*1000*60*60 +
-                  sysTime.wDay*1000*60*60*24+
-                  DayOfMonth[sysTime.wMonth]*1000*60*60*24;
-                  //sysTime.wYear*1000*60*60*24*30*12 +
     output[0] = systime_tmp & 0xffffffff;
     output[1] = (func_id << 16) | sub_id;
     change(output);
@@ -94,7 +112,7 @@ void TimeStamp(int func_id , int sub_id)
 
     LeaveCriticalSection(&cs);
 }
-#else
+#elif (BUFFER_MODE == BUFFER_CONSTANT_ACCESS)
 void FlushTimeStampBuf()
 {
 	EnterCriticalSection(&cs);
@@ -102,13 +120,12 @@ void FlushTimeStampBuf()
 	FILE* fp;
 	char s[]= TIMESTAMP_FILENAME;
 	fp = fopen(s,"ab+");
-	if(NULL == fp)
-	{//logPrintf(logLevelInfo_e, "DIFF_DETECT", "e e e\n!");
-	}
-
-	fwrite(TimeStampBuf,4*bufindex,1,fp);
-	fclose(fp);
-	bufindex = 0;	
+	if(NULL != fp)
+	{
+        fwrite(TimeStampBuf,4*(TsCtrlBlock.bufindex),1,fp);
+        fclose(fp);
+        TsCtrlBlock.bufindex = 0;	
+    }
 		
 	LeaveCriticalSection(&cs);
 }
@@ -117,37 +134,72 @@ void TimeStamp(int func_id , int sub_id)
 {
     EnterCriticalSection(&cs);
 
-    if(BUFFER_LEN == bufindex)//full
+    if(BUFFER_LEN == TsCtrlBlock.bufindex)//full
     {
-        bufindex = 0;
-        FILE* fp;
+        TsCtrlBlock.bufindex = 0;
+        FILE* fp = NULL;
         char s[]= TIMESTAMP_FILENAME;
         fp = fopen(s,"ab+");
-        if(NULL == fp)
-        {//logPrintf(logLevelInfo_e, "DIFF_DETECT", "e e e\n!");
+        if(NULL != fp)
+        {
+            fwrite(TimeStampBuf,4*BUFFER_LEN,1,fp);
+            fclose(fp);
         }
-
-        fwrite(TimeStampBuf,4*BUFFER_LEN,1,fp);
-        fclose(fp);
     }
     else
     {
-        SYSTEMTIME sysTime;
-        unsigned long long systime_tmp;
-        GetLocalTime(&sysTime);
-        systime_tmp = sysTime.wMilliseconds +
-                  sysTime.wSecond*1000 +
-                  sysTime.wMinute*1000*60 + 
-                  sysTime.wHour*1000*60*60 +
-                  sysTime.wDay*1000*60*60*24+
-                  DayOfMonth[sysTime.wMonth]*1000*60*60*24;
-        TimeStampBuf[bufindex] = systime_tmp & 0xffffffff;
-        TimeStampBuf[bufindex+1] = (func_id << 16) | sub_id;
-        change(&TimeStampBuf[bufindex]);
-        change(&TimeStampBuf[bufindex+1]);
-        bufindex = bufindex + 2;
+        LARGE_INTEGER nCurTime; 
+		uint64 systime_tmp = 0; 
+		QueryPerformanceCounter(&nCurTime);
+		double dfMinus, dfFreq, dfTim;
+		dfFreq = (double)nFreq.QuadPart;
+		dfMinus =(double)(nCurTime.QuadPart - nStartTime.QuadPart);
+		dfTim = dfMinus / dfFreq; //the time unit is second 
+		systime_tmp = (uint64)(dfTim*1000*1000);   //get current microsecond value		
+		
+        TimeStampBuf[TsCtrlBlock.bufindex] = systime_tmp & 0xffffffff;
+        TimeStampBuf[TsCtrlBlock.bufindex+1] = (func_id << 16) | sub_id;
+        change(&TimeStampBuf[TsCtrlBlock.bufindex]);
+        change(&TimeStampBuf[TsCtrlBlock.bufindex+1]);
+        TsCtrlBlock.bufindex += 2; 
     }
 
     LeaveCriticalSection(&cs);
 }
+#elif (BUFFER_MODE == BUFFER_LOOP_ACCESS)
+void FlushTimeStampBuf()
+{
+	
+}
+
+void TimeStamp(int func_id , int sub_id)
+{
+	EnterCriticalSection(&cs);
+	
+	if(BUFFER_LEN == TsCtrlBlock.bufindex)//full
+	{
+		TsCtrlBlock.bufindex = 0;
+		TsCtrlBlock.tsBufFullFlag = 1;
+	}
+	else
+	{
+		LARGE_INTEGER nCurTime; 
+		uint64 systime_tmp = 0; 
+		QueryPerformanceCounter(&nCurTime);
+		double dfMinus, dfFreq, dfTim;
+		dfFreq = (double)nFreq.QuadPart;
+		dfMinus =(double)(nCurTime.QuadPart - nStartTime.QuadPart);
+		dfTim = dfMinus / dfFreq; //the time unit is second 
+		systime_tmp = (uint64)(dfTim*1000*1000);   //get current microsecond value		
+
+		TimeStampBuf[TsCtrlBlock.bufindex] = systime_tmp & 0xffffffff;
+        TimeStampBuf[TsCtrlBlock.bufindex+1] = (func_id << 16) | sub_id;
+        change(&TimeStampBuf[TsCtrlBlock.bufindex]);
+        change(&TimeStampBuf[TsCtrlBlock.bufindex+1]);
+		TsCtrlBlock.bufindex += 2; 
+	}
+
+	LeaveCriticalSection(&cs);
+}
+
 #endif

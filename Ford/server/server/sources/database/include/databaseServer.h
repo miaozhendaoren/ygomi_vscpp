@@ -44,7 +44,7 @@ namespace ns_database
         uint32 getFurIdMaxIncrease();
 
     private:
-        const static int MAX_HISTORY_NUM = 10;
+        const static int MAX_HISTORY_NUM = 20;
 
         void calcReliability();
         void calcLocation();
@@ -86,6 +86,8 @@ namespace ns_database
 
         void resetAllFurSegId(void);
 
+        bool resetFurnitureSideFlag(IN furAttributesServer_t* furnitureIn, IN uint32 segId);
+
         void addFurniture(IN furAttributes_t* furnitureIn,
                           OUT furAttributes_t* furnitureOut);
 
@@ -94,6 +96,19 @@ namespace ns_database
         void resetFurnitureRoadSideLoc1();
 
         void resetFurnitureRoadSideLoc2();
+
+        void resetFurnitureRoadSideLoc3();
+        
+        int getFurUpdateFlag();
+
+        void setFurUpdateFlag(int flag);
+    
+        void resetFurUpdateFlag();
+
+        bool getUpateMsgToTlv(OUT uint8 **tlvP, 
+                            OUT uint32 *pduOutOffset, 
+                            OUT std::vector<uint32> &vecPduOffset, 
+                            OUT std::vector<uint32> &furPduOffset);
 
         void addFurnitureTlv(IN uint8* tlvBuff, 
                              IN uint32 buffLen,
@@ -111,16 +126,16 @@ namespace ns_database
 
         void reduceFurnitureByFurId(IN  furAttributes_t* furnitureIn, 
                                     OUT furAttributes_t* furnitureOut);
-		void readTlvToLaneInfo(IN  void** input,
-							   IN  resource_e sourceFlag,
-							   IN  int buffLen,
-							   OUT std::list<laneType_t>* laneInfo);
+        void readTlvToLaneInfo(IN  void** input,
+                               IN  resource_e sourceFlag,
+                               IN  int buffLen,
+                               OUT std::list<laneType_t>* laneInfo);
 
         void resetFurniture();
 
         void mergeFurInSameRange(INOUT furAttributes_t& furnitureInOut);
 
-		uint32 getFurnitureVersion();
+        uint32 getFurnitureVersion();
 
         void getNewDataVec(std::list<std::vector<point3D_t>> &newDataVec);
 
@@ -132,7 +147,7 @@ namespace ns_database
 
         void setNewDataVec(std::list<std::vector<point3D_t>> &newDataVec);
 
-		int getSegIdInFurList(int furListIndex, int *furSegId);
+        int getSegIdInFurList(int furListIndex, int *furSegId);
 
         bool loadFurFromFile(IN std::string fileName);
 
@@ -144,7 +159,10 @@ namespace ns_database
         bool saveRoadVecToFile(IN std::string fileName,
                                IN bool bRevDir = false);
 
-        bool saveRoadVecAndFurToKml(IN std::string fileName);
+		bool saveRoadVecAndFurToKml(IN std::list<std::list<std::vector<point3D_t>>> &allLines,
+            						IN std::list<std::list<furAttributesServer_t>> &furnitureList,
+									IN std::string fileName, 
+									IN point3D_t &standPoint);
 
         void convBgRoadVecToTlv(IN std::list<backgroundSectionData> &bgVec, 
                                 OUT uint8 *tlvBuf, 
@@ -160,8 +178,9 @@ namespace ns_database
 
         std::list<std::list<furAttributesServer_t>> _furnitureList; // segment list / furniture element
         std::list<std::vector<point3D_t>> _newDataVec;
+        int _furUpdateFlag;
 
-        void insertOneFurniture(IN furAttributesServer_t &furnitureServerIn);
+        list<furAttributesServer_t>::iterator insertOneFurniture(IN furAttributesServer_t &furnitureServerIn);
     };
 }
 

@@ -18,7 +18,7 @@ void determineBirdViewLocation(Mat &invertH, Point &pixelLocationOriginalImage, 
 	double yy = pixelLocationOriginalImage.x * invertHArray[0][1] + pixelLocationOriginalImage.y * invertHArray[1][1] + invertHArray[2][1];
 	double ww = pixelLocationOriginalImage.x * invertHArray[0][2] + pixelLocationOriginalImage.y * invertHArray[1][2] + invertHArray[2][2];
 
-	pixelLocationBirdView = Point(int((xx+0.5)/ww), int((yy+0.5)/ww));
+	pixelLocationBirdView = Point(int((xx+0.5)/(ww + 0.0000000001)), int((yy+0.5)/(ww + 0.0000000001)));
 }
 
 void getRefGPSLocationOfEveryPixelInRoadScanImage(Mat &imageIn, int stretchRate, Point2d GPS_current, Point2d GPS_next, Point2d GPS_reference, Point pixelLocationBirdView, double distancePerPixel,float offsetDist, Point2d &refGPSOriginalImage)
@@ -35,7 +35,7 @@ void getRefGPSLocationOfEveryPixelInRoadScanImage(Mat &imageIn, int stretchRate,
 
 	Point2d pixel = Point2d((imageIn.cols/2 - pixelLocationBirdView.x)*(1.0), imageIn.rows*stretchRate - pixelLocationBirdView.y);
 
-	int scopeOfScanImage = ceil(sqrt(pow(GPS1.x - GPS2.x, 2.0) + pow(GPS1.y - GPS2.y, 2.0))*100/distancePerPixel);
+	int scopeOfScanImage = ceil(sqrt(pow(GPS1.x - GPS2.x, 2.0) + pow(GPS1.y - GPS2.y, 2.0))*100/(distancePerPixel + 0.0000000001));
 
 	//GPS angle
 	double angle = atan((GPS2.y-GPS1.y)/(GPS2.x-GPS1.x));
@@ -47,17 +47,17 @@ void getRefGPSLocationOfEveryPixelInRoadScanImage(Mat &imageIn, int stretchRate,
 		if(pixel.x>=0)
 		{
 			//the first quadrant
-			refGPSOriginalImage.x = (pixel.x*tan(angle)+pixel.y)/scopeOfScanImage*(GPS2.x-GPS1.x)+GPS1.x;
+			refGPSOriginalImage.x = (pixel.x*tan(angle)+pixel.y)/(scopeOfScanImage+0.0000000001)*(GPS2.x-GPS1.x)+GPS1.x;
 
 			double middleValue = pixel.y-tan(PI/2-angle)*pixel.x;
 
 			if(middleValue>=0)
 			{
-				refGPSOriginalImage.y = (pixel.y-pixel.x/tan(angle))/scopeOfScanImage*(GPS2.y-GPS1.y)+GPS1.y;
+				refGPSOriginalImage.y = (pixel.y-pixel.x/tan(angle))/(scopeOfScanImage+0.0000000001)*(GPS2.y-GPS1.y)+GPS1.y;
 			}
 			else
 			{
-				refGPSOriginalImage.y = GPS1.y-(pixel.x/tan(angle)-pixel.y)/scopeOfScanImage*(GPS2.y-GPS1.y);
+				refGPSOriginalImage.y = GPS1.y-(pixel.x/tan(angle)-pixel.y)/(scopeOfScanImage+0.0000000001)*(GPS2.y-GPS1.y);
 			}
 		}
 		else
@@ -67,21 +67,21 @@ void getRefGPSLocationOfEveryPixelInRoadScanImage(Mat &imageIn, int stretchRate,
 
 			if(middleValue>=0)
 			{
-				refGPSOriginalImage.x = (pixel.y+pixel.x*tan(angle))/scopeOfScanImage*(GPS2.x-GPS1.x)+GPS1.x;
+				refGPSOriginalImage.x = (pixel.y+pixel.x*tan(angle))/(scopeOfScanImage+0.0000000001)*(GPS2.x-GPS1.x)+GPS1.x;
 			}
 			else
 			{
-				refGPSOriginalImage.x = GPS1.x+(pixel.x/tan(PI/2-angle)+pixel.y)/scopeOfScanImage*(GPS2.x-GPS1.x);
+				refGPSOriginalImage.x = GPS1.x+(pixel.x/tan(PI/2-angle)+pixel.y)/(scopeOfScanImage+0.0000000001)*(GPS2.x-GPS1.x);
 			}
 
-			refGPSOriginalImage.y = (pixel.y-pixel.x/tan(angle))/scopeOfScanImage*(GPS2.y-GPS1.y)+GPS1.y;
+			refGPSOriginalImage.y = (pixel.y-pixel.x/tan(angle))/(scopeOfScanImage+0.0000000001)*(GPS2.y-GPS1.y)+GPS1.y;
 
 		}
 	}
 	else if((abs(GPS2.x-GPS1.x)>=threshold)&&(abs(GPS2.y-GPS1.y)<threshold))
 	{
 		// horizontal
-		refGPSOriginalImage.x = pixel.y/scopeOfScanImage*(GPS2.x-GPS1.x)+GPS1.x;
+		refGPSOriginalImage.x = pixel.y/(scopeOfScanImage+0.0000000001)*(GPS2.x-GPS1.x)+GPS1.x;
 
 		if(GPS2.x>GPS1.x)
 		{
@@ -95,7 +95,7 @@ void getRefGPSLocationOfEveryPixelInRoadScanImage(Mat &imageIn, int stretchRate,
 	else if((abs(GPS2.x-GPS1.x)<threshold)&&(abs(GPS2.y-GPS1.y)>=threshold))
 	{
 		//vertical
-		refGPSOriginalImage.y = pixel.y/scopeOfScanImage*(GPS2.y-GPS1.y)+GPS1.y;
+		refGPSOriginalImage.y = pixel.y/(scopeOfScanImage+0.0000000001)*(GPS2.y-GPS1.y)+GPS1.y;
 
 		if(GPS2.y>GPS1.y)
 		{

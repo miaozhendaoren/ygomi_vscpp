@@ -571,5 +571,28 @@ namespace ns_database
             ++locIdx;
         }
     }
+    void smoothGps(IN int filterOrder,
+                   IN vector<point3D_t> &locVec, 
+                   OUT vector<point3D_t> &locSmoothed)
+    {
+        int   step = (int)(filterOrder/2);
+        for(int pointIdx = step; pointIdx < locVec.size() - step; pointIdx++)
+        {
+            double sumX = 0;
+            double sumY = 0;
+           
+            for(int kk = 0; kk < filterOrder; kk++)
+            {
+                sumX += locVec[pointIdx - step + kk].lat;
+                sumY += locVec[pointIdx - step + kk].lon;
+            }
+            point3D_t tempGps;
+            tempGps.lat = sumX/7;
+            tempGps.lon = sumY/7;
+            tempGps.alt = locVec[pointIdx].alt;
+            locSmoothed.push_back(tempGps);
+        }
+
+    }
 }
 

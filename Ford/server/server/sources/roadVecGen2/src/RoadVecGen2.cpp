@@ -23,7 +23,7 @@
 #include "RoadVecGen2.h"
 #include "configure.h"
 
-#if 1 // VISUALIZATION_ON || SAVE_DATA_ON
+#if VISUALIZATION_ON || SAVE_DATA_ON
 #include "VisualizationApis.h"
 
 extern uint32 PREVIOUS_SEGID;
@@ -140,7 +140,6 @@ CRoadVecGen2::~CRoadVecGen2(void)
 
 
 bool CRoadVecGen2::roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
-    IN list<vector<point3D_t>> &gpsData,
     OUT list<list<vector<point3D_t>>> &fgData,
     OUT list<uint32> &modifiedSectionId)
 {
@@ -149,14 +148,13 @@ bool CRoadVecGen2::roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
         return false;
     }
 
+    WaitForSingleObject(_hMutexMerging, INFINITE);
+
     // release data first
     if (!fgData.empty())
     {
         fgData.clear();
     }
-
-    // pre-processing reported lane data
-    // preprocessRptData(rptData, gpsData);
 
     // suppose output is list<reportSectionData> rptData;
     list<reportSectionData> secData;
@@ -165,19 +163,12 @@ bool CRoadVecGen2::roadSectionsGen(IN  list<list<vector<point3D_t>>> &rptData,
     if(!_segConfigList.empty())
     {
         uint32 sampleInterval = 20;
-        _secRptDataObj.segMultiRptData(rptData, sampleInterval, _segConfigList, secData);
+        _secRptDataObj.segMultiRptData(rptData,sampleInterval,_segConfigList,secData);
     }
-#if 1 // SAVE_DATA_ON
-    //saveData(rptData);
-    //saveData(secData);
-    saveData(rptData, gpsData);
-
-    FG_MERGED_NUM++;
-
-    return false;
+#if SAVE_DATA_ON
+    saveData(rptData);
+    saveData(secData);
 #endif
-
-    WaitForSingleObject(_hMutexMerging, INFINITE);
 
     bool bCommLinesMerged = false;
 #if defined(_DE_LEHRE_VIDEO)
@@ -446,6 +437,7 @@ void CRoadVecGen2::readSecConfig(OUT list<segAttributes_t> &segCfgList)
     segmentElement.numFurniture_used   = 0;
     segmentElement.numDynamicData_used = 0;
     segmentElement.uiLaneNum_used      = 0;
+    segmentElement.loopIdx_used        = 0;
 
     memset(segmentElement.ports, 0, MAX_NUM_PORT * sizeof(point3D_t));
 
@@ -808,9 +800,11 @@ bool CRoadVecGen2::mergeSectionLane(IN    reportSectionData     &reportData)
                 leftSample->at(i).lat          = 0.0;
                 leftSample->at(i).paintFlag    = 0.0;
                 leftSample->at(i).paintLength  = 0.0;
+                leftSample->at(i).count        = 0.0;
                 rightSample->at(i).lat         = 0.0;
                 rightSample->at(i).paintFlag   = 0.0;
                 rightSample->at(i).paintLength = 0.0;
+                rightSample->at(i).count       = 0.0;
             }
 
             // data preprocessing
@@ -3055,67 +3049,21 @@ void CRoadVecGen2::getMatchedLineInd(OUT vector<int> &matchedInd,
         {
             matchedInd.push_back(matchedInd[i] + numOfLines);
         }
-    }
-}
 
-
-void CRoadVecGen2::preprocessRptData(INOUT list<list<vector<point3D_t>>>& rptData,
-    IN list<vector<point3D_t>> &gpsData)
-{
-    int numOfLanes = rptData.size();
-    int numOfTracks = gpsData.size();
-
-    // number of lanes should be the same with number of tracks
-    if (numOfLanes == numOfTracks)
-    {
-        list<list<vector<point3D_t>>>::iterator laneIt = rptData.begin();
-        list<vector<point3D_t>>::iterator trackIt = gpsData.begin();
-        while (laneIt != rptData.end() && trackIt != gpsData.end())
+#if defined(_US_PALO_ALTO_VIDEO)
+        if (segId == 1)
         {
-            int numOfVecPnts = laneIt->front().size();
-            int numOfGpsPnts = trackIt->size();
-            if (numOfGpsPnts == numOfVecPnts)
-            {
-                // mean relative distance of left and right line
-                int lCnt = 0, rCnt = 0;
-                double lDist = 0.0, rDist = 0.0;
-                for (int i = 0; i < numOfVecPnts; ++i)
-                {
-                    if (0.005 >= abs(laneIt->front().at(i).paintFlag - 1.0))
-                    {
-                        double lat = laneIt->front().at(i).lat - trackIt->at(i).lat;
-                        double lon = laneIt->front().at(i).lon - trackIt->at(i).lon;
-                        lDist = lat * lat + lon * lon;
-                        lCnt++;
-                    }
-
-                    if (0.005 >= abs(laneIt->back().at(i).paintFlag - 1.0))
-                    {
-                        double lat = laneIt->back().at(i).lat - trackIt->at(i).lat;
-                        double lon = laneIt->back().at(i).lon - trackIt->at(i).lon;
-                        rDist = lat * lat + lon * lon;
-                        rCnt++;
-                    }
-                }
-
-                // add data for undetected points
-                if (0 < lCnt)
-                {
-                    double mLDist = lDist / lCnt;
-                }
-
-                if (0 < rCnt)
-                {
-                    double mRDist = rDist / rCnt;
-                }
-            }
-
-            ++laneIt;
-            ++trackIt;
+            matchedInd.clear();
+            matchedInd.push_back(-1);
+            matchedInd.push_back(-1);
+            matchedInd.push_back(0);
+            matchedInd.push_back(-1);
+            matchedInd.push_back(2);
+            matchedInd.push_back(3);
         }
+#endif
     }
 }
-
 
 } // end of namespace ns_database
 

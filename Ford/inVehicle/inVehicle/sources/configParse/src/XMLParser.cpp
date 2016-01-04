@@ -1,3 +1,4 @@
+#include <sstream>
 #include "XMLParser.h"
 
 std::ostream& operator<<(std::ostream& os, TagElement& tag){

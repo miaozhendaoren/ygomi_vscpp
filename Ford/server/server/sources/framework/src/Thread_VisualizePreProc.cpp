@@ -66,9 +66,15 @@ bool assignSignOnRoadSharp(int type, signInfo_t &signInfo)
 		generateRect(6, 2, signInfo.sharp);
 		break;
 	case 1000:
+        // fall through
+    case 1001:
+        // fall through
+    case 1002:
+        // fall through
+    case 1003:
 		generateRect(0.4, 4, signInfo.sharp);
 		break;
-	case 1002:
+	case 1050:
 		generateRect(2, 2, signInfo.sharp);
 		break;
 	default:
@@ -224,16 +230,80 @@ int convertSignType(int type)
 	case 1000:
 		number = 47;
 		break;
-	case 1002:
+	case 1050:
 		number = 48;
 		break;
+	case 10200:
+		number = 49;
+		break;
+    case 24100:
+		number = 50;
+		break;
+    case 28400:
+		number = 51;
+		break;
+    case 28500:
+		number = 52;
+		break;
+    case 28700:
+		number = 53;
+		break;
+    case 34100:
+		number = 54;
+		break;
+    case 10310:
+        number = 55;
+        break;
+    case 10320:
+        number = 56;
+        break;
+    case 22210:
+        number = 57;
+        break;
 	default:
 		number = 41;
 		break;
 	}
 #else if((RD_LOCATION&RD_NATION_MASK) == RD_UNIT_STATES)
+	switch(type)
+	{
+	case 1:
+        // fall through
+	case 2:
+        // fall through
+	case 3:
+        // fall through
+    case 4:
+        // fall through
+    case 5:
+        // fall through
+    case 6:
+        // fall through
+    case 7:
+        // fall through
+    case 8:
+        // fall through
+		number = type;
+		break;
+    case 35:
+        number = 9;
+        break;
+	case 1000:
+		number = 10; // stop line
+		break;
+	case 1001:
+		number = 11; // crosswalk
+		break;
+	case 1002:
+		number = 12; // stop line2
+		break;
+	case 1003:
+		number = 13; // crosswalk2
+		break;
+    default: 
+        number = 4;
+    }
 
-	number = type;
 #endif
 	return number;
 }
@@ -342,13 +412,14 @@ void generateRoadSideVec(vector<point3DFloat_t> &midVec, float width, vector<poi
 	point3DFloat_t point1;
 	point3DFloat_t point2;
 	int lineIndex = 0;
-	float cosAlpha;
-	float sinAlpha;
+	float cosAlpha = 0.0;
+	float sinAlpha = 0.0;
 
 	leftVec.assign(midVec.size(), point1);
 	rightVec.assign(midVec.size(), point2);
 
-	for(lineIndex = 0; lineIndex < (midVec.size()-1); lineIndex++)
+    int numOfMidPnts = midVec.size();
+	for(lineIndex = 0; lineIndex < (numOfMidPnts-1); lineIndex++)
 	{
 		point1 = midVec[lineIndex];
 		point2 = midVec[lineIndex+1];
@@ -357,8 +428,8 @@ void generateRoadSideVec(vector<point3DFloat_t> &midVec, float width, vector<poi
 		float latDis = point1.x - point2.x;
 
 		float rou = sqrt(lonDis*lonDis + latDis*latDis);
-		cosAlpha = latDis/rou;
-		sinAlpha = lonDis/rou;
+		cosAlpha = (0.0 == rou) ? 0.0 : (latDis/rou);
+		sinAlpha = (0.0 == rou) ? 0.0 : (lonDis/rou);
 
 		leftVec[lineIndex].x = point1.x - width*sinAlpha;
 		leftVec[lineIndex].z = point1.z + width*cosAlpha;
@@ -393,9 +464,18 @@ void extractQuadInfo(point3DFloat_t startPoint, point3DFloat_t endPoint, float w
 
 	float dif_z = endPoint.z - startPoint.z;
 	float dif_x = endPoint.x - startPoint.x;
-	float tan_a = dif_z/dif_x;
-	float shift_z = sqrt(width*width/(1+tan_a*tan_a));
-	float shift_x = tan_a*shift_z;
+	float shift_z, shift_x, tan_a;
+	if(0 == dif_x)
+	{
+		shift_z = 0;
+		shift_x = width;
+	}
+	else
+	{
+		tan_a = dif_z/dif_x;
+		shift_z = sqrt(width*width/(1+tan_a*tan_a));
+		shift_x = tan_a*shift_z;	
+	}
 
 	if(contiFlag)
 	{
@@ -460,9 +540,11 @@ void generateRoadChar(point3DFloat_t position, int showNum, drawServerCharInfo_t
 
 unsigned int __stdcall Thread_VisualizePreProc(void *data)
 {
+	vector<uint32> SegIdInSky;
 	engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
 	engine3DPtr->SwapServerEyeBuffer();
 
+	roadSegConfig_gp->getRoadSegmentInSky(SegIdInSky);
 	//static int testNum = 0;
 
 	while(1)
@@ -473,22 +555,44 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 		list<list<lineAttributes_t>> lineAttr; // segment list / vector list / attributes
 		database_gp->getAllVectors(allLines, lineAttr);
 		RD_ADD_TS(tsFunId_eThread_Visual_Pre,1);
+
 		if(allLines.size() != 0)
 		{
 			//standPoint = (*(*allLines.begin()).begin())[0];
 
 			list<list<vector<point3D_t>>>::iterator lineInSegIter = allLines.begin();
-
+			int segmentId = 1;
 			RD_ADD_TS(tsFunId_eThread_Visual_Pre,2);
 			// For each segment
 			while(lineInSegIter != allLines.end())
 			{
 				list<vector<point3D_t>>::iterator lineIter = (*lineInSegIter).begin();
+				float segInSkyHeight = 0;
+				vector<point3DFloat_t> startVec;
+				vector<point3DFloat_t> endVec;
+
+				//decide if it it sky section
+				for(int skyIndex = 0; skyIndex < SegIdInSky.size(); skyIndex++)
+				{
+					if(segmentId == SegIdInSky[skyIndex])
+					{
+						segInSkyHeight = 0.01;
+						break;
+					}
+				}
 
 				int lineNum = (*lineInSegIter).size();
 				int lineIdx = 0;
 				point3DFloat_t lastPos;
-				int drawNum;
+				uint32 drawNum;
+				
+				baseColor_t color;
+				color.R = 0.25;
+				color.G = 0.25;
+				color.B = 0.25;
+				triangle_t triBuf;
+				triBuf.color = color;
+				triBuf.showFlag = true;
 
 				if(lineNum >= 2)
 				{
@@ -500,89 +604,130 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 						int numberPoint = lineIter->size();
 						point3DFloat_t tempPoint;
 
-						for(int pointIdx = 0; pointIdx < numberPoint; pointIdx++)
+
+						if(numberPoint > 0)
 						{
-							//coordinateChange(&standPoint,&(*lineIter)[pointIdx], &tempPoint);
-							changeDataBaseCoord(&(*lineIter)[pointIdx], &tempPoint);
-							pointVecBuf.push_back(tempPoint);
-						}
-				    
-						baseColor_t color;
-						color.R = 0.25;
-						color.G = 0.25;
-						color.B = 0.25;
-						baseColor_t colorLine;
-						colorLine.R = 0;
-						colorLine.G = 1;
-						colorLine.B = 0;
-						quadInfo_t quadBuf;
-						quadBuf.color = colorLine;
-
-						//engine3DPtr->AddOneLineInfo(lineTypeEnum_solid, colorLine, pointVecBuf);
-						//engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
-
-						for(int index = 0; index < (numberPoint-1); index++)
-						{
-							extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.03, index, &quadBuf,0.005);
-							engine3DPtr->AddQuadInfo(1,&quadBuf);
-						}
-
-						if(lineIdx == 0)
-						{
-							lastPos = pointVecBuf[0];
-							drawNum = (*lineIter)[0].count;
-						}else
-						{
-							point3DFloat_t drawPos;
-							drawPos.x = (lastPos.x + pointVecBuf[0].x)/2;
-							drawPos.y = (lastPos.y + pointVecBuf[0].y)/2;
-							drawPos.z = (lastPos.z + pointVecBuf[0].z)/2;
-
-							drawServerCharInfo_t testChar;
-
-							generateRoadChar(drawPos, drawNum, testChar);
-
-							engine3DPtr->AddOneServerCharInfo(testChar);
-							
-							lastPos = pointVecBuf[0];
-							drawNum = (*lineIter)[0].count;
-							
-						}
-
-						
-
-						if((lineIdx == 0)||(lineIdx == (lineNum-1)))
-						{
-							engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
-						}
-
-						//draw the paint of the line
-						{
-							baseColor_t color;
-							color.R = 1.0;
-							color.G = 0.95;
-							color.B = 0.9;
-
-							quadInfo_t quadBuf;
-							quadBuf.color = color;
-							bool contiFlag = false;
-
-							for(int index = 0; index < (numberPoint-1); index+=4)
+							for(int pointIdx = 0; pointIdx < numberPoint; pointIdx++)
 							{
-								//extractQuadInfo(pointVecBuf[2*index], pointVecBuf[2*index+1], 0.2, false, &quadBuf);
-								if(((*lineIter)[index].paintFlag>=0.5)&&((*lineIter)[index+1].paintFlag>=0.5))
+								//coordinateChange(&standPoint,&(*lineIter)[pointIdx], &tempPoint);
+								changeDataBaseCoord(&(*lineIter)[pointIdx], &tempPoint);
+								tempPoint.y += segInSkyHeight;
+								pointVecBuf.push_back(tempPoint);
+							}
+				    
+							baseColor_t colorLine;
+							colorLine.R = 0;
+							colorLine.G = 1;
+							colorLine.B = 0;
+							quadInfo_t quadBuf;
+							quadBuf.color = colorLine;
+
+							engine3DPtr->AddOneLineInfo(lineTypeEnum_solid, colorLine, true, pointVecBuf);
+							//engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
+
+							//for(int index = 0; index < (numberPoint-1); index++)
+							//{
+							//	extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.03, index, &quadBuf,0.005);
+							//	engine3DPtr->AddQuadInfo(1,&quadBuf);
+							//}
+
+							if(lineIdx == 0)
+							{
+								lastPos = pointVecBuf[0];
+								int count = (*lineIter)[0].count;
+								drawNum = (count == LANE_END_LINE_FLAG)?count:CLEAN_LANE_DIR_BIT(count);
+								engine3DPtr->AddOneRoadLineInfo(lineStyle,color,true, pointVecBuf);
+								startVec.push_back(pointVecBuf[0]);
+								endVec.push_back(pointVecBuf[pointVecBuf.size()-1]);
+							}else
+							{
+								point3DFloat_t drawPos;
+								drawPos.x = (lastPos.x + pointVecBuf[0].x)/2;
+								drawPos.y = (lastPos.y + pointVecBuf[0].y)/2;
+								drawPos.z = (lastPos.z + pointVecBuf[0].z)/2;
+
+								drawServerCharInfo_t testChar;
+								if(LANE_END_LINE_FLAG != drawNum)
 								{
-									extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf, 0.01);
-									contiFlag = true;
-									engine3DPtr->AddQuadInfo(1,&quadBuf);
+									generateRoadChar(drawPos, drawNum, testChar);
+									engine3DPtr->AddOneServerCharInfo(testChar);
 								}else
 								{
-									contiFlag = false;
+									engine3DPtr->AddOneRoadLineInfo(lineStyle,color, true, pointVecBuf);
+									startVec.push_back(pointVecBuf[0]);
+									endVec.push_back(pointVecBuf[pointVecBuf.size()-1]);
+								}
+							
+								lastPos = pointVecBuf[0];
+								int count = (*lineIter)[0].count;
+								drawNum = (count == LANE_END_LINE_FLAG)?count:CLEAN_LANE_DIR_BIT(count);
+								if((LANE_END_LINE_FLAG == drawNum) || (lineIdx == (lineNum-1)))
+								{
+									engine3DPtr->AddOneRoadLineInfo(lineStyle,color, true, pointVecBuf);
+									
+									//add triangle for other road place
+									int startSize = startVec.size();
+									int endSize = endVec.size();
+									if(startSize > 1)
+									{
+										for(int triIdx = 1; triIdx < startSize; triIdx++)
+										{
+											triBuf.vertex[0] = startVec[0];
+											triBuf.vertex[1] = startVec[triIdx];
+											triBuf.vertex[2] = pointVecBuf[0];
+											engine3DPtr->AddTriInto(1, &triBuf);
+										}
+									}
+
+									if(endSize > 1)
+									{
+										for(int triIdx = 1; triIdx < endSize; triIdx++)
+										{
+											triBuf.vertex[0] = endVec[0];
+											triBuf.vertex[1] = endVec[triIdx];
+											triBuf.vertex[2] = pointVecBuf[pointVecBuf.size()-1];
+											engine3DPtr->AddTriInto(1, &triBuf);
+										}
+									}
+									startVec.clear();
+									endVec.clear();
+
+								}else
+								{
+									startVec.push_back(pointVecBuf[0]);
+									endVec.push_back(pointVecBuf[pointVecBuf.size()-1]);
 								}
 							}
-						}
 
-						pointVecBuf.clear();
+							//draw the paint of the line
+							{
+								baseColor_t color;
+								color.R = 1.0;
+								color.G = 0.95;
+								color.B = 0.9;
+
+								quadInfo_t quadBuf;
+								quadBuf.color = color;
+								quadBuf.showFlag = true;
+								bool contiFlag = false;
+
+								for(int index = 0; index < (numberPoint-1); index+=4)
+								{
+									//extractQuadInfo(pointVecBuf[2*index], pointVecBuf[2*index+1], 0.2, false, &quadBuf);
+									if(((*lineIter)[index].paintFlag>=0.5)&&((*lineIter)[index+1].paintFlag>=0.5))
+									{
+										extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf, 0.01);
+										contiFlag = true;
+										engine3DPtr->AddQuadInfo(1,&quadBuf);
+									}else
+									{
+										contiFlag = false;
+									}
+								}
+							}
+
+							pointVecBuf.clear();
+						}//end for if(numberPoint > 0)
 
 						lineIter++;
 						lineIdx++;
@@ -590,14 +735,15 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 				}
 
 				lineInSegIter++;
+				segmentId++;
 			}
 
 			database_gp->getAllVectors_clear(allLines, lineAttr);
 		}
 
-		engine3DPtr->SwapLineBuffer();
-		engine3DPtr->SwapRoadLineBuffer();
-		engine3DPtr->SwapServerCharBuffer();
+		//engine3DPtr->SwapLineBuffer();
+		//engine3DPtr->SwapRoadLineBuffer();
+		//engine3DPtr->SwapServerCharBuffer();
 
 		RD_ADD_TS(tsFunId_eThread_Visual_Pre,3);
 		//get the new data to draw the paint
@@ -609,6 +755,12 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 				list<vector<point3D_t>>::iterator newDataIter = newDataVec.begin();
 				while(newDataIter != newDataVec.end())
 				{
+					if ((*newDataIter).empty())
+					{
+						newDataIter++;
+						continue;
+					}
+
 					point3DFloat_t tempPoint;
 					for(int pointIdx = 0; pointIdx < (*newDataIter).size(); pointIdx++)
 					{
@@ -627,15 +779,17 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 						quadInfo_t quadBuf;
 						quadBuf.color = color;
+						quadBuf.showFlag = true;
 						bool contiFlag = false;
 
-						for(int index = 0; index < ((*newDataIter).size()-1); index+=4)
+						int numOfPnts = (*newDataIter).size();
+						for(int index = 0; index < (numOfPnts-1); index+=4)
 						{
 							//extractQuadInfo(pointVecBuf[2*index], pointVecBuf[2*index+1], 0.2, false, &quadBuf);
 							if(((*newDataIter)[index].paintFlag>=0.5)&&((*newDataIter)[index+1].paintFlag>=0.5)&&
 								((*newDataIter)[index].paintFlag<=1.0)&&((*newDataIter)[index+1].paintFlag<=1.0))
 							{
-								extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf,0.01);
+								extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf,0.001);
 								contiFlag = true;
 								engine3DPtr->AddQuadInfo(1,&quadBuf);
 							}else
@@ -652,7 +806,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
 		}
 		RD_ADD_TS(tsFunId_eThread_Visual_Pre,4);
-		engine3DPtr->SwapQuadBuffer();
+		//engine3DPtr->SwapQuadBuffer();
 		{
 			//get all the furniture
 			vector<signInfo_t> signInfo;
@@ -664,24 +818,10 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 			convFurToSignInfo(furnitureList, signInfo);
 			furnitureList.clear();
 
-			//test
-#if 0
-			{
-				signInfo_t test;
-				test.attribute = 1;
-				test.position.x = -109;
-				test.position.y = 0;
-				test.position.z = 2132;
-				test.rotAngle = -90;
-				test.sideFlag = 4;
-				test.type = 42;
-				signInfo.push_back(test);
-
-			}
-#endif
 			engine3DPtr->AddSignInfo(signInfo);
-			engine3DPtr->SwapSignBuffer(); 
+			//engine3DPtr->SwapSignBuffer(); 
 		}
+		engine3DPtr->Swap3DBuffers();
 		RD_ADD_TS(tsFunId_eThread_Visual_Pre,5);
 		WaitForSingleObject(g_readySema_Redraw, INFINITE); 
 		RD_ADD_TS(tsFunId_eThread_Visual_Pre,6);

@@ -21,6 +21,7 @@
 
 #include "LogInfo.h"  // logPrintf
 #include "configure.h"
+#include "appInitCommon.h"
 
 using std::list;
 using std::vector;
@@ -60,6 +61,7 @@ namespace ns_database
         offset_used = 0;
         reliabRating_used = 0;
         boundary_used = 0;
+        inLoopIdx_used = 0;
     }
 
     database::database()
@@ -155,6 +157,7 @@ namespace ns_database
         setTvlCfg(&_tlvCfg_seg_a[seg_tunnel_e - seg_base_e], seg_tunnel_e, tvUint8_e, 1, 1, 0);
         setTvlCfg(&_tlvCfg_seg_a[seg_furList_e - seg_base_e], seg_furList_e, tlv_complexV_e, 0, 1, 0);
         setTvlCfg(&_tlvCfg_seg_a[seg_dynList_e - seg_base_e], seg_dynList_e, tlv_complexV_e, 0, 1, 0);
+        setTvlCfg(&_tlvCfg_seg_a[seg_loopIdx_e - seg_base_e], seg_loopIdx_e, tvUint8_e, 0, 1, 0);
 
         setTvlCfg(&_tlvCfg_vec_a[vec_segId_e - vec_base_e], vec_segId_e, tvUint32_e, 4, 1, 0);
         setTvlCfg(&_tlvCfg_vec_a[vec_vecList_e - vec_base_e], vec_vecList_e, tlv_complexV_e, 0, 1, 0);
@@ -171,6 +174,7 @@ namespace ns_database
         setTvlCfg(&_tlvCfg_fur_a[fur_offset_e - fur_base_e], fur_offset_e, tvSingle_e, 4, 1, 0);
         setTvlCfg(&_tlvCfg_fur_a[fur_reliabRating_e - fur_base_e], fur_reliabRating_e, tvUint8_e, 1, 1, 0);
         setTvlCfg(&_tlvCfg_fur_a[fur_segId_e - fur_base_e], fur_segId_e, tvUint32_e, 4, 1, 0);
+        setTvlCfg(&_tlvCfg_fur_a[fur_inLoopIdx_e - fur_base_e], fur_inLoopIdx_e, tvUint8_e, 1, 1, 0);
         
         setTvlCfg(&_tlvCfg_dataLine_a[data_lineId_e - data_lineBase_e], data_lineId_e, tvUint32_e, 4, 1, 0);
         setTvlCfg(&_tlvCfg_dataLine_a[data_lineWidth_e - data_lineBase_e], data_lineWidth_e, tvSingle_e, 4, 1, 0);
@@ -196,6 +200,7 @@ namespace ns_database
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointReliabRating_e - data_pointBase_e], data_pointReliabRating_e, tvUint8_e, 1, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointPaintFlag_e - data_pointBase_e], data_pointPaintFlag_e, tvSingle_e, 1, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_mergeCounter_e - data_pointBase_e], data_mergeCounter_e, tvUint32_e, 4, 1, 0);
+        setTvlCfg(&_tlvCfg_dataPoint_a[data_pointPaintLength_e - data_pointBase_e], data_pointPaintLength_e, tvSingle_e, 4, 1, 0);
 
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointLatitudeL_e - data_pointBase_e], data_pointLatitudeL_e, tvDouble_e, 8, 1, 0);
         setTvlCfg(&_tlvCfg_dataPoint_a[data_pointLongitudeL_e - data_pointBase_e], data_pointLongitudeL_e, tvDouble_e, 8, 1, 0);
@@ -384,6 +389,10 @@ namespace ns_database
         setTvlCommon(&tlvTmp, tlvCfgP->typeId, segmentAttr->numDynamicData_used, tlvCfgP->tlvType, segmentAttr->numDynamicData, 0);
         byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
 
+        tlvCfgP = &_tlvCfg_seg_a[seg_loopIdx_e - seg_base_e];
+        setTvlCommon(&tlvTmp, tlvCfgP->typeId, segmentAttr->loopIdx_used, tlvCfgP->tlvType, segmentAttr->loopIdx, 0);
+        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
         *length = byteNum;
 
         if(sourceFlag == file_e)
@@ -470,6 +479,10 @@ namespace ns_database
         setTvlCommon(&tlvTmp, tlvCfgP->typeId, furnitureAttr->segId_used, tlvCfgP->tlvType, tlvCfgP->length, furnitureAttr->segId);
         byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
 
+        tlvCfgP = &_tlvCfg_fur_a[fur_inLoopIdx_e - fur_base_e];
+        setTvlCommon(&tlvTmp, tlvCfgP->typeId, furnitureAttr->inLoopIdx_used, tlvCfgP->tlvType, tlvCfgP->length, furnitureAttr->inLoopIdx);
+        byteNum += writeTlvCommon(&tlvTmp, output, sourceFlag);
+
         *length = byteNum;
 
         if(sourceFlag == file_e)
@@ -532,6 +545,17 @@ namespace ns_database
 
             uint32 segmentIdDb = segAttrListIter->segId;
             double minDist = DBL_MAX;
+
+            // check loop index
+            if((1 == segAttrListIter->loopIdx_used) && (1 == furnitureAttr->inLoopIdx_used))
+            {
+                if(furnitureAttr->inLoopIdx!= segAttrListIter->loopIdx) // if furniture not in loop
+                {
+                    ++vecListIter;
+                    ++segAttrListIter;
+                    continue;
+                }
+            }
             
             // Segment ID match
             if(segmentIdDb == segIdIn)
@@ -613,6 +637,214 @@ namespace ns_database
         
         pointListPolygon.clear();
 
+        ReleaseMutex(_hMutexMemory);
+    }
+
+    void database::calcFurnitureRoadSideLoc3(INOUT furAttributes_t* furnitureAttr)
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        uint8  segId_usedIn = furnitureAttr->segId_used;
+        if(0 == segId_usedIn)
+        {
+            ReleaseMutex(_hMutexMemory);
+            return;
+        }
+        uint32 segIdIn = furnitureAttr->segId;
+        
+        list<list<vector<point3D_t>>>::iterator vecListIter = _vectorList.begin();
+        list<segAttributes_t>::iterator segAttrListIter = _segmentList.begin();
+        
+        vector<point3D_t> pointListPolygonL;       
+        vector<point3D_t> pointListPolygonR;
+        
+        vector<point3D_t> *firstLine   = &pointListPolygonL;
+        vector<point3D_t> *middle1Line = &pointListPolygonL;
+        vector<point3D_t> *middle2Line = &pointListPolygonL;
+		vector<point3D_t> *lastLine    = &pointListPolygonL;
+
+        if(0 == furnitureAttr->location_used)
+        {
+            ReleaseMutex(_hMutexMemory);
+            return;
+        }
+        point3D_t furLocation = furnitureAttr->location;
+        point3D_t nearFurLocation = furLocation;
+        uint8  furSideFlag_used = furnitureAttr->sideFlag_used;
+        uint8  furSideFlag = furnitureAttr->sideFlag; // 1: right side, 2: left side, 3: both sides, 4: on the road
+        if(1 != furSideFlag_used)
+        {
+            furSideFlag = 4;
+        }
+        
+        if((3 == furSideFlag) || (4 == furSideFlag))
+        {
+            ReleaseMutex(_hMutexMemory);
+            return;
+        }
+
+        // For each segment
+        while(vecListIter != _vectorList.end())
+        {
+            if((*vecListIter).empty())
+            // Segment with no vector
+            {
+                ++vecListIter;
+                ++segAttrListIter;
+                continue;
+            }
+
+            uint32 segmentIdDb = segAttrListIter->segId;
+            double minDist = DBL_MAX;
+
+            // check loop index
+            if((1 == segAttrListIter->loopIdx_used) && (1 == furnitureAttr->inLoopIdx_used))
+            {
+                if(furnitureAttr->inLoopIdx!= segAttrListIter->loopIdx) // if furniture not in loop
+                {
+                    ++vecListIter;
+                    ++segAttrListIter;
+                    continue;
+                }
+            }
+            
+            // Segment ID match
+            if(segmentIdDb == segIdIn)
+            {                
+                int vectorNumInSeg = (*vecListIter).size();
+                if(2 > vectorNumInSeg)
+                {
+                    ++vecListIter;
+                    ++segAttrListIter;
+                    continue;
+                }
+                
+                list<vector<point3D_t>>::iterator pointListIter = vecListIter->begin();
+                list<vector<point3D_t>>::iterator pointListIterLast = vecListIter->end();
+                --pointListIterLast;
+
+                while(pointListIter != vecListIter->end())
+                {
+                    int count = (*pointListIter)[0].count;
+                    
+                    if(pointListIter == vecListIter->begin()) // first line
+                    {
+                        firstLine = &(*pointListIter);
+                    }
+                    else if( (LANE_END_LINE_FLAG == count) && (pointListIter != pointListIterLast) )
+                    {
+                        middle1Line = &(*pointListIter);
+                        ++pointListIter;
+                        middle2Line = &(*pointListIter);
+                    }
+                    else if(pointListIter == pointListIterLast) // last line
+                    {
+                        lastLine = &(*pointListIter);
+                    }
+
+                    ++pointListIter;
+                }
+
+                int pointNumFist = firstLine->size();
+                int pointNumMiddle1 = middle1Line->size();
+                int pointNumMiddle2 = middle2Line->size();
+                int pointNumLast = lastLine->size();
+                
+                int pointIdx = 0;
+                for(pointIdx = 0; pointIdx < pointNumFist; pointIdx++)
+                {
+                    point3D_t pointTmp = (*firstLine)[pointIdx];
+                    pointListPolygonL.push_back(pointTmp);
+                }                    
+                for(pointIdx = pointNumLast-1; pointIdx >= 0; pointIdx--)
+                {
+                    point3D_t pointTmp = (*lastLine)[pointIdx];
+                    pointListPolygonL.push_back(pointTmp);
+                }
+                
+                if(0 < pointNumMiddle1)
+                {   
+                    for(pointIdx = 0; pointIdx < pointNumMiddle1; pointIdx++)
+                    {
+                        point3D_t pointTmp = (*middle1Line)[pointIdx];
+                        pointListPolygonR.push_back(pointTmp);
+                    }
+                    for(pointIdx = pointNumMiddle2-1; pointIdx >= 0; pointIdx--)
+                    {
+                        point3D_t pointTmp = (*middle2Line)[pointIdx];
+                        pointListPolygonR.push_back(pointTmp);
+                    }                    
+                }
+
+                if( (furnitureAttr->sideFlag == rightSide_e) || (furnitureAttr->sideFlag == leftSide_e) || (0 == pointNumMiddle1) )
+                {
+                    bool pointInFlag = pointInPolygon(furLocation, pointListPolygonL);
+                    if(true == pointInFlag)
+                    {
+                        int numPoints = pointListPolygonL.size();
+                        // For each point
+                        for(int pointIdx = 0; pointIdx < numPoints; pointIdx++)
+                        {
+                            point3D_t pointTmp = pointListPolygonL[pointIdx];
+
+                            //uint8 pointSideFlag = pointListPolygonFlagL[pointIdx];
+
+                            double distance = (furLocation.lat - pointTmp.lat) * (furLocation.lat - pointTmp.lat) + (furLocation.lon - pointTmp.lon) * (furLocation.lon - pointTmp.lon);
+
+                            //1: right side, or  4: on the road
+                            //if(pointSideFlag == furSideFlag)
+                            {
+                                if(distance < minDist)
+                                {
+        							minDist = distance;
+                                    nearFurLocation = pointTmp;
+                                }
+                            }
+                        }
+                        
+                        furnitureAttr->location = nearFurLocation;
+                        furnitureAttr->location.alt = furLocation.alt;
+                        furnitureAttr->location.count = furLocation.count;
+                        furnitureAttr->location.paintFlag = furLocation.paintFlag;
+                    }
+                }
+                if( ((furnitureAttr->sideFlag == middleLeft_e) || (furnitureAttr->sideFlag == middleRight_e)) && (0 < pointNumMiddle1) )
+                {
+                    bool pointInFlag = pointInPolygon(furLocation, pointListPolygonR);
+                    if(false == pointInFlag)
+                    {
+                        int numPoints = pointListPolygonR.size();
+                        // For each point
+                        for(int pointIdx = 0; pointIdx < numPoints; pointIdx++)
+                        {
+                            point3D_t pointTmp = pointListPolygonR[pointIdx];
+
+                            //uint8 pointSideFlag = pointListPolygonFlagR[pointIdx];
+
+                            double distance = (furLocation.lat - pointTmp.lat) * (furLocation.lat - pointTmp.lat) + (furLocation.lon - pointTmp.lon) * (furLocation.lon - pointTmp.lon);
+
+                            //1: right side, or  4: on the road
+                            //if(pointSideFlag == furSideFlag)
+                            {
+                                if(distance < minDist)
+                                {
+        							minDist = distance;
+                                    nearFurLocation = pointTmp;
+                                }
+                            }
+                        }
+                        furnitureAttr->location = nearFurLocation;
+                        furnitureAttr->location.alt = furLocation.alt;
+                        furnitureAttr->location.count = furLocation.count;
+                        furnitureAttr->location.paintFlag = furLocation.paintFlag;
+                    }
+                }
+                
+                break;
+            }
+            ++vecListIter;
+            ++segAttrListIter;
+        }
         ReleaseMutex(_hMutexMemory);
     }
 
@@ -741,15 +973,15 @@ namespace ns_database
         }
     }
 
-    bool database::checkIdInUpdateIdList(IN uint32 inId)
+    bool database::checkIdInUpdateIdList(IN list<uint32> &updateSectionIdList, IN uint32 inId)
     {
         WaitForSingleObject(_hMutexMemory,INFINITE);
 
         bool flag = false;
-        if(_updateSectionIdList.size() > 0)
+        if(updateSectionIdList.size() > 0)
         {
-            list<uint32>::iterator sectionIdListIter = _updateSectionIdList.begin();
-            while(sectionIdListIter != _updateSectionIdList.end())
+            list<uint32>::iterator sectionIdListIter = updateSectionIdList.begin();
+            while(sectionIdListIter != updateSectionIdList.end())
             {
                 if(inId == (*sectionIdListIter))
                 {
@@ -810,48 +1042,29 @@ namespace ns_database
     void database::addAllIdToUpdateIdList()
     {
         WaitForSingleObject(_hMutexMemory,INFINITE);
+
+        _updateSectionIdList.clear();
         
-        list<list<lineAttributes_t>>::iterator  attrIter = _lineAttrList.begin();
-        while(attrIter != _lineAttrList.end())
+        list<list<vector<point3D_t>>>::iterator vecListIter = _vectorList.begin();
+        list<segAttributes_t>::iterator segAttrListIter = _segmentList.begin(); 
+        
+        // For each segment
+        while(vecListIter != _vectorList.end())
         {
-            int idFoundFlag = 0;;
-            list<lineAttributes_t>::iterator  lineAttrIter = attrIter->begin();
-
-            uint32 sectionId = lineAttrIter->segmentId;
+            int vectorNumInSeg = (*vecListIter).size();
+            if(0 == vectorNumInSeg)
+            {
+                ++vecListIter;
+                ++segAttrListIter;
+                continue;
+            }
+                
+            _updateSectionIdList.push_back(segAttrListIter->segId);
             
-            _updateSectionIdList.push_back(sectionId);
-
-            ++attrIter;
+            ++vecListIter;
+            ++segAttrListIter;
         }
-        ReleaseMutex(_hMutexMemory);
-    }
-
-    int database::getFurUpdateFlag()
-    {
-        WaitForSingleObject(_hMutexMemory,INFINITE);
         
-        int flag =  _furUpdateFlag;
-
-        ReleaseMutex(_hMutexMemory);
-
-        return flag;
-    }
-
-    void database::setFurUpdateFlag(int flag)
-    {
-        WaitForSingleObject(_hMutexMemory,INFINITE);
-        
-        _furUpdateFlag = flag;
-
-        ReleaseMutex(_hMutexMemory);
-    }
-    
-    void database::resetFurUpdateFlag()
-    {
-        WaitForSingleObject(_hMutexMemory,INFINITE);
-        
-        _furUpdateFlag = 0;
-
         ReleaseMutex(_hMutexMemory);
     }
     
@@ -875,7 +1088,20 @@ namespace ns_database
         ReleaseMutex(_hMutexMemory);
     }
 
+    uint32 database::getUpateSectionIdListSize()
+    {
+        WaitForSingleObject(_hMutexMemory,INFINITE);
+        
+        // Clear list in current database
+        uint32 size = _updateSectionIdList.size();
+
+        ReleaseMutex(_hMutexMemory);
+
+        return size;
+    }
+
     void database::getSpecificIdVectorsTlv(IN resource_e sourceFlag,
+                                      IN list<uint32> &updateSectionIdList,
                                       OUT void** output, 
                                       OUT int32* length)
     {
@@ -908,7 +1134,7 @@ namespace ns_database
 
             uint32 segmentIdDb = segAttrListIter->segId;
 
-            if(checkIdInUpdateIdList(segmentIdDb))
+            if(checkIdInUpdateIdList(updateSectionIdList, segmentIdDb))
             // Segment ID match
             {
                 list<vector<point3D_t>>::iterator pointListIter = vecListIter->begin();
@@ -1098,7 +1324,7 @@ namespace ns_database
         ReleaseMutex(_hMutexMemory);
     }
 
-    void database::getSegmentIdByGps(IN  point3D_t*       gps, 
+    void database::getSegmentIdByGps(IN  furAttributes_t  &furAttr, 
                                      OUT uint8*           existFlag, 
                                      OUT segAttributes_t* segmentAttr)
     {
@@ -1106,10 +1332,21 @@ namespace ns_database
         double minH = DBL_MAX;
         *existFlag = 0;
         list<segAttributes_t>::iterator segListIter = _segmentList.begin();
+        point3D_t* gps = &(furAttr.location);
 
         // For each segment
         while(segListIter != _segmentList.end())
         {
+            // check loop index
+            if((1 == segListIter->loopIdx_used) && (1 == furAttr.inLoopIdx_used))
+            {
+                if(furAttr.inLoopIdx!= segListIter->loopIdx) // if furniture not in loop
+                {
+                    ++segListIter;
+                    continue;
+                }
+            }
+
             // TODO: locate the segment of the GPS
             double lat1 = (*segListIter).ports[0].lat;
             double lat2 = (*segListIter).ports[1].lat;
@@ -1157,7 +1394,7 @@ namespace ns_database
                 }
             }
 
-            segListIter++;
+            ++segListIter;
         }
 
         ReleaseMutex(_hMutexMemory);
@@ -1716,6 +1953,7 @@ namespace ns_database
         segmentElement.tunnelFlag_used = 0;
         segmentElement.numFurniture_used = 0;
         segmentElement.numDynamicData_used = 0;
+        segmentElement.loopIdx_used = 0;
 
         // Read TLV from DB file
         tlvCommon_t tlvTmp;
@@ -1842,6 +2080,13 @@ namespace ns_database
                         {
                             segmentElement.numDynamicData_used = 1;
                             segmentElement.numDynamicData = tlvTmp.length;
+
+                            break;
+                        }
+                        case seg_loopIdx_e:
+                        {
+                            segmentElement.loopIdx_used = 1;
+                            segmentElement.loopIdx = tlvTmp.length;
 
                             break;
                         }
@@ -2070,6 +2315,9 @@ namespace ns_database
                     }else if(typeId == data_mergeCounter_e)
                     {
                         pointElement.count = tlvTmp.value;
+                    }else if(typeId == data_pointPaintLength_e)
+                    {
+                        pointElement.paintLength = *(float*)&(tlvTmp.value);
                     }else
                     // disX, disY, disZ, attributes
                     {
@@ -2128,6 +2376,7 @@ namespace ns_database
         furnitureElement->sideFlag_used = 0;
         furnitureElement->offset_used = 0;
         furnitureElement->reliabRating_used = 0;
+        furnitureElement->inLoopIdx_used = 0;
 
         // Read TLV from DB file
         tlvCommon_t tlvTmp;
@@ -2212,7 +2461,7 @@ namespace ns_database
                         case fur_sideFlag_e:
                         {
                             furnitureElement->sideFlag_used = 1;
-                            furnitureElement->sideFlag = (uint8)tlvTmp.value;
+                            furnitureElement->sideFlag = (furSideFlag_e)tlvTmp.value;
 
                             break;
                         }
@@ -2234,6 +2483,13 @@ namespace ns_database
                         {
                             furnitureElement->segId_used = 1;
                             furnitureElement->segId = tlvTmp.value;
+
+                            break;
+                        }
+                        case fur_inLoopIdx_e:
+                        {
+                            furnitureElement->inLoopIdx_used = 1;
+                            furnitureElement->inLoopIdx = tlvTmp.value;
 
                             break;
                         }

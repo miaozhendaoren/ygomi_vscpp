@@ -1,0 +1,15 @@
+StartSegmentID:125
+segmentnum:1
+PreSegmentID:122,123
+NextSegmentID:126
+PlaceMark:119,123
+lane_num:3
+line_num:4
+LineTypeIndex:1011
+LaneDrectionIndex:110
+LaneAssign:111
+LineConn:1,122,1,2
+LineConn:1,126,1,1
+LineConn:3,122,2,2
+LineConn:3,126,2,2
+LineConn:4,123,1,1

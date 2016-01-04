@@ -23,6 +23,11 @@
 
 namespace ns_detection
 {
+#define	WRITE_IMAGE 0
+//#define TRACK_ENABLE 
+
+void loadModels();
+
 class Detector_colored : public Detector
 {
 private:
@@ -48,20 +53,13 @@ private:
 	
 
 #if WRITE_IMAGE == 1
-    int _triImageID = 0;
-    int _recImageID = 0;
-    int _cirImageID = 0;
+    int _triImageID;
+    int _recImageID;
+    int _cirImageID;
 #endif
-
-    svm_model *_cir_model;
-    svm_model *_rec_model;
-    svm_model *_tri_model;
-    
-    std::vector<int> _feat_cir;
-    std::vector<int> _feat_rec;
-    std::vector<int> _feat_tri;
-
-    std::vector<cv::Mat> _image;
+#ifdef TRACK_ENABLE
+	int _frameNumber;
+#endif
 
     // Private methods
     int contoursSelect(std::vector<std::vector<cv::Point>> &contours,int *validIdx, double*validVal, double ratioT, int *maxIndex, double *maxValue); 
@@ -74,6 +72,19 @@ private:
     int Detector_colored::TS_classify(Detector::Shape shape,cv::Mat image,cv::InputArray curve,std::string path = "");
 
 public:
+
+    static svm_model *_cir_model;
+    static svm_model *_rec_model;
+    static svm_model *_tri_model;
+	static svm_model *_cir_model_added;
+    
+    static std::vector<int> _feat_cir;
+    static std::vector<int> _feat_rec;
+    static std::vector<int> _feat_tri;
+	static std::vector<int> _feat_cir_added;
+
+    static std::vector<cv::Mat> _image;
+
     Detector_colored(float highStep, double dist_per_piexl,int horizon_line,int featureNum = 1500);
     void trafficSignDetect(cv::Mat image, TS_Structure &target);
     //void positionMeasure(ns_roadScan::Parameters &inParam, cv::Point2d &GPS_current, cv::Point2d &GPS_next, cv::Mat &imageIn, TS_Structure &target);

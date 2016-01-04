@@ -90,8 +90,9 @@ void calLandMarkRelGPS(vector<gpsInformationAndInterval> &gpsAndInterval,Point2d
 
 void linkInterval(Mat &src, Mat &dst);
 int arrowClassify(Mat &inImge);
-void calHAndInvertH(Parameters &inParam, Mat &H, Mat &invertH);
-void blockCalRidge(Mat &matlongLane_cut, Parameters& inParam,Mat &allUnitKapa,Mat &allUnitContous,Mat &allKappBin);
+void calHAndInvertH(Parameters &inParam, Mat &H, Mat &invertH, Mat &laneH);
+//void blockCalRidge(Mat &matlongLane_cut, Parameters& inParam,Mat &allUnitKapa,Mat &allUnitContous,Mat &allKappBin);
+void blockCalRidge(Mat &matlongLane_cut, Parameters& inParam,Mat &allUnitContous);
 void linkPaintLine(Mat allUnitContous,Mat &Tline_link_out);
 
 void thesholdImage(Mat &src,int thres, Mat &dst);

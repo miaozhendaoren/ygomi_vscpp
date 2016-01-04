@@ -233,16 +233,71 @@ int convertSignType(int type)
 	case 1000:
 		number = 47;
 		break;
-	case 1002:
+	case 1050:
 		number = 48;
 		break;
+	case 10200:
+		number = 49;
+		break;
+    case 24100:
+		number = 50;
+		break;
+    case 28400:
+		number = 51;
+		break;
+    case 28500:
+		number = 52;
+		break;
+    case 28700:
+		number = 53;
+		break;
+    case 34100:
+		number = 54;
+		break;
+    case 10310:
+        number = 55;
+        break;
+    case 10320:
+        number = 56;
+        break;
+    case 22210:
+        number = 57;
+        break;
 	default:
 		number = 41;
 		break;
 	}
 #else if((RD_LOCATION&RD_NATION_MASK) == RD_UNIT_STATES)
+	switch(type)
+	{
+	case 1:
+        // fall through
+	case 2:
+        // fall through
+	case 3:
+        // fall through
+    case 4:
+        // fall through
+    case 5:
+        // fall through
+    case 6:
+        // fall through
+    case 7:
+        // fall through
+    case 8:
+        // fall through
+		number = type;
+		break;
+    case 35:
+        number = 9;
+        break;
+	case 1000:
+		number = 10;
+		break;
+    default: 
+        number = 4;
+    }
 
-	number = type;
 #endif
 	return number;
 }
@@ -359,11 +414,9 @@ float computeDistance(point3DFloat_t *startPoint, point3DFloat_t *endPoint)
 {
 	GLfloat z_dif = (endPoint->z - startPoint->z);
 	GLfloat x_dif = (endPoint->x - startPoint->x);
-	float speed;
 
-	speed = sqrt(z_dif*z_dif + x_dif*x_dif);
-	speed = speed*3.6; //km per hour
-	return speed;
+	return sqrt(z_dif*z_dif + x_dif*x_dif);
+	//speed = speed*3.6; //km per hour
 }
 
 void computeCharPosition(point3DFloat_t *startPoint, point3DFloat_t *endPoint, point3DFloat_t* outPoint)
@@ -382,13 +435,13 @@ void computeCurrentSpeedChar(point3DFloat_t *startPoint, point3DFloat_t *endPoin
 	computeCharPosition(startPoint, endPoint, &(speedChar->position));
 
 	//memcpy(&(speedChar->drawChar),(void*)"speed: ",7);
-	sprintf(&(speedChar->drawChar[0]),"%2.0f",distance/duration);
+	sprintf(&(speedChar->drawChar[0]),"%2.0f",distance*3.6/duration);
 	memcpy(&(speedChar->drawChar[2]),(void*)"kph",3);
 	memset(&(speedChar->drawChar[5]),0,1);   
 }
 
 void convFurToSignInfo(list<list<furAttributesInVehicle_t>>& furnitureList, 
-	vector<signInfo_t> &signInfo)
+	vector<signInfo_t> &signInfo, int loopIdx)
 {
 	list<list<furAttributesInVehicle_t>>::iterator segIter = furnitureList.begin();
 
@@ -426,6 +479,7 @@ void convFurToSignInfo(list<list<furAttributesInVehicle_t>>& furnitureList,
 				signTemp.rotAngle   = furInfo->angle * 180 / PI;
 				signTemp.type       = convertSignType(furInfo->type);
 				signTemp.sideFlag   = furInfo->sideFlag;
+				signTemp.showFlag   = (loopIdx == furInfo->inLoopIdx)?true:false;
 				if(furInfo->sideFlag == 4)
 				{
 					assignSignOnRoadSharp(furInfo->type, signTemp);
@@ -456,13 +510,14 @@ void generateRoadSideVec(vector<point3DFloat_t> &midVec, float width, vector<poi
 	point3DFloat_t point1;
 	point3DFloat_t point2;
 	int lineIndex = 0;
-	float cosAlpha;
-	float sinAlpha;
+	float cosAlpha = 0.0;
+	float sinAlpha = 0.0;
 
 	leftVec.assign(midVec.size(), point1);
 	rightVec.assign(midVec.size(), point2);
 
-	for(lineIndex = 0; lineIndex < (midVec.size()-1); lineIndex++)
+    int numOfMidPnts = midVec.size();
+	for(lineIndex = 0; lineIndex < (numOfMidPnts-1); lineIndex++)
 	{
 		point1 = midVec[lineIndex];
 		point2 = midVec[lineIndex+1];
@@ -471,8 +526,8 @@ void generateRoadSideVec(vector<point3DFloat_t> &midVec, float width, vector<poi
 		float latDis = point1.x - point2.x;
 
 		float rou = sqrt(lonDis*lonDis + latDis*latDis);
-		cosAlpha = latDis/rou;
-		sinAlpha = lonDis/rou;
+		cosAlpha = (0.0 == rou) ? 0.0 : (latDis/rou);
+		sinAlpha = (0.0 == rou) ? 0.0 : (lonDis/rou);
 
 		leftVec[lineIndex].x = point1.x - width*sinAlpha;
 		leftVec[lineIndex].z = point1.z + width*cosAlpha;
@@ -507,9 +562,18 @@ void extractQuadInfo(point3DFloat_t startPoint, point3DFloat_t endPoint, float w
 
 	float dif_z = endPoint.z - startPoint.z;
 	float dif_x = endPoint.x - startPoint.x;
-	float tan_a = dif_z/dif_x;
-	float shift_z = sqrt(width*width/(1+tan_a*tan_a));
-	float shift_x = tan_a*shift_z;
+	float shift_z, shift_x, tan_a;
+	if(0 == dif_x)
+	{
+		shift_z = 0;
+		shift_x = width;
+	}
+	else
+	{
+		tan_a = dif_z/dif_x;
+		shift_z = sqrt(width*width/(1+tan_a*tan_a));
+		shift_x = tan_a*shift_z;	
+	}
 
 	if(contiFlag)
 	{
@@ -571,6 +635,7 @@ void generateRoadChar(point3DFloat_t position, int showNum, drawServerCharInfo_t
 		memset(&testChar.drawChar[2],0,1);
 	}
 }
+
 unsigned int __stdcall Thread_VisualizePreProc(void *data)
 {
 	point3D_t standPoint;
@@ -583,10 +648,17 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 	point3D_t gpsCurrent;
 	point3DFloat_t lastPointF;
 	point3D_t gpsAheadLast;
-    point3D_t newPointD; 
+    point3D_t newPointD;
+	point3D_t newPointD_Modify;
+	point3D_t oldPointD;
+	point3D_t oldPointD_Modify;
+	bool driveViewUpdateFlag;
 
 	list<list<vector<point3D_t>>> allLinesBak; // segment list / vector list / point list / point
 	list<list<lineAttributes_t>> lineAttrBak; // segment list / vector list / attributes
+
+	vector<uint32> SegIdInSky;
+	roadSegConfig_gp->getRoadSegmentInSky(SegIdInSky);
 
 	gpsAheadNew.lat = 0;
 	gpsAheadNew.lon = 0;
@@ -616,13 +688,19 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 	timer_id = timeSetEvent((1000),1,(LPTIMECALLBACK)gpsTimer, DWORD(10),TIME_PERIODIC);
 	//glutTimerFunc((unsigned int)(1000),&gpsTimer,2);
 
-	standPoint.lat = inParam.GPSref.x;//42.296853333333331;//gGpsInfo.dLatitude;
-	standPoint.lon = inParam.GPSref.y;//-83.213250000000002;//gGpsInfo.dLongitude;
+	standPoint.lat = inParamVec[0].GPSref.x;//42.296853333333331;//gGpsInfo.dLatitude;
+	standPoint.lon = inParamVec[0].GPSref.y;//-83.213250000000002;//gGpsInfo.dLongitude;
 	standPoint.alt = 0.0;//gGpsInfo.altitude;
 
 	engine3DPtr->setServerEyeLookat(1,serverEyeInfo);
 	engine3DPtr->SwapServerEyeBuffer();
 	RD_ADD_TS(tsFunId_eThread_Visual_Pre,2);
+
+	point3D_t orgPoint;
+	orgPoint.lat = gGpsInfo.dLatitudePre;
+	orgPoint.alt = gGpsInfo.altitudePre;
+	orgPoint.lon = gGpsInfo.dLongitudePre;
+	coordinateChange2(&standPoint, &orgPoint, &oldPointD);
 
 	while(1)
 	{
@@ -631,11 +709,20 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 		WaitForSingleObject(g_readySema_GPS, INFINITE); 
 		RD_ADD_TS(tsFunId_eThread_Visual_Pre,4);
 
-        point3D_t orgPoint;
+		int currentloopIdx = getLoopIdxFromFurInLoopIdx(gGpsInfo.inParamIdxs);
+		driveViewUpdateFlag = true;
+
         orgPoint.lat = gGpsInfo.dLatitude;
 		orgPoint.alt = gGpsInfo.altitude;
 		orgPoint.lon = gGpsInfo.dLongitude;
         coordinateChange2(&standPoint, &orgPoint, &newPointD);
+		//orgPoint.lat = gGpsInfo.dLatitudePre;
+		//orgPoint.alt = gGpsInfo.altitudePre;
+		//orgPoint.alt = gGpsInfo.dLatitudePre;
+		//coordinateChange2(&standPoint, &orgPoint, &oldPointD);
+		newPointD_Modify = newPointD;
+		
+
 		//get all lines
 		{
 			list<list<vector<point3D_t>>> allLines; // segment list / vector list / point list / point
@@ -661,11 +748,70 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 				    {
 					    list<vector<point3D_t>>::iterator lineIter = (*lineInSegIter).begin();
 					    list<lineAttributes_t>::iterator lineAttrIter = (*lineAttrInSegIter).begin();
+						
+						bool drawFlag = true;
+						float segInSkyHeight = 0;
+						vector<point3DFloat_t> startVec;
+						vector<point3DFloat_t> endVec;
+
+						if(lineAttrInSegIter->size() != 0)
+						{
+							int segmentId = lineAttrInSegIter->front().segmentId;
+
+							for(int skyIndex = 0; skyIndex < SegIdInSky.size(); skyIndex++)
+							{
+								if(segmentId == SegIdInSky[skyIndex])
+								{
+									segInSkyHeight = 0.01;
+									break;
+								}
+							}
+
+							list<segAttributes_t>::iterator segIter = g_segCfgList.begin();
+							while(segIter != g_segCfgList.end())
+							{
+								if(segIter->segId == segmentId)
+								{
+#if defined(_FRANKFORT_ALL_CAMERA)
+
+									if(((0 == segIter->loopIdx)||(2 == segIter->loopIdx))&&(segIter->loopIdx_used))
+									{
+										drawFlag = true;
+									}else
+										
+									{
+										drawFlag = false;
+									}
+									break;
+#else
+
+									if((currentloopIdx == segIter->loopIdx)&&(segIter->loopIdx_used))
+									{
+										drawFlag = true;
+									}else
+										
+									{
+										drawFlag = false;
+									}
+									break;
+#endif
+								}
+								++segIter;
+							}
+						}
 
 					    int lineNum = (*lineInSegIter).size();
 					    int lineIdx = 0;
 						point3DFloat_t lastPos;
 				        int drawNum;
+						baseColor_t color;
+    					color.R = 0.25;
+    					color.G = 0.25;
+    					color.B = 0.25;
+						triangle_t triBuf;
+						triBuf.color = color;
+						triBuf.showFlag = drawFlag;
+
 						RD_ADD_TS(tsFunId_eThread_Visual_Pre,6);
 
 					    if(lineNum >= 2)
@@ -677,97 +823,132 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
     						    int numberPoint = (*lineAttrIter).numPoints;
     						    point3DFloat_t tempPoint;
-							RD_ADD_TS(tsFunId_eThread_Visual_Pre,7);
-    						    for(int pointIdx = 0; pointIdx < numberPoint; pointIdx++)
-    						    {
-    							    //coordinateChange(&standPoint,&(*lineIter)[pointIdx], &(pointVecBuf[pointIdx]));
-    							    //coordinateChange(&standPoint,&(*lineIter)[pointIdx], &tempPoint);
-                                    changeDataBaseCoord(&(*lineIter)[pointIdx], &tempPoint);
-    							    pointVecBuf.push_back(tempPoint);
-    						    }
+								RD_ADD_TS(tsFunId_eThread_Visual_Pre,7);
+								if(numberPoint >0)
+								{
+    								for(int pointIdx = 0; pointIdx < numberPoint; pointIdx++)
+    								{
+										changeDataBaseCoord(&(*lineIter)[pointIdx], &tempPoint);
+										tempPoint.y += segInSkyHeight;
+    									pointVecBuf.push_back(tempPoint);
+    								}
 
-    						    {
-    							    baseColor_t color;
-    							    color.R = 0.25;
-    							    color.G = 0.25;
-    							    color.B = 0.25;
-    							    baseColor_t colorLine;
-    							    colorLine.R = 0;//0.15;
-    							    colorLine.G = 1;//0.44;
-    							    colorLine.B = 0;//0.12;
-    							    quadInfo_t quadBuf;
-    							    quadBuf.color = colorLine;
+    								baseColor_t colorLine;
+    								colorLine.R = 0;//0.15;
+    								colorLine.G = 1;//0.44;
+    								colorLine.B = 0;//0.12;
+    								quadInfo_t quadBuf;
+    								quadBuf.color = colorLine;
 
 
-    							    //engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
-    							    engine3DPtr->AddOneLineInfo(lineTypeEnum_solid, colorLine, pointVecBuf);
+    								//engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
+    								engine3DPtr->AddOneLineInfo(lineTypeEnum_solid, colorLine, drawFlag, pointVecBuf);
 
-    							    //for(int index = 0; index < (numberPoint-1); index++)
-    							    //{
+    								//for(int index = 0; index < (numberPoint-1); index++)
+    								//{
     								//    extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.03, index, &quadBuf,0.005);
     								//    engine3DPtr->AddQuadInfo(1,&quadBuf);
-    							   // }
+    								// }
 
-    							    if((lineIdx == 0)||(lineIdx == (lineNum-1)))
-    							    {
-    								    engine3DPtr->AddOneRoadLineInfo(lineStyle,color, pointVecBuf);
-    							    }
-    						    }
+        							if(lineIdx == 0)
+        							{
+        								lastPos = pointVecBuf[0];
+        								int count = (*lineIter)[0].count;
+										drawNum = (count == LANE_END_LINE_FLAG)?count:CLEAN_LANE_DIR_BIT(count);
+										engine3DPtr->AddOneRoadLineInfo(lineStyle,color, drawFlag, pointVecBuf);
+										startVec.push_back(pointVecBuf[0]);
+										endVec.push_back(pointVecBuf[pointVecBuf.size()-1]);
+        							}else
+        							{
+        								point3DFloat_t drawPos;
+        								drawPos.x = (lastPos.x + pointVecBuf[0].x)/2;
+        								drawPos.y = (lastPos.y + pointVecBuf[0].y)/2;
+        								drawPos.z = (lastPos.z + pointVecBuf[0].z)/2;
 
-        						if(lineIdx == 0)
-        						{
-        							lastPos = pointVecBuf[0];
-        							drawNum = (*lineIter)[0].count;
-        						}else
-        						{
-        							point3DFloat_t drawPos;
-        							drawPos.x = (lastPos.x + pointVecBuf[0].x)/2;
-        							drawPos.y = (lastPos.y + pointVecBuf[0].y)/2;
-        							drawPos.z = (lastPos.z + pointVecBuf[0].z)/2;
-
-        							drawServerCharInfo_t testChar;
-
-        							generateRoadChar(drawPos, drawNum, testChar);
-
-        							engine3DPtr->AddOneServerCharInfo(testChar);
+        								drawServerCharInfo_t testChar;
+										if(LANE_END_LINE_FLAG != drawNum)
+										{
+        									generateRoadChar(drawPos, drawNum, testChar);
+        									engine3DPtr->AddOneServerCharInfo(testChar);
+										}else
+										{
+											engine3DPtr->AddOneRoadLineInfo(lineStyle,color, drawFlag, pointVecBuf);
+											startVec.push_back(pointVecBuf[0]);
+											endVec.push_back(pointVecBuf[pointVecBuf.size()-1]);
+										}
 							
-        							lastPos = pointVecBuf[0];
-        							drawNum = (*lineIter)[0].count;
-							
-        						}
+        								lastPos = pointVecBuf[0];
+        								int count = (*lineIter)[0].count;
+										drawNum = (count == LANE_END_LINE_FLAG)?count:CLEAN_LANE_DIR_BIT(count);
+										if((LANE_END_LINE_FLAG == drawNum) || (lineIdx == (lineNum-1)))
+										{
+											engine3DPtr->AddOneRoadLineInfo(lineStyle,color, drawFlag, pointVecBuf);
+											int startSize = startVec.size();
+											int endSize = endVec.size();
+											if(startSize > 1)
+											{
+												for(int triIdx = 1; triIdx < startSize; triIdx++)
+												{
+													triBuf.vertex[0] = startVec[0];
+													triBuf.vertex[1] = startVec[triIdx];
+													triBuf.vertex[2] = pointVecBuf[0];
+													engine3DPtr->AddTriInto(1, &triBuf);
+												}
+											}
 
-    						    //draw the paint of the line
-    						    {
-    							    baseColor_t color;
-    							    color.R = 1.0;
-    							    color.G = 0.95;
-    							    color.B = 0.9;
+											if(endSize > 1)
+											{
+												for(int triIdx = 1; triIdx < endSize; triIdx++)
+												{
+													triBuf.vertex[0] = endVec[0];
+													triBuf.vertex[1] = endVec[triIdx];
+													triBuf.vertex[2] = pointVecBuf[pointVecBuf.size()-1];
+													engine3DPtr->AddTriInto(1, &triBuf);
+												}
+											}
+											startVec.clear();
+											endVec.clear();
+										}else
+										{
+											startVec.push_back(pointVecBuf[0]);
+											endVec.push_back(pointVecBuf[pointVecBuf.size()-1]);
+										}
+        							}
 
-    							    quadInfo_t quadBuf;
-    							    quadBuf.color = color;
-    							    bool contiFlag = false;
+    								//draw the paint of the line
+    								{
+    									baseColor_t color;
+    									color.R = 1.0;
+    									color.G = 0.95;
+    									color.B = 0.9;
 
-    							    for(int index = 0; index < (numberPoint-1); index+=4)
-    							    {
-    								    //extractQuadInfo(pointVecBuf[2*index], pointVecBuf[2*index+1], 0.2, false, &quadBuf);
-    								    if(((*lineIter)[index].paintFlag>=0.5)&&((*lineIter)[index+1].paintFlag>=0.5))
-    								    {
-    									    extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf,0.01);
-    									    contiFlag = true;
-    									    engine3DPtr->AddQuadInfo(1,&quadBuf);
-    								    }else
-    								    {
-    									    contiFlag = false;
-    								    }
-    							    }
-    						    }
+    									quadInfo_t quadBuf;
+    									quadBuf.color = color;
+										quadBuf.showFlag = drawFlag;
+    									bool contiFlag = false;
 
-    						    pointVecBuf.clear();
+    									for(int index = 0; index < (numberPoint-1); index+=4)
+    									{
+    										//extractQuadInfo(pointVecBuf[2*index], pointVecBuf[2*index+1], 0.2, false, &quadBuf);
+    										if(((*lineIter)[index].paintFlag>=0.5)&&((*lineIter)[index+1].paintFlag>=0.5))
+    										{
+    											extractQuadInfo((pointVecBuf[index]), pointVecBuf[index+1], 0.2, contiFlag, &quadBuf,0.01);
+    											contiFlag = true;
+    											engine3DPtr->AddQuadInfo(1,&quadBuf);
+    										}else
+    										{
+    											contiFlag = false;
+    										}
+    									}
+    								}
+
+									pointVecBuf.clear();
+								}//end for if(numberPoint > 0)
 
     						    lineIter++;
     						    lineAttrIter++;
     						    lineIdx++;
-    					    }
+    					    } //end for line
 					    }//end for if
                         
 					    lineInSegIter++;
@@ -778,21 +959,33 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
                     //put the car to the lane.
                     {
-                        uint32 secId;
-                        int lineId;           
-
+                        uint32 secId = 0;
+                        int lineId; 
+						bool direction = false;
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+				
+					getSegIdAndDirection(newPointD,oldPointD,currentloopIdx,secId,direction);
+#else
                         getSectionId(newPointD, g_segCfgList,secId);
-
-                        bool emptyFlag = checkLineSection(lineAttr, secId, lineId);
-                        if(emptyFlag)
-                        {
-                            list<list<vector<point3D_t>>>::iterator lineInSegIter2 = allLines.begin();
-                            for(int idx = 0; idx < lineId; idx++)
-                            {
-                                lineInSegIter2++;
-                            }
-                          fixVehicleLocationInLane(newPointD,(*lineInSegIter2), &newPointD);
-                        }
+#endif
+						if(secId!=0)
+						{
+							int laneNumSec = roadSegConfig_gp->getLaneNumInSeg(secId,direction);
+							if(laneNumSec < 1)
+							{
+								driveViewUpdateFlag = false;
+							}
+							bool emptyFlag = checkLineSection(lineAttr, secId, lineId);
+							if(emptyFlag)
+							{
+								list<list<vector<point3D_t>>>::iterator lineInSegIter2 = allLines.begin();
+								for(int idx = 0; idx < lineId; idx++)
+								{
+									lineInSegIter2++;
+								}
+							  fixVehicleLocationInLane(newPointD,(*lineInSegIter2), direction, &newPointD_Modify);
+							}
+						}
                     }
 
 				    database_gp->getAllVectors_clear(allLines, lineAttr);
@@ -802,25 +995,38 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 		        engine3DPtr->SwapRoadLineBuffer();
 		        engine3DPtr->SwapQuadBuffer();
 				engine3DPtr->SwapServerCharBuffer();
+				engine3DPtr->SwapTriBuffer();
 			}// end if(dataAccess == true)
 			else
 			{
-                uint32 secId;
-                int lineId;           
+                uint32 secId = 0;
+                int lineId;     
+				bool direction = false;
 				RD_ADD_TS(tsFunId_eThread_Visual_Pre,8);
 
-                getSectionId(newPointD, g_segCfgList,secId);
-
-                bool emptyFlag = checkLineSection(lineAttrBak, secId, lineId);
-                if(emptyFlag)
-                {
-                    list<list<vector<point3D_t>>>::iterator lineInSegIter2 = allLinesBak.begin();
-                    for(int idx = 0; idx < lineId; idx++)
-                    {
-                        lineInSegIter2++;
-                    }
-                    fixVehicleLocationInLane(newPointD,(*lineInSegIter2), &newPointD);
-                }
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+				getSegIdAndDirection(newPointD,oldPointD,currentloopIdx,secId,direction);
+#else
+				getSectionId(newPointD, g_segCfgList,secId);
+#endif
+				if(secId != 0)
+				{
+					int laneNumSec = roadSegConfig_gp->getLaneNumInSeg(secId,direction);
+					if(laneNumSec < 1 )
+					{
+						driveViewUpdateFlag = false;
+					}
+					bool emptyFlag = checkLineSection(lineAttrBak, secId, lineId);
+					if(emptyFlag)
+					{
+						list<list<vector<point3D_t>>>::iterator lineInSegIter2 = allLinesBak.begin();
+						for(int idx = 0; idx < lineId; idx++)
+						{
+							lineInSegIter2++;
+						}
+						fixVehicleLocationInLane(newPointD,(*lineInSegIter2),direction, &newPointD_Modify);
+					}
+				}
 			}
         }
 
@@ -828,6 +1034,7 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 		//For all the furnitures
 		{
 			vector<signInfo_t> signInfo;
+			signInfo.clear();
 			//int numSign;
 
 			list<list<furAttributesInVehicle_t>> furnitureList;
@@ -837,7 +1044,12 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 
             if(furAccess)
             {
-			    convFurToSignInfo(furnitureList, signInfo);
+				#if defined(_FRANKFORT_ALL_CAMERA)
+			    convFurToSignInfo(furnitureList, signInfo, 0);
+				convFurToSignInfo(furnitureList, signInfo, 2);
+				#else
+				convFurToSignInfo(furnitureList, signInfo, currentloopIdx);
+				#endif
 
 			    furnitureList.clear();
 
@@ -849,41 +1061,39 @@ unsigned int __stdcall Thread_VisualizePreProc(void *data)
 		RD_ADD_TS(tsFunId_eThread_Visual_Pre,11);
 		//update the car position and look ahead direction
 		{
-			//point3D_t oldPointD;
+			float x_dif = (newPointD_Modify.lat - newPointF.x);
+			float z_dif = (newPointD_Modify.lon - newPointF.z);
 
-			//oldPointD.lat = gGpsInfo.dLatitudePre;
-			//oldPointD.alt = gGpsInfo.altitudePre;
-			//oldPointD.lon = gGpsInfo.dLongitudePre;
-
-
-
-			lastPointF = oldPointF;
-			oldPointF = newPointF;
-
-			//database_gp->getLookAheadView(&newPointD, 1, &gpsCurrent);
-			//coordinateChange(&standPoint, &newPointD, &newPointF);
-            newPointF.x = newPointD.lat;  //latitude
-            newPointF.z = newPointD.lon;  //latitude
-            newPointF.y = newPointD.alt;  //latitude
-
-			//use current GPS position and last GPS position to compute the direction.
-			if((oldPointF.x == newPointF.x)&&(oldPointF.z == newPointF.z))
+			float distance = sqrt(z_dif*z_dif + x_dif*x_dif);
+			
+			if((driveViewUpdateFlag) && (distance > 1))
 			{
+				lastPointF = oldPointF;
+				oldPointF = newPointF;
 
-			}else
-			{
-				//update the eye
-				computeEyeInfo(&oldPointF, &newPointF,&lastPointF, eyeInfo, FRAME_NUM_PER_SECOND);
-				engine3DPtr->setEyeLookat(FRAME_NUM_PER_SECOND,eyeInfo);
+				newPointF.x = newPointD_Modify.lat;  //latitude
+				newPointF.z = newPointD_Modify.lon;  //latitude
+				newPointF.y = newPointD_Modify.alt;  //latitude
+				oldPointD = newPointD;
+				//use current GPS position and last GPS position to compute the direction.
+				if((oldPointF.x == newPointF.x)&&(oldPointF.z == newPointF.z))
+				{
 
-				engine3DPtr->SwapEyeBuffer();
+				}else
+				{
+					//update the eye
+					computeEyeInfo(&oldPointF, &newPointF,&lastPointF, eyeInfo, FRAME_NUM_PER_SECOND);
+					engine3DPtr->setEyeLookat(FRAME_NUM_PER_SECOND,eyeInfo);
+
+					engine3DPtr->SwapEyeBuffer();
+				}
 			}
 			//update look ahead figure. TBD
 
 		}
 		RD_ADD_TS(tsFunId_eThread_Visual_Pre,12);
 
-	}
+	}//end for while(1)
 
 	timeKillEvent(timer_id); 
 	return 0;

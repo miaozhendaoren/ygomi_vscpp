@@ -42,6 +42,12 @@ using namespace std;
 const double MaxLength = 1000.0;
 const double MinLength = 0.0;
 
+enum RESAMPLE_METHOD
+{
+    USE_INTERPOLATION = 0,
+    USE_POLYNOMIALFIT = 1,
+};
+
 struct Scale
 {
     float minXVal;
@@ -77,9 +83,26 @@ typedef struct _backgroundSectionData
                                                       // data, lanes -> lines
 } backgroundSectionData;
 
+enum seg_handle_e
+{
+	NOT_HANDLED = 1, 
+	HANDLED = 2, 
+	HANDLE_EXP
+};
+
+enum seg_report_e
+{
+	NOT_CURRENT_RPT = 1, 
+	CURRENT_RPT = 2, 
+	RPT_EXP
+};
+
 typedef struct _foregroundSectionData
 {
     uint32                              sectionId;    // segmentID
+	seg_report_e                        isNewRpt;
+	seg_handle_e                        dealStart;
+	seg_handle_e                        dealEnd;
     list<vector<point3D_t>>             fgSectionData;// foreground database
                                                       // multiple lines
 } foregroundSectionData;
@@ -117,5 +140,38 @@ struct sampleSectionOverlap_t
 	uint32 startLoc;
 	uint32 endLoc;
 };
+
+enum segment_type_e
+{
+    NORMAL_E=0,
+	CROSSING_E,
+	T_ROAD_E,
+	CROSSING_RA_E,
+	CROSSING_AR_E,
+	TROAD_CROSSING_RA_E,
+	TROAD_CROSSING_AR_E,
+	T_ROAD_CROSS,
+	DEFAULT_E
+};
+
+struct secCfgInfo_t
+{
+	uint32 secId;                // section identification
+	segment_type_e secType; 
+	vector<uint32> prevSegId;       // prev sections id
+	vector<uint32> nextSegId;       // next sections id
+	uint32 prePointId;
+	uint32 nextPointId;
+	point3D_t prePoint_ext;  
+	point3D_t nextPoint_ext;
+};
+
+struct secPointInfo_t
+{
+	uint32 pointId;                // point identification       
+	vector<uint32> connPtsId;      // connected points Id,the connPts num:{1 or 2:begin and end point of the road,2:normal,>2:crossroad & T }
+	vector<uint32> connSecs;       // the corresponding sections. The order must be the same with connPts2D
+};
+
 
 #endif

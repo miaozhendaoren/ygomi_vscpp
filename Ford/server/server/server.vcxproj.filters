@@ -49,6 +49,15 @@
     <Filter Include="Source Files\roadVecGen">
       <UniqueIdentifier>{47b6dad8-84c0-4e3e-8ea3-818bb743cb38}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\configParse">
+      <UniqueIdentifier>{8a3d4520-34aa-4733-bcad-5747683e58b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\configParse">
+      <UniqueIdentifier>{12a8f9a3-d67e-45de-8a58-0d0ed84f5769}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\roadVecGen">
+      <UniqueIdentifier>{a07ec73e-931b-4812-9a85-9c0b45f7b263}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="sources\database\src\database.cpp">
@@ -114,6 +123,30 @@
     <ClCompile Include="sources\log\src\TimeStamp.cpp">
       <Filter>Source Files\log</Filter>
     </ClCompile>
+    <ClCompile Include="sources\configParse\src\tinystr.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\tinyxml.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\tinyxmlerror.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\tinyxmlparser.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\XMLParser.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\configParse\src\RoadSeg.cpp">
+      <Filter>Source Files\configParse</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\roadVecGen2\src\SecRptData2.cpp">
+      <Filter>Source Files\roadVecGen</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\roadVecGen2\src\RoadVecGen3.cpp">
+      <Filter>Source Files\roadVecGen</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sources\database\include\database.h">
@@ -175,6 +208,45 @@
     </ClInclude>
     <ClInclude Include="sources\log\include\TimeStamp.h">
       <Filter>Header Files\log</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\configParse\include\tinystr.h">
+      <Filter>Header Files\configParse</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\configParse\include\tinyxml.h">
+      <Filter>Header Files\configParse</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\configParse\include\XMLParser.h">
+      <Filter>Header Files\configParse</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\configParse\include\RoadSeg.h">
+      <Filter>Header Files\configParse</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\roadVecGen2\include\apiDataStruct.h">
+      <Filter>Header Files\roadVecGen</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\roadVecGen2\include\ExtractSection.h">
+      <Filter>Header Files\roadVecGen</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\roadVecGen2\include\polynomialFit.h">
+      <Filter>Header Files\roadVecGen</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\roadVecGen2\include\RoadVecGen.h">
+      <Filter>Header Files\roadVecGen</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\roadVecGen2\include\RoadVecGen2.h">
+      <Filter>Header Files\roadVecGen</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\roadVecGen2\include\RoadVecGen3.h">
+      <Filter>Header Files\roadVecGen</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\roadVecGen2\include\SecRptData.h">
+      <Filter>Header Files\roadVecGen</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\roadVecGen2\include\SecRptData2.h">
+      <Filter>Header Files\roadVecGen</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\roadVecGen2\include\VisualizationApis.h">
+      <Filter>Header Files\roadVecGen</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

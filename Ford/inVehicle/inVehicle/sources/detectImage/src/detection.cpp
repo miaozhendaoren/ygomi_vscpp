@@ -172,7 +172,7 @@ void Detector::loadFeat(vector<int> &feat, char *fileName)
     fin.close();
 }
 
-void Detector::positionMeasure(Parameters &inParam, Point2d &GPS_current, Point2d &GPS_next, Mat &imageIn, TS_Structure &target)
+void Detector::positionMeasure(Parameters &inParam, Point2d &GPS_current, Point2d &GPS_next, Mat &imageIn, TS_Structure &target, Mat &invertH)
 {
     int numSigns = target.trafficSign.size();
     Point2d &GPS_reference = inParam.GPSref;

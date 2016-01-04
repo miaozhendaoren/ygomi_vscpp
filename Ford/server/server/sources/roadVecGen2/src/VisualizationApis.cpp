@@ -314,7 +314,9 @@ void saveData(list<list<vector<point3D_t>>> &fgData, bool bOutput/* = false*/)
 }
 
 
-void saveData(list<list<vector<point3D_t>>> &fgData, list<vector<point3D_t>> &gpsData)
+void saveData(list<list<vector<point3D_t>>> &fgData,
+    list<vector<point3D_t>> &gpsData,
+    bool bHandled/* = false*/)
 {
     list<vector<point3D_t>> fglines;
     list<list<vector<point3D_t>>>::iterator fgItor = fgData.begin();
@@ -343,14 +345,28 @@ void saveData(list<list<vector<point3D_t>>> &fgData, list<vector<point3D_t>> &gp
         trackIt++;
     }
 
+    if (bHandled)
+    {
+#if VISUALIZATION_ON
+        sprintf_s(IMAGE_NAME_STR2, "fg_%d_source_handled.png", FG_MERGED_NUM);
+        showImage(fglines, Scalar(0, 0, 255), IMAGE_NAME_STR2);
+#endif // end of visualization
+#if SAVE_DATA_ON
+        sprintf_s(IMAGE_NAME_STR2, "fg_%d_source_handled.txt", FG_MERGED_NUM);
+        saveListVec(fglines, IMAGE_NAME_STR2);
+#endif // end of save data
+    }
+    else
+    {
 #if VISUALIZATION_ON
         sprintf_s(IMAGE_NAME_STR2, "fg_%d_source.png", FG_MERGED_NUM);
         showImage(fglines, Scalar(0, 0, 255), IMAGE_NAME_STR2);
 #endif // end of visualization
-#if 1 // SAVE_DATA_ON
+#if SAVE_DATA_ON
         sprintf_s(IMAGE_NAME_STR2, "fg_%d_source.txt", FG_MERGED_NUM);
         saveListVec(fglines, IMAGE_NAME_STR2);
 #endif // end of save data
+    }
 }
 
 

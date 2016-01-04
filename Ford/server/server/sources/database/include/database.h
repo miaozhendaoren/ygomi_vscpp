@@ -30,6 +30,11 @@ namespace ns_database
 	#define COEFF_DD2METER (111320.0)
     #define MAX_RALIABILITY 5
     #define PI  3.1415926536f
+	#define LANE_DIR_BIT_SHIFT (24)
+	#define LANE_DIR_BIT_MASK  (1<<LANE_DIR_BIT_SHIFT) 
+	#define SET_LANE_DIR_BIT(dat, dir) ((dat) |= (dir << LANE_DIR_BIT_SHIFT))
+	#define GET_LANE_DIR_BIT(dat) ((dat>>LANE_DIR_BIT_SHIFT)&0x1)
+	#define CLEAN_LANE_DIR_BIT(dat) (dat&(~LANE_DIR_BIT_MASK)) 
 
     // Basic structure
     enum resource_e : uint32
@@ -116,8 +121,20 @@ namespace ns_database
         uint8  numDynamicData;
         uint8  uiLaneNum_used;
         uint8  uiLaneNum;
+        uint8  loopIdx_used;
+        uint8  loopIdx; // 0: big loop; 1: small loop; 2: T road
     };
-	 
+	
+    enum furSideFlag_e : uint32
+    {
+        rightSide_e   = 1,
+        leftSide_e    = 2,
+        bothSides_e   = 3,
+        onTheRoad_e   = 4,
+        middleRight_e = 5,
+        middleLeft_e  = 6
+    };
+
     class furAttributes_t
     {
     public:
@@ -140,11 +157,13 @@ namespace ns_database
         uint8  side_used;
         uint32 side[2];
         uint8  sideFlag_used;
-        uint8  sideFlag; // 1: right side, 2: left side, 3: both sides, 4: on the road
+        furSideFlag_e  sideFlag;
         uint8  offset_used;
         float  offset;
         uint8  reliabRating_used;
         uint8  reliabRating;
+        uint8  inLoopIdx_used;
+        uint8  inLoopIdx;  // 0: big loop; 1: small loop; 2: T road
         uint8  boundary_used;
         std::vector<point3D_t> boundary;
 
@@ -199,10 +218,11 @@ namespace ns_database
                                       OUT int32* length);
 
 		void getSpecificIdVectorsTlv(IN resource_e sourceFlag,
+                                      IN std::list<uint32> &updateSectionIdList,
                                       OUT void** output, 
                                       OUT int32* length);
 
-		bool checkIdInUpdateIdList(IN uint32 inId);
+		bool checkIdInUpdateIdList(IN std::list<uint32> &updateSectionIdList, IN uint32 inId);
 
 		void mergeIdListToUpdateIdList(std::list<uint32> &modifiedSectionId);
 
@@ -212,11 +232,7 @@ namespace ns_database
 
 		void resetUpateSectionIdList();
 
-		int getFurUpdateFlag();
-
-    	void setFurUpdateFlag(int flag);
-    
-    	void resetFurUpdateFlag();
+		uint32 getUpateSectionIdListSize();
 		
         void resetAllVectors(IN std::list<std::list<std::vector<point3D_t>>>& allLines, 
                              IN std::list<std::list<lineAttributes_t>>& lineAttr);
@@ -227,7 +243,7 @@ namespace ns_database
                              OUT uint8*           existFlag, 
                              OUT segAttributes_t* segmentAttr);
 
-		void getSegmentIdByGps(IN  point3D_t*       gps, 
+		void getSegmentIdByGps(IN  furAttributes_t  &furAttr, 
 							   OUT uint8*           existFlag, 
 							   OUT segAttributes_t* segmentAttr);
 
@@ -246,6 +262,8 @@ namespace ns_database
                               OUT int32* length);		
 
 		void calcFurnitureRoadSideLoc(INOUT furAttributes_t* furnitureAttr);
+
+        void calcFurnitureRoadSideLoc3(INOUT furAttributes_t* furnitureAttr);
 
         void getLookAheadView(IN point3D_t* gpsCurr, IN float distanceIn, OUT point3D_t* gpsAhead);
 
@@ -290,7 +308,6 @@ namespace ns_database
         std::list<std::list<std::vector<point3D_t>>> _vectorList; // segment list / vector list / point list / point element
         std::list<std::list<lineAttributes_t>> _lineAttrList; // segment list / vector list
         std::list<uint32> _updateSectionIdList;
-		int _furUpdateFlag;
         //std::list<std::list<furAttributes_t>> _furnitureList; // segment list / furniture element
 
         // Private Methods

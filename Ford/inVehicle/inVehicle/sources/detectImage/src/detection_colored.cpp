@@ -16,6 +16,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <direct.h>
 
 //#include <opencv2\core\core.hpp>
 //#include <opencv2\highgui\highgui.hpp>
@@ -39,12 +40,102 @@ using namespace std;
 
 namespace ns_detection
 {
+svm_model * Detector_colored::_cir_model;
+svm_model * Detector_colored::_rec_model;
+svm_model * Detector_colored::_tri_model;
+svm_model * Detector_colored::_cir_model_added;
+    
+std::vector<int> Detector_colored::_feat_cir;
+std::vector<int> Detector_colored::_feat_rec;
+std::vector<int> Detector_colored::_feat_tri;
+std::vector<int> Detector_colored::_feat_cir_added;
+
+std::vector<cv::Mat> Detector_colored::_image;
+
+void loadModels()
+{
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/10100.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/10200.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/12300.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/13100.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/13310.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/13810.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/20500.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/20600.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/20910.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/20930.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/21500.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/22220.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/22400.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/23700.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/23900.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/24000.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/24100.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/25000.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/25400.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/25900.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/26100.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/26210.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/26700.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/27452.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/27453.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/27454.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/27455.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/27456.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/27458.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/27600.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/28300.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/28400.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/28500.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/28600.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/28700.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/30100.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/30600.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/31400.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/31401.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/33100.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/33600.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/34100.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/35010.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/44100.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/44200.png"));
+    Detector_colored::_image.push_back(imread("./resource/Germany/png/99900.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/10310.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/10320.png"));
+	Detector_colored::_image.push_back(imread("./resource/Germany/png/22210.png"));
+
+#if (RD_LOCATION == RD_GERMAN_LEHRE2)
+    Detector_colored::_cir_model = svm_load_model("./resource/Germany/svmLehre2/cir_model.txt");
+    Detector_colored::_rec_model = svm_load_model("./resource/Germany/svmLehre2/rec_model.txt");
+
+    loadFeat(Detector_colored::_feat_cir, "./resource/Germany/svmLehre2/CIRfeat.txt");
+    loadFeat(Detector_colored::_feat_rec, "./resource/Germany/svmLehre2/RECfeat.txt");
+#else
+    Detector_colored::_cir_model = svm_load_model("./resource/Germany/svm/cir_model.txt");
+    Detector_colored::_rec_model = svm_load_model("./resource/Germany/svm/rec_model.txt");
+    Detector_colored::_tri_model = svm_load_model("./resource/Germany/svm/tri_model.txt");
+	Detector_colored::_cir_model_added = svm_load_model("./resource/Germany/svm/cir_model_added.txt");
+    
+    Detector_colored::loadFeat(Detector_colored::_feat_cir, "./resource/Germany/svm/CIRfeat.txt");
+    Detector_colored::loadFeat(Detector_colored::_feat_rec, "./resource/Germany/svm/RECfeat.txt");
+    Detector_colored::loadFeat(Detector_colored::_feat_tri, "./resource/Germany/svm/TRIfeat.txt");
+	Detector_colored::loadFeat(Detector_colored::_feat_cir_added, "./resource/Germany/svm/CIRfeat_added.txt");
+#endif
+}
 
 Detector_colored::Detector_colored(float highStep, double dist_per_piexl,int horizon_line,int featureNum) :Detector(highStep,dist_per_piexl,horizon_line),
 										_MAX_NUM_FEATURES(featureNum), 
                                        _MAX_RED_CANDIDATES(10),
                                        _INVALID_TYPE(100)
 {
+#if WRITE_IMAGE == 1
+	_triImageID = 0;
+	_recImageID = 0;
+	_cirImageID = 0;
+#endif
+#ifdef TRACK_ENABLE
+	_frameNumber = 0;
+#endif
     _sw = 32;
     _d.winSize = Size(_sw, _sw);
     _d.blockSize = Size(_sw/4, _sw/4);
@@ -59,63 +150,6 @@ Detector_colored::Detector_colored(float highStep, double dist_per_piexl,int hor
 
     _ratioT = 30; 
     _areaT = 250;
-
-    _image.push_back(imread("./resource/Germany/png/10100.png"));
-    _image.push_back(imread("./resource/Germany/png/12300.png"));
-    _image.push_back(imread("./resource/Germany/png/13100.png"));
-    _image.push_back(imread("./resource/Germany/png/13310.png"));
-    _image.push_back(imread("./resource/Germany/png/13810.png"));
-    _image.push_back(imread("./resource/Germany/png/20500.png"));
-    _image.push_back(imread("./resource/Germany/png/20600.png"));
-    _image.push_back(imread("./resource/Germany/png/20930.png"));
-    _image.push_back(imread("./resource/Germany/png/21500.png"));
-    _image.push_back(imread("./resource/Germany/png/22220.png"));
-    _image.push_back(imread("./resource/Germany/png/22400.png"));
-    _image.push_back(imread("./resource/Germany/png/23700.png"));
-    _image.push_back(imread("./resource/Germany/png/23900.png"));
-    _image.push_back(imread("./resource/Germany/png/24000.png"));
-    _image.push_back(imread("./resource/Germany/png/25000.png"));
-    _image.push_back(imread("./resource/Germany/png/25900.png"));
-    _image.push_back(imread("./resource/Germany/png/26100.png"));
-    _image.push_back(imread("./resource/Germany/png/26210.png"));
-    _image.push_back(imread("./resource/Germany/png/27452.png"));
-    _image.push_back(imread("./resource/Germany/png/27453.png"));
-    _image.push_back(imread("./resource/Germany/png/27454.png"));
-    _image.push_back(imread("./resource/Germany/png/27455.png"));
-    _image.push_back(imread("./resource/Germany/png/27456.png"));
-    _image.push_back(imread("./resource/Germany/png/27458.png"));
-    _image.push_back(imread("./resource/Germany/png/28300.png"));
-    _image.push_back(imread("./resource/Germany/png/28600.png"));
-    _image.push_back(imread("./resource/Germany/png/30100.png"));
-    _image.push_back(imread("./resource/Germany/png/30600.png"));
-    _image.push_back(imread("./resource/Germany/png/31400.png"));
-    _image.push_back(imread("./resource/Germany/png/33100.png"));
-    _image.push_back(imread("./resource/Germany/png/33600.png"));
-    _image.push_back(imread("./resource/Germany/png/35010.png"));
-    _image.push_back(imread("./resource/Germany/png/99900.png"));
-    _image.push_back(imread("./resource/Germany/png/20910.png"));
-    _image.push_back(imread("./resource/Germany/png/25400.png"));
-    _image.push_back(imread("./resource/Germany/png/26700.png"));
-    _image.push_back(imread("./resource/Germany/png/31401.png"));
-    _image.push_back(imread("./resource/Germany/png/27600.png"));
-    _image.push_back(imread("./resource/Germany/png/44100.png"));
-    _image.push_back(imread("./resource/Germany/png/44200.png"));
-
-#if (RD_LOCATION == RD_GERMAN_LEHRE2)
-    _cir_model = svm_load_model("./resource/Germany/svmLehre2/cir_model.txt");
-    _rec_model = svm_load_model("./resource/Germany/svmLehre2/rec_model.txt");
-
-    loadFeat(_feat_cir, "./resource/Germany/svmLehre2/CIRfeat.txt");
-    loadFeat(_feat_rec, "./resource/Germany/svmLehre2/RECfeat.txt");
-#else
-    _cir_model = svm_load_model("./resource/Germany/svm/cir_model.txt");
-    _rec_model = svm_load_model("./resource/Germany/svm/rec_model.txt");
-    _tri_model = svm_load_model("./resource/Germany/svm/tri_model.txt");
-    
-    loadFeat(_feat_cir, "./resource/Germany/svm/CIRfeat.txt");
-    loadFeat(_feat_rec, "./resource/Germany/svm/RECfeat.txt");
-    loadFeat(_feat_tri, "./resource/Germany/svm/TRIfeat.txt");
-#endif
 }
 
 int Detector_colored::contoursSelect(vector<vector<Point>> &contours,int *validIdx, double*validVal, double ratioT, int *maxIndex, double *maxValue) 
@@ -248,207 +282,246 @@ Mat Detector_colored::ID2Image(int target)
 			s = _image[0];
 			break;
 		}
-	case 12300:
+	case 10200:
 		{
 			s = _image[1];
 			break;
 		}
-	case 13100:
+	case 12300:
 		{
 			s = _image[2];
 			break;
 		}
-	case 13310:
+	case 13100:
 		{
 			s = _image[3];
 			break;
 		}
-	case 13810:
+	case 13310:
 		{
 			s = _image[4];
 			break;
 		}
-	case 20500:
+	case 13810:
 		{
 			s = _image[5];
 			break;
 		}
-	case 20600:
+	case 20500:
 		{
 			s = _image[6];
 			break;
 		}
-	case 20930:
+	case 20600:
 		{
 			s = _image[7];
 			break;
 		}
-	case 21500:
+	case 20910:
 		{
 			s = _image[8];
 			break;
 		}
-	case 22200:
+	case 20930:
 		{
 			s = _image[9];
 			break;
 		}
-	case 22400:
+	case 21500:
 		{
 			s = _image[10];
 			break;
 		}
-	case 23700:
+	case 22220:
 		{
 			s = _image[11];
 			break;
 		}
-	case 23900:
+	case 22400:
 		{
 			s = _image[12];
 			break;
 		}
-	case 24000:
+	case 23700:
 		{
 			s = _image[13];
 			break;
 		}
-	case 25000:
+	case 23900:
 		{
 			s = _image[14];
 			break;
 		}
-	case 25900:
+	case 24000:
 		{
 			s = _image[15];
 			break;
 		}
-	case 26100:
+	case 24100:
 		{
 			s = _image[16];
 			break;
 		}
-	case 26210:
+	case 25000:
 		{
 			s = _image[17];
 			break;
 		}
-	case 27452:
-    case 27552:
+	case 25400:
 		{
 			s = _image[18];
 			break;
 		}
-	case 27453:
-    case 27553:
+	case 25900:
 		{
 			s = _image[19];
 			break;
 		}
-	case 27454:
-    case 27554:
+	case 26100:
 		{
 			s = _image[20];
 			break;
 		}
-	case 27455:
-    case 27555:
+	case 26210:
 		{
 			s = _image[21];
 			break;
 		}
-	case 27456:
-    case 27556:
+	case 26700:
 		{
 			s = _image[22];
 			break;
 		}
-	case 27458:
-    case 27558:
+	case 27452:
 		{
 			s = _image[23];
 			break;
 		}
-	case 28300:
+	case 27453:
 		{
 			s = _image[24];
 			break;
 		}
-	case 28600:
+	case 27454:
 		{
 			s = _image[25];
 			break;
 		}
-	case 30100:
+	case 27455:
 		{
 			s = _image[26];
 			break;
 		}
-	case 30600:
+	case 27456:
 		{
 			s = _image[27];
 			break;
 		}
-	case 31400:
+	case 27458:
 		{
 			s = _image[28];
 			break;
 		}
-	case 33100:
+	case 27600:
 		{
 			s = _image[29];
 			break;
 		}
-	case 33600:
+	case 28300:
 		{
 			s = _image[30];
 			break;
 		}
-	case 35010:
+	case 28400:
 		{
 			s = _image[31];
 			break;
 		}
-	case 99900:
+	case 28500:
 		{
 			s = _image[32];
 			break;
 		}
-    case 20910:
-        {
-            s = _image[33];
-            break;
-        }
-    case 25400:
-        {
-            s = _image[34];
-            break;
-        }
-    case 26700:
-        {
-            s = _image[35];
-            break;
-        }
-    case 31401:
-        {
-            s = _image[36];
-            break;
-        }
-    case 27600:
-        {
-            s = _image[37];
-            break;
-        }
-    case 44100:
-        {
-            s = _image[38];
-            break;
-        }
-    case 44200:
-        {
-            s = _image[39];
-            break;
-        }
+	case 28600:
+		{
+			s = _image[33];
+			break;
+		}
+	case 28700:
+		{
+			s = _image[34];
+			break;
+		}
+	case 30100:
+		{
+			s = _image[35];
+			break;
+		}
+	case 30600:
+		{
+			s = _image[36];
+			break;
+		}
+	case 31400:
+		{
+			s = _image[37];
+			break;
+		}
+	case 31401:
+		{
+			s = _image[38];
+			break;
+		}
+	case 33100:
+		{
+			s = _image[39];
+			break;
+		}
+	case 33600:
+		{
+			s = _image[40];
+			break;
+		}
+	case 34100:
+		{
+			s = _image[41];
+			break;
+		}
+	case 35010:
+		{
+			s = _image[42];
+			break;
+		}
+	case 44100:
+		{
+			s = _image[43];
+			break;
+		}
+	case 44200:
+		{
+			s = _image[44];
+			break;
+		}
+	case 99900:
+		{
+			s = _image[45];
+			break;
+		}
+	case 10310:
+		{
+			s = _image[46];
+			break;
+		}
+	case 10320:
+		{
+			s = _image[47];
+			break;
+		}
+	case 22210:
+		{
+			s = _image[48];
+			break;
+		}
 
 	default:
 		break;
@@ -520,12 +593,48 @@ void Detector_colored::handleTrackedPoints(cv:: Mat &output,std::vector<cv::Poin
     }
 }
 
+#if WRITE_IMAGE == 1
+int mkdir_r(const char *path) {
+	if (path == NULL) {
+		return -1;
+	}
+	char *temp = strdup(path);
+	char *pos = temp;
+
+	/* remove the beginning './' or '/' */
+	if (strncmp(temp, "/", 1) == 0) {
+		pos += 1;
+	} else if (strncmp(temp, "./", 2) == 0) {
+		pos += 2;
+	}
+	/* make dir round */
+	for ( ; *pos != '\0'; ++ pos) {
+		if (*pos == '/') {
+			*pos = '\0';
+			mkdir(temp);
+			//printf("for %s\n", temp);
+			*pos = '/';
+		}
+	}
+	/* if the last level dir is end with '/'
+	stop loop at '\0'
+	not make the last level dir */
+	//if (*(pos - 1) != '/') {
+	//	printf("if %s\n", temp);
+	//	mkdir(temp);
+	//}
+	free(temp);
+	return 1;
+}
+#endif
+
 int Detector_colored::TS_classify(Detector::Shape shape,Mat image,InputArray curve,string path)
 {
     // default type
     int type = 0;
     if (shape == triangles)
-    {                    
+    { 
+		type = targetClassify(image,curve,_feat_tri,_tri_model);
 #if WRITE_IMAGE == 1
         {
             cv::Rect r = cv::boundingRect(curve);
@@ -533,15 +642,15 @@ int Detector_colored::TS_classify(Detector::Shape shape,Mat image,InputArray cur
             char currFileName[500];
             int stringLen = path.size();
             sprintf_s( currFileName, 100, (char *)path.data());
-            sprintf_s(&currFileName[stringLen], 400, "/TRI/%05d.jpg",triImageID++);
+            sprintf_s(&currFileName[stringLen], 400, "./captureImg/TRI/%05d/%06d.jpg",type,_triImageID++);
+			mkdir_r(currFileName);
             imwrite(currFileName, image_roi);
         }
-#else
-        type = targetClassify(image,curve,_feat_tri,_tri_model); 
-#endif
+#endif 
     }
     else if (shape == rectangles)
-    {                    
+    {    
+		 type = targetClassify(image,curve,_feat_rec,_rec_model);
 #if WRITE_IMAGE == 1
         {
             cv::Rect r = cv::boundingRect(curve);
@@ -549,28 +658,31 @@ int Detector_colored::TS_classify(Detector::Shape shape,Mat image,InputArray cur
             char currFileName[500];
             int stringLen = path.size();
             sprintf_s( currFileName, 100, (char *)path.data());
-            sprintf_s( &currFileName[stringLen], 400, "/REC/%05d.jpg",recImageID++);
+            sprintf_s( &currFileName[stringLen], 400, "./captureImg/REC/%05d/%06d.jpg",type,_recImageID++);
+			mkdir_r(currFileName);  
             imwrite(currFileName, image_roi);
         }
-#else
-        type = targetClassify(image,curve,_feat_rec,_rec_model);                     
-#endif
+#endif                     
     }
     else if (shape == circles)
     {
+		type = targetClassify(image,curve,_feat_cir,_cir_model);
+		if ( type == 28400 || type == 28500 || type == 28700 )
+		{
+			type = targetClassify(image,curve,_feat_cir_added,_cir_model_added);
+		}
 #if WRITE_IMAGE == 1
-        {
-            cv::Rect r = cv::boundingRect(curve);
-            Mat image_roi = image(r);
-            char currFileName[500];
-            int stringLen = path.size();
-            sprintf_s( currFileName, 100, (char *)path.data());
-            sprintf_s( &currFileName[stringLen], 400, "/CIR/%05d.jpg",cirImageID++);
-            imwrite(currFileName, image_roi);
-        }
-#else
-        type = targetClassify(image,curve,_feat_cir,_cir_model);                     
-#endif                                
+		{
+			cv::Rect r = cv::boundingRect(curve);
+			Mat image_roi = image(r);
+			char currFileName[500];
+			int stringLen = path.size();
+			sprintf_s( currFileName, 100, (char *)path.data());
+			sprintf_s( &currFileName[stringLen], 400, "./captureImg/CIR/%05d/%06d.jpg",type,_recImageID++);
+			mkdir_r(currFileName);
+			imwrite(currFileName, image_roi);
+		}
+#endif                                                     
     }
     return type;
 }
@@ -679,6 +791,13 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
             // traffic sign classification             
             int type = TS_classify(shape,image,curve);
 
+#if RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE
+			if ( type == 28500 || type == 28700 )
+			{
+				type = 28400;
+			}
+#endif
+
             // if is valid traffic sign type
             if(type > _INVALID_TYPE)
             {    
@@ -710,7 +829,7 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
 #ifdef TRACK_ENABLE                     
                     points[0].push_back (center);
                     initial.push_back (center);
-                    frameList.push_back (frameNumber);
+                    frameList.push_back (_frameNumber);
                     typeList.push_back (type);
 #endif                    
                     //cout<< " frameNumber = "<<frameNumber <<"  Sign type = " << ID2Name(type) << endl;
@@ -723,6 +842,7 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
             }//end if
             else
             {
+#if 0
                 //FIXME: process 30600
                 if( (type == 0) && (shape = rectangles))
                 {
@@ -766,6 +886,7 @@ void Detector_colored::trafficSignDetect(Mat image, TS_Structure &target)
                         k++;
                      }
                 }
+#endif
             }
         }        
 

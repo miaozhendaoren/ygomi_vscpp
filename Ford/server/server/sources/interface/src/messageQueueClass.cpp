@@ -31,17 +31,22 @@ messageQueueClass::messageQueueClass(int32 queueSize)
 bool messageQueueClass::push(messageProcessClass* msgInPtr)
 {
 	//WaitForSingleObject(_hMutex,INFINITE);
-	if( _msgQueue.size() < queueNum)
+    int msgSize = _msgQueue.size();
+	if( msgSize < queueNum - 10) // 10 for highLevel_e
 	{
 		_msgQueue.push(*msgInPtr);
 		//ReleaseMutex(_hMutex);
 		return true;
 	}
-	else
+	else if( (highLevel_e == msgInPtr->messagePriority) && (msgSize < queueNum) )
 	{
-		//ReleaseMutex(_hMutex);
-		return false;
+		_msgQueue.push(*msgInPtr);
+		return true;
 	}
+    else
+    {
+        return false;
+    }
 }
 bool messageQueueClass::pop()
 {
@@ -74,7 +79,7 @@ int32 messageQueueClass::size()
 	//ReleaseMutex(_hMutex);
 	return number;
 }
-bool messageQueueClass::front(messageProcessClass* msgInPtr)
+/*bool messageQueueClass::front(messageProcessClass* msgInPtr)
 {
 	//WaitForSingleObject(_hMutex,INFINITE);
 	if(_msgQueue.empty())
@@ -103,6 +108,21 @@ bool messageQueueClass::back(messageProcessClass* msgInPtr)
 		//ReleaseMutex(_hMutex);
 		return true;
 	}
+}*/
+bool messageQueueClass::top(messageProcessClass* msgInPtr)
+{
+	//WaitForSingleObject(_hMutex,INFINITE);
+	if(_msgQueue.empty())
+	{ 
+		//ReleaseMutex(_hMutex);
+		return false;
+	}
+	else
+	{ 
+		*msgInPtr = _msgQueue.top(); 
+		//ReleaseMutex(_hMutex);
+		return true;
+	}
 }
 messageQueueClass::~messageQueueClass(void)
 {
@@ -114,5 +134,4 @@ messageQueueClass::~messageQueueClass(void)
 	}
 	//CloseHandle(_hMutex);  
 }
-
 

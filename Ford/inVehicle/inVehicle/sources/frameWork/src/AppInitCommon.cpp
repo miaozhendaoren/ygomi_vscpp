@@ -35,6 +35,7 @@
 
 HANDLE g_readySema_GPS;
 HANDLE g_readySema_DiffDet;
+HANDLE g_readySema_SocketReady;
 HANDLE g_readyEvent_ConnectSocket;
 
 ns_database::databaseInVehicle* database_gp;
@@ -53,18 +54,20 @@ unsigned long g_EmulatorIP;
 unsigned short g_EmulatorPort;
 HANDLE socketMutex;
 
-ns_roadScan::Parameters inParam;
-cv::Mat H, invertH;
+std::vector<ns_roadScan::Parameters> inParamVec;
+std::vector<cv::Mat> HVec, invertHVec,laneHVec;
+list<vector<uint32>> g_loopSegList;
 
 int g_CameraPort = 0;
 
-//#if(RD_SIGN_DETECT == RD_SIGN_DETECT_COLOR)
-//    ns_detection::Detector_colored *trafficSignDetector;
-//#elif(RD_SIGN_DETECT == RD_SIGN_DETECT_WHITE_BLACK)
-//	ns_detection::Detector_blackWhite *trafficSignDetector;
-//#endif
-ns_detection::Detector *trafficSignDetector;
+#if(RD_SIGN_DETECT == RD_SIGN_DETECT_COLOR)
+    std::vector<ns_detection::Detector_colored *> trafficSignDetectorVec;
+#elif(RD_SIGN_DETECT == RD_SIGN_DETECT_WHITE_BLACK)
+    std::vector<ns_detection::Detector_blackWhite *> trafficSignDetectorVec;
+#endif
+
 list<segAttributes_t> g_segCfgList;
+ns_roadsegment::All_RoadSegment *roadSegConfig_gp;
 
 void trySetConnectSocket(bool flag)
 {
@@ -84,6 +87,7 @@ void appInitEvents(void)
 {
     g_readySema_GPS = CreateSemaphore(NULL,0,10,"semaphore_GPS");
     g_readySema_DiffDet = CreateSemaphore(NULL,0,10,"semaphore_DiffDet");
+	g_readySema_SocketReady = CreateSemaphore(NULL,0,10,"semaphore_SocketReady");
 	
 	g_readyEvent_ConnectSocket = CreateEvent(NULL,TRUE,FALSE,NULL);
 
@@ -131,50 +135,129 @@ bool readOverViewPoint(char* fileName,eyeLookAt_t &eye)
 
 int detectorInit()
 {
-    string segFilePath;
+    string segFilePath;	
+    roadSegConfig_gp = new ns_roadsegment::All_RoadSegment();
+	
+    ns_roadScan::Parameters inParam;
+    cv::Mat H_temp;
+
 #if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
-    segFilePath = "./config/DE_Airport_manualSeg.txt";
-    bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Airport2.txt", inParam);
-	readStatus &= readOverViewPoint("./config/DE_Airport_overViewPoint.txt",serverEyeInfo[0]);
+    inParamVec.assign(1, inParam); 
+    HVec.assign(1, H_temp); 
+    invertHVec.assign(1, H_temp); 
+    laneHVec.assign(1, H_temp);
+    segFilePath = "./config/DE_Airport_ParamConfig.xml";
+    bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Airport2.txt", inParamVec[0]);
+    readStatus &= readOverViewPoint("./config/DE_Airport_overViewPoint.txt",serverEyeInfo[0]);
+#elif (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+    inParamVec.assign(5, inParam); 
+    HVec.assign(5, H_temp); 
+    invertHVec.assign(5, H_temp); 
+    laneHVec.assign(5, H_temp);
+    //segFilePath = "./config/DE_Airport_manualSeg.txt";
+    segFilePath = "./config/DE_Airport_ParamConfig.xml";
+    bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Airport.txt", inParamVec[0]);
+    readStatus &= ns_roadScan::readParamRoadScan("./config/DE_Airport2.txt", inParamVec[1]);
+	readStatus &= ns_roadScan::readParamRoadScan("./config/DE_Airport3.txt", inParamVec[2]);
+    readStatus &= ns_roadScan::readParamRoadScan("./config/DE_Airport4.txt", inParamVec[3]);
+	readStatus &= ns_roadScan::readParamRoadScan("./config/DE_AirportTcross.txt", inParamVec[4]);
+    readStatus &= readOverViewPoint("./config/DE_Airport_overViewPoint.txt",serverEyeInfo[0]);
 #elif (RD_LOCATION == RD_GERMAN_LEHRE)
+    inParamVec.assign(1, inParam);
+    HVec.assign(1, H_temp); 
+    invertHVec.assign(1, H_temp); 
+    laneHVec.assign(1, H_temp);
     segFilePath = "./config/DE_Lehre_manualSeg.txt";
-    bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Lehre.txt", inParam);
+    bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Lehre.txt", inParamVec[0]);
 	readStatus &= readOverViewPoint("./config/DE_Lehre_overViewPoint.txt",serverEyeInfo[0]);
 #elif (RD_LOCATION == RD_GERMAN_LEHRE2)
+    inParamVec.assign(1, inParam);
+    HVec.assign(1, H_temp); 
+    invertHVec.assign(1, H_temp); 
+    laneHVec.assign(1, H_temp);
     segFilePath = "./config/DE_Lehre_manualSeg.txt";
-    bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Lehre2.txt", inParam);
+    bool readStatus = ns_roadScan::readParamRoadScan("./config/DE_Lehre2.txt", inParamVec[0]);
 	readStatus &= readOverViewPoint("./config/DE_Lehre_overViewPoint.txt",serverEyeInfo[0]);
 #elif (RD_LOCATION == RD_US_DETROIT)
+    inParamVec.assign(1, inParam);
+    HVec.assign(1, H_temp); 
+    invertHVec.assign(1, H_temp); 
+    laneHVec.assign(1, H_temp);
     segFilePath = "./config/US_Detroit_manualSeg.txt";
-	bool readStatus = ns_roadScan::readParamRoadScan("./config/US_Detroit.txt", inParam);
+	bool readStatus = ns_roadScan::readParamRoadScan("./config/US_Detroit.txt", inParamVec[0]);
 	readStatus &= readOverViewPoint("./config/US_Detroit_overViewPoint.txt",serverEyeInfo[0]);
 #elif (RD_LOCATION == RD_US_PALO_ALTO)
+    inParamVec.assign(1, inParam);
+    HVec.assign(1, H_temp); 
+    invertHVec.assign(1, H_temp); 
+    laneHVec.assign(1, H_temp);
     segFilePath = "./config/US_Palo_Alto_manualSeg.txt";
-	bool readStatus = ns_roadScan::readParamRoadScan("./config/US_Palo_Alto.txt", inParam);
+	bool readStatus = ns_roadScan::readParamRoadScan("./config/US_Palo_Alto.txt", inParamVec[0]);
 	readStatus &= readOverViewPoint("./config/US_Palo_Alto_overViewPoint.txt",serverEyeInfo[0]);
 #endif
-    
+	serverEyeInfo[1] = serverEyeInfo[0];
+
+#if ((RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE) ||(RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT))    
+    list<vector<uint32>> loopseg_List;
+    bool segInfoFlag = roadSegConfig_gp->AnalysisSegment(segFilePath.c_str());
+	roadSegConfig_gp->getRoadSegCfg_database(g_segCfgList);
+    roadSegConfig_gp->getRoadLoopSegId(loopseg_List);
+    roadSegConfig_gp->setRoadLoopFlag(loopseg_List, g_segCfgList);
+#else
     bool segInfoFlag = readSectionConfig(segFilePath,g_segCfgList);
+#endif
     if((!readStatus) || (!segInfoFlag))
     {
         return -1;
     }else
     {
+#if(RD_SIGN_DETECT != RD_SIGN_DETECT_OFF)
+        ns_detection::loadModels();
 #if(RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
-        trafficSignDetector = new ns_detection::Detector_colored(0.5,inParam.distancePerPixel,300); // 300: airport2
+        ns_detection::Detector_colored * trafficSignDetectorTemp;
+        trafficSignDetectorTemp = new ns_detection::Detector_colored(0.5,inParamVec[0].distancePerPixel,300); // 300: airport2
+        trafficSignDetectorVec.push_back(trafficSignDetectorTemp);
+#elif(RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+        ns_detection::Detector_colored * trafficSignDetectorTemp;
+        trafficSignDetectorTemp = new ns_detection::Detector_colored(0.5,inParamVec[0].distancePerPixel,300);
+        trafficSignDetectorVec.push_back(trafficSignDetectorTemp);
+        trafficSignDetectorTemp = new ns_detection::Detector_colored(0.5,inParamVec[1].distancePerPixel,300);
+        trafficSignDetectorVec.push_back(trafficSignDetectorTemp);
+		trafficSignDetectorTemp = new ns_detection::Detector_colored(0.5,inParamVec[2].distancePerPixel,300);
+        trafficSignDetectorVec.push_back(trafficSignDetectorTemp);
+		trafficSignDetectorTemp = new ns_detection::Detector_colored(0.5,inParamVec[3].distancePerPixel,300);
+        trafficSignDetectorVec.push_back(trafficSignDetectorTemp);
+		trafficSignDetectorTemp = new ns_detection::Detector_colored(0.5,inParamVec[4].distancePerPixel,300);
+        trafficSignDetectorVec.push_back(trafficSignDetectorTemp);
 #elif(RD_LOCATION == RD_GERMAN_LEHRE)
-        trafficSignDetector = new ns_detection::Detector_blackWhite(0.5,inParam.distancePerPixel,100); // not set the horonzition line
+        ns_detection::Detector_blackWhite * trafficSignDetectorTemp;
+        trafficSignDetectorTemp = new ns_detection::Detector_blackWhite(0.5,inParamVec[0].distancePerPixel,100); // not set the horonzition line
+        trafficSignDetectorVec.push_back(trafficSignDetectorTemp);
 #elif(RD_LOCATION == RD_GERMAN_LEHRE2)
-        trafficSignDetector = new ns_detection::Detector_colored(0.5,inParam.distancePerPixel,100);
+        ns_detection::Detector_colored * trafficSignDetectorTemp;
+        trafficSignDetectorTemp = new ns_detection::Detector_colored(0.5,inParamVec[0].distancePerPixel,100);
+        trafficSignDetectorVec.push_back(trafficSignDetectorTemp);
 #elif(RD_LOCATION == RD_US_DETROIT)
-        trafficSignDetector = new ns_detection::Detector_blackWhite(0.5,inParam.distancePerPixel,260); // 260: detroit
+        ns_detection::Detector_blackWhite * trafficSignDetectorTemp;
+        trafficSignDetectorTemp = new ns_detection::Detector_blackWhite(0.5,inParamVec[0].distancePerPixel,260); // 260: detroit
+        trafficSignDetectorVec.push_back(trafficSignDetectorTemp);
 #elif(RD_LOCATION == RD_US_PALO_ALTO)
-        trafficSignDetector = new ns_detection::Detector_blackWhite(0.5,inParam.distancePerPixel,0,300); // not set the horonzition line
+        ns_detection::Detector_blackWhite * trafficSignDetectorTemp;
+        trafficSignDetectorTemp = new ns_detection::Detector_blackWhite(0.5,inParamVec[0].distancePerPixel,0,300); // not set the horonzition line
+        trafficSignDetectorVec.push_back(trafficSignDetectorTemp);
 #else
 
 #endif
+#endif // #if(RD_SIGN_DETECT != RD_SIGN_DETECT_OFF)
+
         // Calculate H and H inverse for road scan and traffic sign detection
-        ns_roadScan::calHAndInvertH(inParam, H, invertH);
+        ns_roadScan::calHAndInvertH(inParamVec[0], HVec[0], invertHVec[0], laneHVec[0]);
+#if(RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+        ns_roadScan::calHAndInvertH(inParamVec[1], HVec[1], invertHVec[1], laneHVec[1]);
+		ns_roadScan::calHAndInvertH(inParamVec[2], HVec[2], invertHVec[2], laneHVec[2]);
+		ns_roadScan::calHAndInvertH(inParamVec[3], HVec[3], invertHVec[3], laneHVec[3]);
+        ns_roadScan::calHAndInvertH(inParamVec[4], HVec[4], invertHVec[4], laneHVec[4]);
+#endif
         return 0;
     }
 }
@@ -317,12 +400,13 @@ unsigned int __stdcall Thread_ReconnectSocket(void *data)
 
 				while(INVALID_SOCKET == socket(AF_INET, SOCK_STREAM, IPPROTO_TCP))
 				{
-					logPrintf(logLevelFatal_e, "COMM", "Creating socket failed!");
+					//logPrintf(logLevelFatal_e, "COMM", "Creating socket failed!");
 				}
 			}
-			logPrintf(logLevelFatal_e, "COMM", "Connect socket failed!");
+			//logPrintf(logLevelFatal_e, "COMM", "Connect socket failed!");
 			Sleep(50);
 		}
+		logPrintf(logLevelInfo_e, "COMM", "Connect socket!",FOREGROUND_BLUE);
 		RD_ADD_TS(tsFunId_eThread_ReConSocket,2);
 
 		ResetEvent(g_readyEvent_ConnectSocket);
@@ -349,10 +433,40 @@ void sendDatabaseVersion()
 	int nRet = send(sockClient,(char*)statusRptMsgPtr,headerLen,0);//,(SOCKADDR*)&serverAddr,g_SocketLen);//send response message data
 	if ((nRet == SOCKET_ERROR) || (nRet == 0))
 	{
-		logPrintf(logLevelInfo_e, "COMM", "Send message to server failed!");
+		logPrintf(logLevelInfo_e, "COMM", "Send message to server failed!",FOREGROUND_BLUE);
 	}
 	else
 	{
-		logPrintf(logLevelInfo_e, "COMM", "<<<< Send message to server OK");
+		logPrintf(logLevelInfo_e, "COMM", "<<<< Send message to server OK",FOREGROUND_BLUE);
 	}
+}
+
+uint8 getLoopIdxFromFurInLoopIdx(IN int inParamIndex)
+{
+	uint8 loopIndex = 0;
+#if(RD_GERMAN_MUNICH_AIRPORT_LARGE == RD_LOCATION)
+    switch(inParamIndex)
+    {
+    case 0:
+        loopIndex = 0; // big loop;
+        break;
+    case 1:
+        loopIndex = 1; // small loop;
+        break;
+    case 2:
+        loopIndex = 0; // big loop;
+        break;
+    case 3:
+        loopIndex = 0; // big loop
+        break;
+	case 4:
+		loopIndex = 2; // T road
+		break;
+    default:
+        loopIndex = 0;
+        break;
+        
+    }
+#endif
+    return loopIndex;
 }

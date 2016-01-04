@@ -344,14 +344,14 @@ void ridgeDetect(Mat &image_f,Mat &Kapa, double sigma1, double sigma2)
 
 				float T = a+d;
 				float D = a*d - c*b;
-				float L1 = T/2.0 + sqrt(T*T/4.0 - D);
+				float L1 = T/2.0 + sqrt(abs(T*T/4.0 - D));
 
 				float ex = L1-d;
 				float ey = c;
 				float norm = sqrt(ex*ex + ey*ey);
 
-				ex = L1*ex/norm;
-				ey = L1*ey/norm;
+				ex = L1*ex/(norm + 0.0000001);
+				ey = L1*ey/(norm + 0.0000001);
 
 				float sign ;
 
@@ -594,6 +594,7 @@ void getInformationOfEveryLine(gpsInformationAndInterval &GPSAndInterval,Mat &ro
  */
 void calThread(Mat &Inimg, int &hisTH, Mat&dstImage)
 {
+	hisTH = 5;
 	MatND dstHist;
 	int dims=1;
 	float hranges[] = {0,255};
@@ -606,36 +607,42 @@ void calThread(Mat &Inimg, int &hisTH, Mat&dstImage)
 	double minValue = 0;
 	double maxValue = 0;
 	minMaxLoc(dstHist,&minValue,&maxValue,0,0);
-
-	int hpt = saturate_cast<int>(0.9 * size);
-	for (int i=0;i<256;i++)
+	if(maxValue>1)
 	{
-		float binValue = dstHist.at<float>(i);
-		int realValue = saturate_cast<int>(binValue * hpt/maxValue);
-		rectangle(dstImage,Point(i*scale,size-1),Point((i+1)*scale-1,size-realValue),Scalar(255));
-	}
-
-	int sum = 0;
-	for (int i=0;i<256;i++)
-	{
-		float binValue = dstHist.at<float>(i);
-		sum +=binValue;
-	}
-
-	double widthPer =0;
-	double numWidthPlus=0;
-	for (int i=0;i<256;i++)
-	{
-		float binValue = dstHist.at<float>(i);
-		numWidthPlus +=binValue;
-		widthPer = numWidthPlus/(sum);
-		if (widthPer>0.9)
+		int hpt = saturate_cast<int>(0.9 * size);
+		for (int i=0;i<256;i++)
 		{
-			//			cout<<i<<endl;
-			hisTH = i;//=i for Ford
-			break;
+			float binValue = dstHist.at<float>(i);
+			int realValue = saturate_cast<int>(binValue * hpt/maxValue);
+			rectangle(dstImage,Point(i*scale,size-1),Point((i+1)*scale-1,size-realValue),Scalar(255));
+		}
+
+		float sum = 0;
+		for (int i=0;i<256;i++)
+		{
+			float binValue = dstHist.at<float>(i);
+			sum +=binValue;
+		}
+	
+		if(sum>1)
+		{
+			float widthPer =0;
+			float numWidthPlus=0;
+			for (int i=0;i<256;i++)
+			{
+				float binValue = dstHist.at<float>(i);
+				numWidthPlus +=binValue;
+				widthPer = numWidthPlus/(sum);
+				if (widthPer>0.9)
+				{
+					//			cout<<i<<endl;
+					hisTH = i;//=i for Ford
+					break;
+				}
+			}
 		}
 	}
+	
 
 }
 /*
@@ -688,7 +695,11 @@ int calRidgePar(Mat &Inimg)
 				posEnd = j1;
 				count = 0;
 				int lineWidth = posEnd-posStart;
-				paintWidth.push_back(lineWidth);
+				if (lineWidth > 0)
+				{
+					paintWidth.push_back(lineWidth);
+				}
+				
 			}
 		}
 		if (paintWidth.size())
@@ -730,6 +741,11 @@ int calRidgePar(Mat &Inimg)
 		}
 	}
 
+	if(numWidth<=0)
+	{
+		return 0;
+	}
+
 	int hpt2 = 0.9 * 256;
 	double widthPer =0;
 	double numWidthPlus=0;
@@ -768,8 +784,8 @@ int calRidgePar(Mat &Inimg)
 
 		}
 		
-		int realValue =binValue * hpt2/maxValue3;
-		rectangle(rowHist2,Point(i,255),Point(i,255-realValue),Scalar(255));
+//		int realValue =binValue * hpt2/maxValue3;
+//		rectangle(rowHist2,Point(i,255),Point(i,255-realValue),Scalar(255));
 
 	}
 	//	imshow("rowHist2",rowHist2);
@@ -1459,104 +1475,110 @@ void arrowDetection(Mat &longLane,Mat &longLaneBW,vector<landMark> &arrows,Mat &
     for (int i = 0; i < contours.size(); i++)
     {			
         vector<Point> pointss = contours[i];
-        Point upoint = pointss[0];
-        Point dpoint = pointss[pointss.size()-1];
-        Point lpoint = pointss[0];
-        Point rpoint = pointss[pointss.size()-1];
-        Point2d weightPoint = Point2d(-1,-1);
-        for (int j=0;j<pointss.size();j++)
-        {
-            if (pointss[j].y<upoint.y)
-            {
-                upoint = pointss[j];
-            }
-            if (pointss[j].y>dpoint.y)
-            {
-                dpoint = pointss[j];
-            }			
+		if(pointss.size()>0)
+		{
+			Point upoint = pointss[0];
+			Point dpoint = pointss[pointss.size()-1];
+			Point lpoint = pointss[0];
+			Point rpoint = pointss[pointss.size()-1];
+			Point2d weightPoint = Point2d(-1,-1);
+			for (int j=0;j<pointss.size();j++)
+			{
+				if (pointss[j].y<upoint.y)
+				{
+					upoint = pointss[j];
+				}
+				if (pointss[j].y>dpoint.y)
+				{
+					dpoint = pointss[j];
+				}			
 
-            if (pointss[j].x<lpoint.x)
-            {
-                lpoint = pointss[j];
-            }
-            if (pointss[j].x>rpoint.x)
-            {
-                rpoint = pointss[j];
-            }
-            weightPoint.x += pointss[j].x;
-            weightPoint.y += pointss[j].y;
+				if (pointss[j].x<lpoint.x)
+				{
+					lpoint = pointss[j];
+				}
+				if (pointss[j].x>rpoint.x)
+				{
+					rpoint = pointss[j];
+				}
+				weightPoint.x += pointss[j].x;
+				weightPoint.y += pointss[j].y;
 
-            meanValue += src.at<uchar>(pointss[j].y,pointss[j].x);
-        }
-        weightPoint.x = weightPoint.x/pointss.size();
-        weightPoint.y = weightPoint.y/pointss.size();
-        meanValue = meanValue/contours.size();
+				meanValue += src.at<uchar>(pointss[j].y,pointss[j].x);
+			}
+			weightPoint.x = weightPoint.x/pointss.size();
+			weightPoint.y = weightPoint.y/pointss.size();
+			meanValue = meanValue/contours.size();
 
-        int dx = rpoint.x - lpoint.x;
-        int dy = dpoint.y - upoint.y;
+			int dx = rpoint.x - lpoint.x;
+			int dy = dpoint.y - upoint.y;
 
-        double values = dy/(dx+0.0000000001);
-        if (abs(values-1)<0.3)
-        {
-            drawContours(laneBW, contours, i, Scalar(255), -1, 8, hierarchy, 0);
-            continue;
-        }
-      if (rpoint.x<w*3&&lpoint.x>w)
-        {
-            if (contourArea(contours[i])>1000&&dy<500)
-            {
-                Mat roi = longLane(Rect(lpoint.x,upoint.y,dx,dy));
-                int result = arrowClassify(roi);
+			double values = dy/(dx+0.0000000001);
+			if (abs(values-1)<0.3)
+			{
+				drawContours(laneBW, contours, i, Scalar(255), -1, 8, hierarchy, 0);
+				continue;
+			}
+		  if (rpoint.x<w*3&&lpoint.x>w)
+			{
+				if (contourArea(contours[i])>1000&&dy<500)
+				{
+					Mat roi = longLane(Rect(lpoint.x,upoint.y,dx,dy));
+					int result = arrowClassify(roi);
 
-#ifdef ROAD_SCAN_UT
-                //cout<<"result："<<result<<endl;
-#endif							
-                if (result !=-1&&result!=0)
-                {			
-                    RotatedRect rect = minAreaRect(contours[i]);
-                    Point2f vertex[4];
-                    rect.points(vertex);
-                    for (int j =0;j<4;j++)
-                    {
-                        line(T,vertex[j],vertex[(j+1)%4],Scalar(255,0,0),2,8);
-                    }				
-                    drawContours(T, contours, i, Scalar(255), -1, 8, hierarchy, 0);
+	#ifdef ROAD_SCAN_UT
+					//cout<<"result："<<result<<endl;
+	#endif							
+					if (result !=-1&&result!=0)
+					{			
+						RotatedRect rect = minAreaRect(contours[i]);
+						Point2f vertex[4];
+						rect.points(vertex);
+						for (int j =0;j<4;j++)
+						{
+							line(T,vertex[j],vertex[(j+1)%4],Scalar(255,0,0),2,8);
+						}				
+						drawContours(T, contours, i, Scalar(255), -1, 8, hierarchy, 0);
 
-                    Mat roi2 = lane(Rect(lpoint.x,upoint.y,dx,dy));
-                    roi2 = Mat::zeros(roi2.rows,roi2.cols,CV_8UC1);
+						Mat roi2 = lane(Rect(lpoint.x,upoint.y,dx,dy));
+						roi2 = Mat::zeros(roi2.rows,roi2.cols,CV_8UC1);
                     
 
-#ifdef ROAD_SCAN_UT
-                   imwrite("arrows.png",T);
-#endif	
+	#ifdef ROAD_SCAN_UT
+					   imwrite("arrows.png",T);
+	#endif	
 
-#ifdef DEBUG_ROAD_SCAN
-                    char pName[100];
-                    sprintf(pName,"./landmark/landmark_%d_classify_%d.png",landmarkSquence,result);
-                    imwrite(pName,roi);
-                    landmarkSquence++;
-#endif				
+	#ifdef DEBUG_ROAD_SCAN
+						char pName[100];
+						sprintf(pName,"./landmark/landmark_%d_classify_%d.png",landmarkSquence,result);
+						imwrite(pName,roi);
+						landmarkSquence++;
+	#endif				
 
 
-                    landMark str_arrow;
-                    str_arrow.center = weightPoint;
-                    str_arrow.hight = dy;
-                    str_arrow.width = dx;               
-                    str_arrow.type = result;
-                    str_arrow.flag = 4;
-                    arrows.push_back(str_arrow);
+						landMark str_arrow;
+						str_arrow.center = weightPoint;
+						str_arrow.hight = dy;
+						str_arrow.width = dx;               
+						str_arrow.type = result;
+						str_arrow.flag = 4;
+						arrows.push_back(str_arrow);
 
-                }	
-                else
-                {
-                    drawContours(laneBW, contours, i, Scalar(255), -1, 8, hierarchy, 0);
-                }
-            }
-            else
-            {
-                drawContours(laneBW, contours, i, Scalar(255), -1, 8, hierarchy, 0);
-            }
-        }
+					}	
+					else
+					{
+						drawContours(laneBW, contours, i, Scalar(255), -1, 8, hierarchy, 0);
+					}
+				}
+				else
+				{
+					drawContours(laneBW, contours, i, Scalar(255), -1, 8, hierarchy, 0);
+				}
+			}
+
+		}
+
+        
     }
 }
 
@@ -1586,7 +1608,7 @@ int arrowClassify(Mat &inImge)
 	svm_arrow_R.load("../../../../Ford/inVehicle/inVehicle/resource/Germany/roadarrow/R_ARROW_SVM_HOG.xml");
 	svm_arrow_RF.load("../../../../Ford/inVehicle/inVehicle/resource/Germany/roadarrow/RF_ARROW_SVM_HOG.xml");
 #else
-#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT)
+#if ((RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT) ||(RD_GERMAN_MUNICH_AIRPORT_LARGE == RD_LOCATION))
 	//svm.load("./resource/Germany/roadarrow/ARROW_SVM_HOG.xml");
 	svm_arrow.load("./resource/Germany/roadarrow/ARROW_SVM_HOG.xml");
 	svm_arrow_F.load("./resource/Germany/roadarrow/F_ARROW_SVM_HOG.xml");
@@ -1811,6 +1833,7 @@ void shadowProcess(Mat &src, Mat &dst)
  */
 bool judgeShadow(Mat &src)
 {
+	bool trueFlg = false;
 	Mat dstImage(256,256,CV_8UC1,Scalar(0));
 	int hist=0;
 
@@ -1826,42 +1849,44 @@ bool judgeShadow(Mat &src)
 	double minValue = 0;
 	double maxValue = 0;
 	minMaxLoc(dstHist,&minValue,&maxValue,0,0);
-
-	int hpt = saturate_cast<int>(0.9 * size);
-	for (int i=0;i<256;i++)
+	if(maxValue>1)
 	{
-		float binValue = dstHist.at<float>(i);
-		int realValue = saturate_cast<int>(binValue * hpt/maxValue);
-		rectangle(dstImage,Point(i*scale,size-1),Point((i+1)*scale-1,size-realValue),Scalar(255));
-	}
+		int hpt = saturate_cast<int>(0.9 * size);
+		for (int i=0;i<256;i++)
+		{
+			float binValue = dstHist.at<float>(i);
+			int realValue = saturate_cast<int>(binValue * hpt/maxValue);
+			rectangle(dstImage,Point(i*scale,size-1),Point((i+1)*scale-1,size-realValue),Scalar(255));
+		}
 
-	int sum = 0;
-	for (int i=0;i<256;i++)
-	{
-		float binValue = dstHist.at<float>(i);
-		sum +=binValue;
-	}
+		float sum = 0;
+		for (int i=0;i<256;i++)
+		{
+			float binValue = dstHist.at<float>(i);
+			sum +=binValue;
+		}
 
-	double widthPer =0;
-	double numWidthPlus=0;
-	for (int i=0;i<100;i++)
-	{
-		float binValue = dstHist.at<float>(i);
-		numWidthPlus +=binValue;
-		widthPer = numWidthPlus/(sum);
+		if(sum>1)
+		{
+			float widthPer =0;
+			float numWidthPlus=0;
+			for (int i=0;i<100;i++)
+			{
+				float binValue = dstHist.at<float>(i);
+				numWidthPlus +=binValue;
+				widthPer = numWidthPlus/(sum);
+			}
+		#ifdef ROAD_SCAN_UT
+		//	cout<<"shadowper="<<widthPer<<endl;
+		#endif
+			if (widthPer>0.30)
+			{
+		//		cout<<"shadowper="<<widthPer<<endl;
+				trueFlg =  true;		
+			}
+		}
 	}
-#ifdef ROAD_SCAN_UT
-//	cout<<"shadowper="<<widthPer<<endl;
-#endif
-	if (widthPer>0.30)
-	{
-//		cout<<"shadowper="<<widthPer<<endl;
-		return true;
-		
-	}
-	else
-		return false;
-
+	return trueFlg;
 }
 /*
  * @FUNC
@@ -1888,9 +1913,9 @@ void calLandMarkRelGPS(vector<gpsInformationAndInterval> &gpsAndInterval,Point2d
 		coordinateChange(gpsAndInterval[i].GPS_now,inParam.GPSref,GPS_1);
 		coordinateChange(gpsAndInterval[i].GPS_next,inParam.GPSref,GPS_2);		
         countnext = countabs + gpsAndInterval[i].intervalOfInterception;
-        if (H-point.y>=countabs && H-point.y<=countnext)
+        if (point.y>=countabs && point.y<=countnext)
 		{
-			Point2d point2 = Point2d(point.x-inImage.cols/2,H-point.y-countabs);
+			Point2d point2 = Point2d(point.x-inImage.cols/2,point.y-countabs);
 			getGPSLocationOfEveryPixelInRoadScanImage(GPS_1,GPS_2,
 				point2,gpsAndInterval[i+1].intervalOfInterception,pointRel,inParam.distancePerPixel);
             angleVec = GPS_2 - GPS_1;
@@ -1972,20 +1997,52 @@ void linkInterval(Mat &src, Mat &dst)
  *     allUnitContous     -  contours image;
  *     allKappBin         -  binary image for allUnitKapa;
  */
-void blockCalRidge(Mat &longLane_cut, Parameters& inParam, Mat &allUnitKapa,
-    Mat &allUnitContous,Mat &allKappBin)
+//void blockCalRidge(Mat &longLane_cut, Parameters& inParam, Mat &allUnitKapa,
+//    Mat &allUnitContous,Mat &allKappBin)
+void blockCalRidge(Mat &longLane_cut, Parameters& inParam,
+    Mat &allUnitContous)
 {
     int h = longLane_cut.rows;
     int w = longLane_cut.cols;
-    int unitH=1000;
+    int unitH=2000;
     int unitNum = ceil(1.0*h/unitH);
+
+
+	 int ridgeLeftPar = 0;
+     int ridgeRightPar = 0;
+	 int Thres = 0;
+	 {
+		 Mat longLaneLeft = longLane_cut(Rect(0,0,longLane_cut.cols/2,longLane_cut.rows));
+         Mat longLaneRight = longLane_cut(Rect(longLane_cut.cols/2,0,longLane_cut.cols/2,longLane_cut.rows));
+		 int size = 256;
+         Mat dstImage1(size,size,CV_8UC1,Scalar(0));
+         Mat dstImage2(size,size,CV_8UC1,Scalar(0));
+         int LeftTh,RightTh;
+
+         calThread(longLaneLeft,LeftTh,dstImage1);
+         calThread(longLaneRight,RightTh,dstImage2);
+
+         Mat leftTH,rightTH;
+		 //gray2BW(unitlongLaneLeft,unitleftTH);
+		 //gray2BW(unitlongLaneRight,unitrightTH);
+         threshold(longLaneLeft,leftTH,LeftTh,255,0);
+         threshold(longLaneRight,rightTH,RightTh,255,0);
+         ridgeLeftPar = calRidgePar(leftTH);
+         ridgeRightPar = calRidgePar(rightTH);
+         Thres = max(LeftTh,RightTh);
+		 if (ridgeLeftPar<9)
+         {
+             ridgeLeftPar=9;
+         }
+         if (ridgeRightPar<9)
+         {
+             ridgeRightPar=9;
+         }
+	 }
+
+
      for (int uniti=1;uniti<=unitNum;uniti++)
      {
-
-#ifdef ROAD_SCAN_UT
-         double startT = static_cast<double>(cv::getTickCount());
-         cout<<unitNum<<","<<uniti<<endl;
-#endif
          Mat unit;
          if (uniti==unitNum)
              unit = longLane_cut(Rect(0,(uniti-1)*unitH,longLane_cut.cols,longLane_cut.rows-(uniti-1)*unitH));
@@ -1996,199 +2053,151 @@ void blockCalRidge(Mat &longLane_cut, Parameters& inParam, Mat &allUnitKapa,
          if (isShadow)
          {
 //             shadowProcess(unit, unit);
-         }			
-         Mat unitlongLaneLeft = unit(Rect(0,0,unit.cols/2,unit.rows));
-         Mat unitlongLaneRight = unit(Rect(unit.cols/2,0,unit.cols/2,unit.rows));
-         int size = 256;
-         Mat dstImage1(size,size,CV_8UC1,Scalar(0));
-         Mat dstImage2(size,size,CV_8UC1,Scalar(0));
-         int unithisLeftTh,unithisRightTh;
+         }	
+		 
+		 Mat unitKapaBin; 
+		 Mat unitKapa(unit.size(),CV_8UC1);
+		 {			 
+			 Mat unitimageLeft_32f,unitkapaLeft,unitimageRight_32f,unitkapaRight;
+			 Mat unitlongLaneLeft = unit(Rect(0,0,unit.cols/2,unit.rows));
+			 Mat unitlongLaneRight = unit(Rect(unit.cols/2,0,unit.cols/2,unit.rows));
+			 unitlongLaneLeft.convertTo(unitimageLeft_32f,CV_32F);
+			 unitlongLaneRight.convertTo(unitimageRight_32f,CV_32F);
 
-         calThread(unitlongLaneLeft,unithisLeftTh,dstImage1);
-         calThread(unitlongLaneRight,unithisRightTh,dstImage2);
-#ifdef ROAD_SCAN_UT
-         double time5 = (static_cast<double>(cv::getTickCount() - startT))/cv::getTickFrequency();
-#endif
-         Mat unitTH,unitleftTH,unitrightTH;
-         threshold(unitlongLaneLeft,unitleftTH,unithisLeftTh,255,0);
-         threshold(unitlongLaneRight,unitrightTH,unithisRightTh,255,0);
-         int unitridgeLeftPar = calRidgePar(unitleftTH);
-         int unitridgeRightPar = calRidgePar(unitrightTH);
-#ifdef ROAD_SCAN_UT
-         double time6 = (static_cast<double>(cv::getTickCount() - startT))/cv::getTickFrequency();
-//         std::cout << "calRidgePar time: "<<time6-time5<< std::endl;
-#endif
-#ifdef ROAD_SCAN_UT
-         cout<<"unitridgeLeftPar="
-             <<unitridgeLeftPar<<"unitridgeRightPar="<<unitridgeRightPar<<endl;
-#endif
+			 //ridgeDetect(unitimageLeft_32f,unitkapaLeft,unitridgeLeftPar/2.5,unitridgeLeftPar/2.5);
+			 //ridgeDetect(unitimageRight_32f,unitkapaRight,unitridgeRightPar/2.5,unitridgeRightPar/2.5);
+			 ridgeDetect(unitimageLeft_32f,unitkapaLeft,ridgeLeftPar/3.0,ridgeLeftPar/3.0);
+			 ridgeDetect(unitimageRight_32f,unitkapaRight,ridgeRightPar/3.0,ridgeRightPar/3.0);
+			 unitkapaLeft.convertTo(unitkapaLeft,CV_8UC1,1024); 
+			 unitkapaRight.convertTo(unitkapaRight,CV_8UC1,1024); 
+		 
+			 Mat unitkapaRoiLeft = unitKapa(Rect(0,0,unit.cols/2,unit.rows));
+			 Mat unitkapaRoiRight = unitKapa(Rect(unit.cols/2,0,unit.cols/2,unit.rows));
+			 unitkapaLeft.copyTo(unitkapaRoiLeft);
+			 unitkapaRight.copyTo(unitkapaRoiRight);
+			 if (isShadow)
+				 threshold( unitKapa, unitKapaBin, inParam.ridgeThreshold, 255,0 );
+			 else
+				 threshold( unitKapa, unitKapaBin, inParam.ridgeThreshold-5, 255,0 );
+		 }
 
+		 Mat unitTSline  = Mat::zeros(unitKapaBin.size(), CV_8UC1);
+		 {
+			 vector<vector<Point> > unitcontours;
+			 vector<Vec4i> unithierarchy;
+			 findContours(unitKapaBin, unitcontours, unithierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);       
+			 vector<SLineInfo> vecSlineinfo;//save information of every short line
+			 for (unsigned int i = 0; i < unitcontours.size(); i++)
+			 {
+				 //pixel mean value of contour
+				 double meanvalue=0;;
+				 SLineInfo sline;
+				 Vec4f line;
+				 fitLine(unitcontours[i],line,CV_DIST_L2 ,0,0.01,0.01);//linear fit for short line contour
+				 sline.vx = line[0];
+				 sline.vy = line[1];
 
-         int unithistThres=0;
-         if (unithisLeftTh==0||unithisRightTh==0)
-             unithistThres = unithisRightTh+unithisLeftTh;
-         else
-             unithistThres = (unithisLeftTh + unithisRightTh)/2;
-         unithistThres = max(unithisLeftTh,unithisRightTh);
-#ifdef ROAD_SCAN_UT
-         cout<<"unitleft="<<unithisLeftTh<<"unitright="<<unithisRightTh<<endl;
-#endif
-         //			cout<<"unitleft="<<unithisLeftTh<<"unitright="<<unithisRightTh<<endl;
+				 double C = (line[3]*line[0]-line[2]*line[1]);
+				 vector<double> Dist;
+				 vector<Point> pointss = unitcontours[i];
 
-         Mat unitimageLeft_32f,unitkapaLeft,unitimageRight_32f,unitkapaRight;
-         unitlongLaneLeft.convertTo(unitimageLeft_32f,CV_32F);
-         unitlongLaneRight.convertTo(unitimageRight_32f,CV_32F);
+				 if(pointss.size()>0)
+				 {
+					 sline.upoint = pointss[0];
+					 sline.dpoint = pointss[pointss.size()-1];
+					 sline.WeiPoint = Point(0,0);//line center of gravity
 
-         if (unitridgeLeftPar<9)
-         {
-             unitridgeLeftPar=9;
-         }
-         if (unitridgeRightPar<9)
-         {
-             unitridgeRightPar=9;
-         }
-#ifdef ROAD_SCAN_UT
-         double time1 = (static_cast<double>(cv::getTickCount() - startT))/cv::getTickFrequency();
+					 for (int j=0;j<pointss.size();j++)//calculate up and down points of contours
+					 {
+						 if (pointss[j].y<sline.upoint.y)
+						 {
+							 sline.upoint = pointss[j];
+						 }
+						 if (pointss[j].y>sline.dpoint.y)
+						 {
+							 sline.dpoint = pointss[j];
+						 }
+						 meanvalue += unit.at<uchar>(pointss[j].y,pointss[j].x);
+						 sline.WeiPoint.x+=pointss[j].x;
+						 sline.WeiPoint.y+=pointss[j].y;
+						 double dst = abs(line[1]*pointss[j].x - line[0]*pointss[j].y +C);
+						 //			cout<<dst<<endl;
+						 Dist.push_back(dst);
+					 }
+					 meanvalue = meanvalue/pointss.size();
+					 double dst = sqrt(double((sline.dpoint.y - sline.upoint.y)*(sline.dpoint.y - sline.upoint.y)
+						 +(sline.dpoint.x - sline.upoint.x)*(sline.dpoint.x - sline.upoint.x)));
+					 int number = Dist.size();
+					 double sum =0;
+					 for (int ii=0;ii<number;ii++)
+						 sum+=Dist[ii];
+					 double e=sum/number; 
+					 double s=0;
 
-#endif
-         ridgeDetect(unitimageLeft_32f,unitkapaLeft,unitridgeLeftPar/3.0,unitridgeLeftPar/3.0);
-         ridgeDetect(unitimageRight_32f,unitkapaRight,unitridgeRightPar/3.0,unitridgeRightPar/3.0);
-         unitkapaLeft.convertTo(unitkapaLeft,CV_8UC1,1024); 
-         unitkapaRight.convertTo(unitkapaRight,CV_8UC1,1024); 
-#ifdef ROAD_SCAN_UT
-         double time2 = (static_cast<double>(cv::getTickCount() - startT))/cv::getTickFrequency();  
- //        std::cout << "ridge time: "<<time2-time1<< std::endl;
-#endif
-         Mat unitKapa(unit.size(),CV_8UC1);
-         Mat unitkapaRoiLeft = unitKapa(Rect(0,0,unit.cols/2,unit.rows));
-         Mat unitkapaRoiRight = unitKapa(Rect(unit.cols/2,0,unit.cols/2,unit.rows));
-         unitkapaLeft.copyTo(unitkapaRoiLeft);
-         unitkapaRight.copyTo(unitkapaRoiRight);
+					 for (int ii=0;ii<number;ii++) 
+						 s+=(Dist[ii]-e)*(Dist[ii]-e);
 
+					 s=sqrt(s/number);
 
-         Mat unitKapaBin;
-
-         if (isShadow)
-             threshold( unitKapa, unitKapaBin, inParam.ridgeThreshold, 255,0 );
-         else
-             threshold( unitKapa, unitKapaBin, inParam.ridgeThreshold-5, 255,0 );
-
-         vector<vector<Point> > unitcontours;
-         vector<Vec4i> unithierarchy;
-         findContours(unitKapaBin, unitcontours, unithierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
-
-         // draw contours:   
-
-         Mat unitTSline  = Mat::zeros(unitKapa.size(), CV_8UC1);
-         vector<SLineInfo> vecSlineinfo;//save information of every short line
-
-         for (unsigned int i = 0; i < unitcontours.size(); i++)
-         {
-
-             //pixel mean value of contour
-             double meanvalue=0;;
-             SLineInfo sline;
-             Vec4f line;
-             fitLine(unitcontours[i],line,CV_DIST_L2 ,0,0.01,0.01);//linear fit for short line contour
-             sline.vx = line[0];
-             sline.vy = line[1];
-
-             double C = (line[3]*line[0]-line[2]*line[1]);
-             vector<double> Dist;
-             vector<Point> pointss = unitcontours[i];
-             sline.upoint = pointss[0];
-             sline.dpoint = pointss[pointss.size()-1];
-             sline.WeiPoint = Point(0,0);//line center of gravity
-
-             for (int j=0;j<pointss.size();j++)//calculate up and down points of contours
-             {
-                 if (pointss[j].y<sline.upoint.y)
-                 {
-                     sline.upoint = pointss[j];
-                 }
-                 if (pointss[j].y>sline.dpoint.y)
-                 {
-                     sline.dpoint = pointss[j];
-                 }
-                 meanvalue += unit.at<uchar>(pointss[j].y,pointss[j].x);
-                 sline.WeiPoint.x+=pointss[j].x;
-                 sline.WeiPoint.y+=pointss[j].y;
-                 double dst = abs(line[1]*pointss[j].x - line[0]*pointss[j].y +C);
-                 //			cout<<dst<<endl;
-                 Dist.push_back(dst);
-             }
-             meanvalue = meanvalue/pointss.size();
-             double dst = sqrt(double((sline.dpoint.y - sline.upoint.y)*(sline.dpoint.y - sline.upoint.y)
-                 +(sline.dpoint.x - sline.upoint.x)*(sline.dpoint.x - sline.upoint.x)));
-             int number = Dist.size();
-             double sum =0;
-             for (int ii=0;ii<number;ii++)
-                 sum+=Dist[ii];
-             double e=sum/number; 
-             double s=0;
-
-             for (int ii=0;ii<number;ii++) 
-                 s+=(Dist[ii]-e)*(Dist[ii]-e);
-
-             s=sqrt(s/number);
-
-             if (s>2)
-             {
-                 if (dst<100)
-                 {
-                     continue;
-                 }		
-             }
-             sline.WeiPoint = Point(sline.WeiPoint.x/unitcontours[i].size(),sline.WeiPoint.y/unitcontours[i].size());
-             sline.vx = line[0];
-             sline.vy = line[1];
-             double kk = atan(line[1]/(line[0]+0.000001));
-             double angle  = abs(180*kk/PI);
-             if (sline.WeiPoint.x>(w/2-100)&&sline.WeiPoint.x<(w/2+100))
-             {
-                 //		continue;
-             }
-             if (angle<65)
-             {
-                 continue;
-             }
-             double kk2 = atan((sline.upoint.y - sline.WeiPoint.y)/(sline.upoint.x - sline.WeiPoint.x+0.000000001));//首和重心点斜率；
-             double angle2  = abs(180*kk2/PI);
-             if (angle2<65)
-             {
-                 continue;
-             }
+					 if (s>2)
+					 {
+						 if (dst<100)
+						 {
+							 continue;
+						 }		
+					 }
+					 sline.WeiPoint = Point(sline.WeiPoint.x/unitcontours[i].size(),sline.WeiPoint.y/unitcontours[i].size());
+					 sline.vx = line[0];
+					 sline.vy = line[1];
+					 double kk = atan(line[1]/(line[0]+0.000001));
+					 double angle  = abs(180*kk/PI);
+					 if (sline.WeiPoint.x>(w/2-100)&&sline.WeiPoint.x<(w/2+100))
+					 {
+						 //		continue;
+					 }
+					 if (angle<65)
+					 {
+						 continue;
+					 }
+					 double kk2 = atan((sline.upoint.y - sline.WeiPoint.y)/(sline.upoint.x - sline.WeiPoint.x+0.000000001));
+					 double angle2  = abs(180*kk2/PI);
+					 if (angle2<65)
+					 {
+						 continue;
+					 }
             
-             if (!isShadow)
-             {
-                 unithisLeftTh  = 0;
-                 unithisRightTh = 0;
-             }
-             if (sline.upoint.x<w/2&&meanvalue>unithisLeftTh&&dst>50)
-             {
-                 drawContours(unitTSline, unitcontours, i, Scalar(255), -1, 8, unithierarchy, 0);
-             }
+					 if (!isShadow)
+					 {
+						 Thres  = 0;
+						 Thres = 0;
+					 }
+					 if (sline.upoint.x<w/2&&meanvalue>Thres&&dst>50)
+					 {
+						 drawContours(unitTSline, unitcontours, i, Scalar(255), -1, 8, unithierarchy, 0);
+					 }
 
-             if (sline.upoint.x>=w/2&&meanvalue>unithisRightTh&&dst>50)
-             {
-                 drawContours(unitTSline, unitcontours, i, Scalar(255), -1, 8, unithierarchy, 0);
-             }
-         }
-
+					 if (sline.upoint.x>=w/2&&meanvalue>Thres&&dst>50)
+					 {
+						 drawContours(unitTSline, unitcontours, i, Scalar(255), -1, 8, unithierarchy, 0);
+					 }
+				 }				 
+			 }
+		 }
+         
          if (uniti==unitNum)
          {
-             Mat kaparoi = allUnitKapa(Rect(0,(uniti-1)*unitH,allUnitKapa.cols,allUnitKapa.rows-(uniti-1)*unitH));
-             unitKapa.copyTo(kaparoi);
+//             Mat kaparoi = allUnitKapa(Rect(0,(uniti-1)*unitH,allUnitKapa.cols,allUnitKapa.rows-(uniti-1)*unitH));
+//             unitKapa.copyTo(kaparoi);
 
 #ifdef DEBUG_ROAD_SCAN
              imwrite( "allUnitKapa.png", allUnitKapa );
 #endif
 
 
-             threshold( allUnitKapa, allKappBin,5, 255,0 );
+//            threshold( allUnitKapa, allKappBin,5, 255,0 );
              //imwrite("allKappBin.png",allKappBin);
 
-             Mat contoursroi = allUnitContous(Rect(0,(uniti-1)*unitH,allUnitKapa.cols,allUnitKapa.rows-(uniti-1)*unitH));
+             Mat contoursroi = allUnitContous(Rect(0,(uniti-1)*unitH,allUnitContous.cols,allUnitContous.rows-(uniti-1)*unitH));
 
              unitTSline.copyTo(contoursroi);
 
@@ -2197,10 +2206,10 @@ void blockCalRidge(Mat &longLane_cut, Parameters& inParam, Mat &allUnitKapa,
          }
          else
          {
-             Mat kaparoi = allUnitKapa(Rect(0,(uniti-1)*unitH,allUnitKapa.cols,unitH));
-             unitKapa.copyTo(kaparoi);
+//             Mat kaparoi = allUnitKapa(Rect(0,(uniti-1)*unitH,allUnitKapa.cols,unitH));
+//             unitKapa.copyTo(kaparoi);
 
-             Mat contoursroi = allUnitContous(Rect(0,(uniti-1)*unitH,allUnitKapa.cols,unitH));
+             Mat contoursroi = allUnitContous(Rect(0,(uniti-1)*unitH,allUnitContous.cols,unitH));
              unitTSline.copyTo(contoursroi);
          }
     }
@@ -2214,246 +2223,251 @@ void blockCalRidge(Mat &longLane_cut, Parameters& inParam, Mat &allUnitKapa,
  */
 void linkPaintLine(Mat allUnitContous,Mat &Tline_link_out)
 {
+	Tline_link_out = Mat::zeros(allUnitContous.size(), CV_8UC1);
+	Mat TSline  = Mat::zeros(allUnitContous.size(), CV_8UC1);
+	{
+		vector<vector<Point> > contours;
+		vector<Vec4i> hierarchy;
+		findContours(allUnitContous, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
+   
+		Mat TSlinMark = Mat::zeros(allUnitContous.size(), CV_8UC3);
+		vector<SLineInfo> vecSlineinfo;//save information of every short line
 
-    vector<vector<Point> > contours;
-    vector<Vec4i> hierarchy;
-    findContours(allUnitContous, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
-    Mat TSline  = Mat::zeros(allUnitContous.size(), CV_8UC1);
-    Mat TSlinMark = Mat::zeros(allUnitContous.size(), CV_8UC3);
-    vector<SLineInfo> vecSlineinfo;//save information of every short line
+		for (unsigned int i = 0; i < contours.size(); i++)
+		{
 
-    for (unsigned int i = 0; i < contours.size(); i++)
-    {
+			//pixel mean value of contour
+			double meanvalue=0;;
+			SLineInfo sline;
+			Vec4f line;
+			fitLine(contours[i],line,CV_DIST_L2 ,0,0.01,0.01);//linear fit for short line contour
+			sline.vx = line[0];
+			sline.vy = line[1];
 
-        //pixel mean value of contour
-        double meanvalue=0;;
-        SLineInfo sline;
-        Vec4f line;
-        fitLine(contours[i],line,CV_DIST_L2 ,0,0.01,0.01);//linear fit for short line contour
-        sline.vx = line[0];
-        sline.vy = line[1];
+			double C = (line[3]*line[0]-line[2]*line[1]);
+			vector<double> Dist;
+			if (contours[i].size()>0)
+			{
+				vector<Point> pointss = contours[i];
+				sline.upoint = pointss[0];
+				sline.dpoint = pointss[pointss.size()-1];
+				sline.WeiPoint = Point(0,0);//line center of gravity
 
-        double C = (line[3]*line[0]-line[2]*line[1]);
-        vector<double> Dist;
-        vector<Point> pointss = contours[i];
-        sline.upoint = pointss[0];
-        sline.dpoint = pointss[pointss.size()-1];
-        sline.WeiPoint = Point(0,0);//line center of gravity
+				for (int j=0;j<pointss.size();j++)//calculate up and down points of contours
+				{
+					if (pointss[j].y<sline.upoint.y)
+					{
+						sline.upoint = pointss[j];
+					}
+					if (pointss[j].y>sline.dpoint.y)
+					{
+						sline.dpoint = pointss[j];
+					}
+					sline.WeiPoint.x+=pointss[j].x;
+					sline.WeiPoint.y+=pointss[j].y;
 
-        for (int j=0;j<pointss.size();j++)//calculate up and down points of contours
-        {
-            if (pointss[j].y<sline.upoint.y)
-            {
-                sline.upoint = pointss[j];
-            }
-            if (pointss[j].y>sline.dpoint.y)
-            {
-                sline.dpoint = pointss[j];
-            }
-            sline.WeiPoint.x+=pointss[j].x;
-            sline.WeiPoint.y+=pointss[j].y;
+				}
+			
+				sline.WeiPoint = Point(sline.WeiPoint.x/contours[i].size(),sline.WeiPoint.y/contours[i].size());
 
-        }
-        sline.WeiPoint = Point(sline.WeiPoint.x/contours[i].size(),sline.WeiPoint.y/contours[i].size());
-        //			if (sline.upoint.x<w/2&&meanvalue>hisLeftTh&&dst>100)
-        {
-            drawContours(TSline, contours, i, Scalar(255), -1, 8, hierarchy, 0);
-            drawContours(TSlinMark, contours, i, Scalar(255,255,255), -1, 8, hierarchy, 0);
-            circle(TSlinMark,sline.WeiPoint,0,Scalar(255,0,0),4);
-            circle(TSlinMark,sline.upoint,0,Scalar(0,255,0),4);
-            circle(TSlinMark,sline.dpoint,0,Scalar(0,0,255),4);
-            vecSlineinfo.push_back(sline);
+				drawContours(TSline, contours, i, Scalar(255), -1, 8, hierarchy, 0);
+				drawContours(TSlinMark, contours, i, Scalar(255,255,255), -1, 8, hierarchy, 0);
+				circle(TSlinMark,sline.WeiPoint,0,Scalar(255,0,0),4);
+				circle(TSlinMark,sline.upoint,0,Scalar(0,255,0),4);
+				circle(TSlinMark,sline.dpoint,0,Scalar(0,0,255),4);
+				vecSlineinfo.push_back(sline);
+			}
+		}
+	#ifdef DEBUG_ROAD_SCAN
+		imwrite( "TSlinMark.png", TSlinMark );
+	#endif
 
-        }
-    }
-#ifdef DEBUG_ROAD_SCAN
-    imwrite( "TSlinMark.png", TSlinMark );
-#endif
+		/////one up point only links to one down points
+		vector<PairPoints> vecPairPoints;//save up and down point pair;
+		int *objptr = new int[vecSlineinfo.size()];
+		int *srcptr = new int[vecSlineinfo.size()];
+		for(int i=0;i<vecSlineinfo.size();i++)
+		{
+			objptr[i]=0;
+			srcptr[i]=0;
+		}
 
-    /////one up point only links to one down points
-    vector<PairPoints> vecPairPoints;//save up and down point pair;
-    int *objptr = new int[vecSlineinfo.size()];
-    int *srcptr = new int[vecSlineinfo.size()];
-    for(int i=0;i<vecSlineinfo.size();i++)
-    {
-        objptr[i]=0;
-        srcptr[i]=0;
-    }
+		for(int i = 0;i<vecSlineinfo.size();i++)
+		{
+			///	int ddddd = vecSlineinfo[i].WeiPoint.y;
+			for (int j = i+1;j<vecSlineinfo.size();j++)
+			{			
+				//double dsty = vecSlineinfo[i].WeiPoint.y-vecSlineinfo[j].WeiPoint.y;
+				double dsty = vecSlineinfo[i].upoint.y-vecSlineinfo[j].dpoint.y;
+				double dstx = vecSlineinfo[i].upoint.x-vecSlineinfo[j].dpoint.x;
+				Point2d diffw = Point2d(vecSlineinfo[i].WeiPoint.x-vecSlineinfo[j].WeiPoint.x,
+					vecSlineinfo[i].WeiPoint.y-vecSlineinfo[j].WeiPoint.y);
+				double cosvalue = abs(vecSlineinfo[i].vx*vecSlineinfo[j].vx+vecSlineinfo[i].vy*vecSlineinfo[j].vy);
 
-    for(int i = 0;i<vecSlineinfo.size();i++)
-    {
-        ///	int ddddd = vecSlineinfo[i].WeiPoint.y;
-        for (int j = i+1;j<vecSlineinfo.size();j++)
-        {			
-            //double dsty = vecSlineinfo[i].WeiPoint.y-vecSlineinfo[j].WeiPoint.y;
-            double dsty = vecSlineinfo[i].upoint.y-vecSlineinfo[j].dpoint.y;
-            double dstx = vecSlineinfo[i].upoint.x-vecSlineinfo[j].dpoint.x;
-            Point2d diffw = Point2d(vecSlineinfo[i].WeiPoint.x-vecSlineinfo[j].WeiPoint.x,
-                vecSlineinfo[i].WeiPoint.y-vecSlineinfo[j].WeiPoint.y);
-            double cosvalue = abs(vecSlineinfo[i].vx*vecSlineinfo[j].vx+vecSlineinfo[i].vy*vecSlineinfo[j].vy);
+				double cosvalue2 = abs(dstx*vecSlineinfo[j].vx+dsty*vecSlineinfo[j].vy)/
+					sqrt((dstx*dstx+dsty*dsty)*(vecSlineinfo[j].vx*vecSlineinfo[j].vx+vecSlineinfo[j].vy*vecSlineinfo[j].vy) + 0.0000001);
 
-            double cosvalue2 = abs(dstx*vecSlineinfo[j].vx+dsty*vecSlineinfo[j].vy)/
-                sqrt((dstx*dstx+dsty*dsty)*(vecSlineinfo[j].vx*vecSlineinfo[j].vx+vecSlineinfo[j].vy*vecSlineinfo[j].vy));
-
-            double cosvalue3 = abs(dstx*vecSlineinfo[j].vx+dsty*vecSlineinfo[j].vy)/
-                sqrt((dstx*dstx+dsty*dsty)*(vecSlineinfo[j].vx*vecSlineinfo[j].vx+vecSlineinfo[j].vy*vecSlineinfo[j].vy));
+				double cosvalue3 = abs(dstx*vecSlineinfo[j].vx+dsty*vecSlineinfo[j].vy)/
+					sqrt((dstx*dstx+dsty*dsty)*(vecSlineinfo[j].vx*vecSlineinfo[j].vx+vecSlineinfo[j].vy*vecSlineinfo[j].vy) + 0.0000001);
         
-            double tanangle = atan(abs(diffw.y/(diffw.x+0.0000000001)))*180/PI;
+				//double tanangle = atan(abs(diffw.y/(diffw.x+0.0000000001)))*180/PI;
 
-            //if (abs(dsty)>1500||tanangle<75||cosvalue<0.8||abs(dstx)>20||dsty<0)//Threshold condition
-            if (abs(dsty)>2000||cosvalue3<0.985||cosvalue2<0.985||cosvalue<0.985||dsty<0||abs(dstx)>allUnitContous.cols/3)
-            {
-                continue;
-            }
-            objptr[j] +=1; 
-            srcptr[i] +=1;
+				//if (abs(dsty)>1500||tanangle<75||cosvalue<0.8||abs(dstx)>20||dsty<0)//Threshold condition
+				if (abs(dsty)>2000||cosvalue3<0.985||cosvalue2<0.985||cosvalue<0.985||dsty<0||abs(dstx)>allUnitContous.cols/3)
+				{
+					continue;
+				}
+				objptr[j] +=1; 
+				srcptr[i] +=1;
 
-            PairPoints str_pairpoints;
-            str_pairpoints.up = vecSlineinfo[i].upoint;
-            str_pairpoints.down = vecSlineinfo[j].dpoint;
-            str_pairpoints.objindex =j;//object line index；
-            str_pairpoints.srcindex =i;//source line index；
-            circle(TSlinMark,vecSlineinfo[i].WeiPoint,0,Scalar(255,0,0),4);
-            circle(TSlinMark,vecSlineinfo[i].upoint,0,Scalar(0,255,0),4);
-            circle(TSlinMark,vecSlineinfo[i].dpoint,0,Scalar(0,0,255),4);
-            vecPairPoints.push_back(str_pairpoints);
+				PairPoints str_pairpoints;
+				str_pairpoints.up = vecSlineinfo[i].upoint;
+				str_pairpoints.down = vecSlineinfo[j].dpoint;
+				str_pairpoints.objindex =j;//object line index；
+				str_pairpoints.srcindex =i;//source line index；
+				circle(TSlinMark,vecSlineinfo[i].WeiPoint,0,Scalar(255,0,0),4);
+				circle(TSlinMark,vecSlineinfo[i].upoint,0,Scalar(0,255,0),4);
+				circle(TSlinMark,vecSlineinfo[i].dpoint,0,Scalar(0,0,255),4);
+				vecPairPoints.push_back(str_pairpoints);
 
-        }
-    }
-#ifdef DEBUG_ROAD_SCAN
-    imwrite("TSlinMark.png",TSlinMark);
-#endif
-    //if more than one up points link to the same down point
-    for (int i = 0;i<vecSlineinfo.size();i++)
-    {
-        if (objptr[i]>1)
-        {
-            int num = objptr[i];
-            Point *TemUPoints = new Point[num];
-            Point TemDPoints;
-            int n=0;
-            int *index = new int[num];
-            for (int i1 = 0;i1<vecPairPoints.size();i1++)
-            {
-                if (vecPairPoints[i1].objindex==i)
-                {
-                    TemUPoints[n] = vecPairPoints[i1].up;
-                    index[n] = i1;
-                    n++;
-                    TemDPoints = vecPairPoints[i1].down;						
-                }
-            }
-            int valuemin = abs(TemUPoints[0].y-TemDPoints.y);
-            int reindext  = 0;
-            reindext = index[0];
-            int tempreindext = index[0];
+			}
+		}
+	#ifdef DEBUG_ROAD_SCAN
+		imwrite("TSlinMark.png",TSlinMark);
+	#endif
+		//if more than one up points link to the same down point
+		for (int i = 0;i<vecSlineinfo.size();i++)
+		{
+			if (objptr[i]>1)
+			{
+				int num = objptr[i];
+				Point *TemUPoints = new Point[num];
+				Point TemDPoints;
+				int n=0;
+				int *index = new int[num];
+				for (int i1 = 0;i1<vecPairPoints.size();i1++)
+				{
+					if (vecPairPoints[i1].objindex==i)
+					{
+						TemUPoints[n] = vecPairPoints[i1].up;
+						index[n] = i1;
+						n++;
+						TemDPoints = vecPairPoints[i1].down;						
+					}
+				}
+				int valuemin = abs(TemUPoints[0].y-TemDPoints.y);
+				int reindext  = 0;
+				reindext = index[0];
+				int tempreindext = index[0];
 
-            for (int i2=1;i2<n;i2++)
-            {	
-                double dx = vecPairPoints[index[i2]].up.x-vecPairPoints[index[i2]].down.x;
-                double dy = vecPairPoints[index[i2]].up.y-vecPairPoints[index[i2]].down.y;
-                double dxx = dx/sqrt(dx*dx+dy*dy);
-                double dyy = dy/sqrt(dx*dx+dy*dy);
-                double cosvalue0 = vecSlineinfo[i].vx*dxx + vecSlineinfo[i].vy*dyy;
-                double cosvalue = abs(vecSlineinfo[i].vx*dx + vecSlineinfo[i].vy*dy)/
-                    sqrt((dx*dx+dy*dy)*(vecSlineinfo[i].vx*vecSlineinfo[i].vx+vecSlineinfo[i].vy*vecSlineinfo[i].vy));
-                double tanangle = atan(abs(dy/(dx+0.0000000001)))*180/PI;
-                double cosangle = acos(cosvalue)*180/PI;
-                if (cosvalue<0.98)
-                {
-                    reindext = index[i2];
-                    vecPairPoints[reindext].up=Point(0,0);
-                    vecPairPoints[reindext].down=Point(0,0);
-                    continue;
-                }
-                if (valuemin<abs(TemUPoints[i2].y-TemDPoints.y))
-                {
-                    reindext = index[i2];
-                    vecPairPoints[reindext].up=Point(0,0);
-                    vecPairPoints[reindext].down=Point(0,0);					
-                }
-                else
-                {
-                    valuemin=abs(TemUPoints[i2].y-TemDPoints.y);						
-                    vecPairPoints[tempreindext].up=Point(0,0);
-                    vecPairPoints[tempreindext].down=Point(0,0);
-                    tempreindext = index[i2];
-                    reindext = index[i2];
-                }
+				for (int i2=1;i2<n;i2++)
+				{	
+					double dx = vecPairPoints[index[i2]].up.x-vecPairPoints[index[i2]].down.x;
+					double dy = vecPairPoints[index[i2]].up.y-vecPairPoints[index[i2]].down.y;
+					double dxx = dx/sqrt(dx*dx+dy*dy + 0.0000000001);
+					double dyy = dy/sqrt(dx*dx+dy*dy + 0.0000000001);
+					double cosvalue0 = vecSlineinfo[i].vx*dxx + vecSlineinfo[i].vy*dyy;
+					double cosvalue = abs(vecSlineinfo[i].vx*dx + vecSlineinfo[i].vy*dy)/
+						sqrt((dx*dx+dy*dy)*(vecSlineinfo[i].vx*vecSlineinfo[i].vx+vecSlineinfo[i].vy*vecSlineinfo[i].vy) + 0.0000001);
+					double tanangle = atan(abs(dy/(dx+0.0000000001)))*180/PI;
+					double cosangle = acos(cosvalue)*180/PI;
+					if (cosvalue<0.98)
+					{
+						reindext = index[i2];
+						vecPairPoints[reindext].up=Point(0,0);
+						vecPairPoints[reindext].down=Point(0,0);
+						continue;
+					}
+					if (valuemin<abs(TemUPoints[i2].y-TemDPoints.y))
+					{
+						reindext = index[i2];
+						vecPairPoints[reindext].up=Point(0,0);
+						vecPairPoints[reindext].down=Point(0,0);					
+					}
+					else
+					{
+						valuemin=abs(TemUPoints[i2].y-TemDPoints.y);						
+						vecPairPoints[tempreindext].up=Point(0,0);
+						vecPairPoints[tempreindext].down=Point(0,0);
+						tempreindext = index[i2];
+						reindext = index[i2];
+					}
 
-            }
-            delete TemUPoints;
-            delete index;
-        }
+				}
+				delete TemUPoints;
+				delete index;
+			}
 
-    }
+		}
 
-    //		if one up point links to more than one down points
-    for (int i = 0;i<vecSlineinfo.size();i++)
-    {
-        if (srcptr[i]>1)
-        {
-            int num = srcptr[i];
-            Point *TemDPoints = new Point[num];
-            Point TemUPoints;
-            int n=0;
-            int *index = new int[num];
-            for (int i1 = 0;i1<vecPairPoints.size();i1++)
-            {
+		//		if one up point links to more than one down points
+		for (int i = 0;i<vecSlineinfo.size();i++)
+		{
+			if (srcptr[i]>1)
+			{
+				int num = srcptr[i];
+				Point *TemDPoints = new Point[num];
+				Point TemUPoints;
+				int n=0;
+				int *index = new int[num];
+				for (int i1 = 0;i1<vecPairPoints.size();i1++)
+				{
 
-                if (vecPairPoints[i1].srcindex==i)
-                {
-                    if (vecPairPoints[i1].up.x)
-                    {
-                        TemDPoints[n] = vecPairPoints[i1].down;
-                        index[n] = i1;
-                        n++;
-                        TemUPoints = vecPairPoints[i1].up;		
-                    }										
-                }
-            }
-            int valuemin = abs(TemDPoints[0].y-TemUPoints.y);
-            int reindext  = 0;
-            reindext = index[0];
-            int tempreindext = index[0];
-            Point minvalupoint,minvaldpoint;
+					if (vecPairPoints[i1].srcindex==i)
+					{
+						if (vecPairPoints[i1].up.x)
+						{
+							TemDPoints[n] = vecPairPoints[i1].down;
+							index[n] = i1;
+							n++;
+							TemUPoints = vecPairPoints[i1].up;		
+						}										
+					}
+				}
+				int valuemin = abs(TemDPoints[0].y-TemUPoints.y);
+				int reindext  = 0;
+				reindext = index[0];
+				int tempreindext = index[0];
+				Point minvalupoint,minvaldpoint;
 
-            for (int i2=1;i2<n;i2++)
-            {					
-                if (valuemin<abs(TemDPoints[i2].y-TemUPoints.y))
-                {
-                    reindext = index[i2];
-                    vecPairPoints[reindext].up=Point(0,0);
-                    vecPairPoints[reindext].down=Point(0,0);					
-                }
-                else
-                {
-                    valuemin=abs(TemDPoints[i2].y-TemUPoints.y);						
-                    vecPairPoints[tempreindext].up=Point(0,0);
-                    vecPairPoints[tempreindext].down=Point(0,0);
-                    tempreindext = index[i2];
-                    reindext = index[i2];
-                }
-            }
-            delete TemDPoints;
-            delete index;
-        }
-    }
+				for (int i2=1;i2<n;i2++)
+				{					
+					if (valuemin<abs(TemDPoints[i2].y-TemUPoints.y))
+					{
+						reindext = index[i2];
+						vecPairPoints[reindext].up=Point(0,0);
+						vecPairPoints[reindext].down=Point(0,0);					
+					}
+					else
+					{
+						valuemin=abs(TemDPoints[i2].y-TemUPoints.y);						
+						vecPairPoints[tempreindext].up=Point(0,0);
+						vecPairPoints[tempreindext].down=Point(0,0);
+						tempreindext = index[i2];
+						reindext = index[i2];
+					}
+				}
+				delete TemDPoints;
+				delete index;
+			}
+		}
 
-    delete objptr;
-    delete srcptr;
+		delete objptr;
+		delete srcptr;
 
-    for (int i = 0;i<vecPairPoints.size();i++)
-    {
-        int dx = abs(vecPairPoints[i].up.x - vecPairPoints[i].down.x);
-        if (vecPairPoints[i].up!=Point(0,0)&&(vecPairPoints[i].up.y>vecPairPoints[i].down.y)&&dx<150)
-        {
-            line(TSline,vecPairPoints[i].up,vecPairPoints[i].down,Scalar(255,255,0),1);
-        }
+		for (int i = 0;i<vecPairPoints.size();i++)
+		{
+			int dx = abs(vecPairPoints[i].up.x - vecPairPoints[i].down.x);
+			if (vecPairPoints[i].up!=Point(0,0)&&(vecPairPoints[i].up.y>vecPairPoints[i].down.y)&&dx<150)
+			{
+				line(TSline,vecPairPoints[i].up,vecPairPoints[i].down,Scalar(255,255,0),1);
+			}
 
-    }
+		}
+	}
+    
 
-    Tline_link_out = Mat::zeros(allUnitContous.size(), CV_8UC1);
+
     threshold( TSline, TSline, 20, 255,0 );
 #ifdef DEBUG_ROAD_SCAN
     imwrite("TSline.png",TSline);
@@ -2480,7 +2494,10 @@ void linkPaintLine(Mat allUnitContous,Mat &Tline_link_out)
         }
         int dst = abs(dpoint.y - upoint.y);
 
-        if (abs(upoint.x-dpoint.x)<50&&abs((upoint.x+dpoint.x)/2-Tline_link_out.cols/2)<50)
+        int distanceTh = 50;
+ //       if(rightLaneFlag == true)
+ //       { distanceTh = 50;}
+        if (abs(upoint.x-dpoint.x)< distanceTh && abs((upoint.x+dpoint.x)/2-Tline_link_out.cols/2)< distanceTh)//FIXME:30?
         {
             continue;
         }
@@ -2542,6 +2559,11 @@ void getBoundaryPoint(vector<Point> vecPoints, boundaryPoint &points)
  */
 void getCenterPoint(vector<Point> vecPoints, Point &center)
 {
+    if (vecPoints.empty())
+    {
+        return;
+    }
+
     int size = vecPoints.size();
     center = vecPoints[0];
     for (int i=1; i<size; i++)
@@ -2568,7 +2590,7 @@ void stopLineDetection(Mat &src, vector<Point> &stopLineLoc)
     stopKapa.convertTo(stopKapa,CV_32F);
     ridgeDetectX(src,stopKapa,7,7);   
     stopKapa.convertTo(stopKapa,CV_8UC1,1024); 
-    threshold(stopKapa,stopKapaBin,50,255,0);
+    threshold(stopKapa,stopKapaBin,5,255,0);
 #ifdef DEBUG_ROAD_SCAN
     imwrite("stopKapaBin.png",stopKapaBin);
     imwrite("stopKapa.png",stopKapa);
@@ -2590,7 +2612,7 @@ void stopLineDetection(Mat &src, vector<Point> &stopLineLoc)
         {
             continue;
         }
-        if (hight > 300)
+        if (hight > 500)
         {
             continue;
         }
@@ -2616,7 +2638,7 @@ void stopLineDetection(Mat &src, vector<Point> &stopLineLoc)
  *     H           -  H matrix;
  *     invertH     -  cal svd for H;
  */
-void calHAndInvertH(Parameters &inParam, Mat &H, Mat &invertH)
+void calHAndInvertH(Parameters &inParam, Mat &H, Mat &invertH,Mat &laneH)
 {
 	int w = inParam.imageCols * inParam.imageScaleWidth;
 	int h = inParam.imageRows * inParam.imageScaleHeight;
@@ -2658,6 +2680,14 @@ void calHAndInvertH(Parameters &inParam, Mat &H, Mat &invertH)
 
 	// cal invert of H
 	invert(H, invertH, CV_SVD);
+
+    objPts[0] = Point(80+objPts[0].x*(1+inParam.laneScaleX),objPts[0].y*inParam.laneScaleY + inParam.rowDownMoveNumber);
+    objPts[1] = Point(objPts[1].x*(1-inParam.laneScaleX) + 80,objPts[1].y*inParam.laneScaleY + inParam.rowDownMoveNumber);
+    objPts[2] = Point(objPts[2].x*(1+inParam.laneScaleX) + 80,objPts[2].y*inParam.laneScaleY + inParam.rowDownMoveNumber);
+    objPts[3] = Point(objPts[3].x*(1-inParam.laneScaleX) + 80,objPts[3].y*inParam.laneScaleY + inParam.rowDownMoveNumber);
+
+    laneH = getPerspectiveTransform( objPts, imgPts);
+
 }
 
 /*
@@ -2677,34 +2707,29 @@ void gray2BW(Mat src, Mat &dst)
     {
         cvtColor(src,src,COLOR_RGB2GRAY);
     }
-    Size size = src.size();
-    src.convertTo(src,CV_32F);
-    int wize = 50;
-    Mat Kenel = Mat::ones(Size(wize,wize),CV_32F); 
-    Mat src2;
-    src.copyTo(src2);  
-    Mat I = Mat::zeros(size,CV_32F);
-    filter2D(src,src,CV_32F,Kenel);
-    src = src/(wize*wize);
+	Mat src2;
+	blur(src,src2,Size(51,51));
+	Size size = src.size();
+	Mat temp = Mat::zeros(size,CV_8U);	
     int h = src.rows;
     int w = src.cols;
     for (int i=0;i<h;i++)
     {
         for (int j=0;j<w;j++)
         {
-            if (src2.at<float>(i,j)-src.at<float>(i,j)>20)
+            if (src.at<uchar>(i,j)-src2.at<uchar>(i,j)>20)
             {
-                 I.at<float>(i,j) = 255;
+                 temp.at<uchar>(i,j) = 255;
             }
             else
-                 I.at<float>(i,j) = 0;
+                 temp.at<uchar>(i,j) = 0;
         }
     }
-    I.convertTo( I,CV_8UC1);
+   
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
-    findContours( I, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
-    dst  = Mat::zeros( I.size(), CV_8UC1);
+    findContours( temp, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
+    dst  = Mat::zeros( temp.size(), CV_8UC1);
     for (unsigned int i = 0; i < contours.size(); i++)
     {   
         if (contourArea(contours[i])>1000)
@@ -3050,10 +3075,10 @@ void linkFittingLine(Mat fittingImage,Mat &Tline_link_out)
             double cosvalue = abs(vecSlineinfo[i].vx*vecSlineinfo[j].vx+vecSlineinfo[i].vy*vecSlineinfo[j].vy);
 
             double cosvalue2 = abs(dstx*vecSlineinfo[j].vx+dsty*vecSlineinfo[j].vy)/
-                sqrt((dstx*dstx+dsty*dsty)*(vecSlineinfo[j].vx*vecSlineinfo[j].vx+vecSlineinfo[j].vy*vecSlineinfo[j].vy));
+                sqrt((dstx*dstx+dsty*dsty)*(vecSlineinfo[j].vx*vecSlineinfo[j].vx+vecSlineinfo[j].vy*vecSlineinfo[j].vy) + 0.0000000001);
 
             double cosvalue3 = abs(dstx*vecSlineinfo[j].vx+dsty*vecSlineinfo[j].vy)/
-                sqrt((dstx*dstx+dsty*dsty)*(vecSlineinfo[j].vx*vecSlineinfo[j].vx+vecSlineinfo[j].vy*vecSlineinfo[j].vy));
+                sqrt((dstx*dstx+dsty*dsty)*(vecSlineinfo[j].vx*vecSlineinfo[j].vx+vecSlineinfo[j].vy*vecSlineinfo[j].vy) + 0.0000000001);
         
             double tanangle = atan(abs(diffw.y/(diffw.x+0.0000000001)))*180/PI;
 
@@ -3108,11 +3133,11 @@ void linkFittingLine(Mat fittingImage,Mat &Tline_link_out)
             {	
                 double dx = vecPairPoints[index[i2]].up.x-vecPairPoints[index[i2]].down.x;
                 double dy = vecPairPoints[index[i2]].up.y-vecPairPoints[index[i2]].down.y;
-                double dxx = dx/sqrt(dx*dx+dy*dy);
-                double dyy = dy/sqrt(dx*dx+dy*dy);
+                double dxx = dx/sqrt(dx*dx+dy*dy + 0.0000000001);
+                double dyy = dy/sqrt(dx*dx+dy*dy + 0.0000000001);
                 double cosvalue0 = vecSlineinfo[i].vx*dxx + vecSlineinfo[i].vy*dyy;
                 double cosvalue = abs(vecSlineinfo[i].vx*dx + vecSlineinfo[i].vy*dy)/
-                    sqrt((dx*dx+dy*dy)*(vecSlineinfo[i].vx*vecSlineinfo[i].vx+vecSlineinfo[i].vy*vecSlineinfo[i].vy));
+                    sqrt((dx*dx+dy*dy)*(vecSlineinfo[i].vx*vecSlineinfo[i].vx+vecSlineinfo[i].vy*vecSlineinfo[i].vy) + 0.0000000001);
                 double tanangle = atan(abs(dy/(dx+0.0000000001)))*180/PI;
                 double cosangle = acos(cosvalue)*180/PI;
                 if (cosvalue<0.8)
@@ -3277,8 +3302,8 @@ void resetGPSOffset(double offsetDistance, Point2d &GPS_1, Point2d &GPS_2)
     double distanceGPS = sqrt(pow(gpsVector.x, 2.0) + pow(gpsVector.y, 2.0));
 
     //unit vector
-    gpsVector.x /= distanceGPS;
-    gpsVector.y /= distanceGPS;
+    gpsVector.x /= (distanceGPS + 0.0000000001);
+    gpsVector.y /= (distanceGPS + 0.0000000001);
 
     //offset
     gpsVector.x *= offsetDistance;

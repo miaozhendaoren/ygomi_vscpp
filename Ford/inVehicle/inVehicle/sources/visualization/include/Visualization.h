@@ -51,6 +51,8 @@ using namespace std;
 #define MAX_BUFFER_DEPTH_2D_TXETURE  1024
 #define MAX_BUFFER_LENGTH_DRAW_CHAR  100
 #define MAX_BUFFER_DEPTH_DRAW_CHAR   10
+
+#define HEIHT_SHOW_CHAR              200
 //#define MAX_BUFFER_DEPTH_DRAW_LINE_POINT 5000
 //#define MAX_BUFFER_NUMBER_DRAW_LINE   300
 //#define MAX_BUFFER_NUMBER_DRAW_QUAD   200000
@@ -112,6 +114,7 @@ typedef struct NEWCO_STRUCTURE_PACK
 	lineTypeEnum_t type;    //type of line, dash line, solid line, double solid line, etc
 	//int number;  //how many point it has
 	baseColor_t color;
+	bool  showFlag;     //show or not show in first respective
 	//point3DFloat_t position[MAX_BUFFER_DEPTH_DRAW_LINE_POINT];
 	vector<point3DFloat_t> position;
 }lineInfo_t;
@@ -120,7 +123,15 @@ typedef struct
 {
 	point3DFloat_t vertex[4];
 	baseColor_t    color;
+	bool           showFlag; //show or not show in first respective
 }quadInfo_t;
+
+typedef struct
+{
+	point3DFloat_t vertex[3];
+	baseColor_t    color;
+	bool           showFlag;
+}triangle_t;
 
 typedef struct NEWCO_STRUCTURE_PACK
 {
@@ -129,6 +140,7 @@ typedef struct NEWCO_STRUCTURE_PACK
 	point3DFloat_t position;
 	int attribute;
 	int sideFlag;
+	bool showFlag;       //show or not show in first respective
 	quadInfo_t sharp;
 }signInfo_t;
 /*
@@ -180,12 +192,14 @@ public:
 	GLboolean AddSignInfo(vector<signInfo_t>& buffer);  //add road side Sign inforamtion 
 
 	//this function to add one line information to sample 3D engine
-	GLboolean AddOneLineInfo(lineTypeEnum_t type, baseColor_t color, vector<point3DFloat_t>& buffer);
+	GLboolean AddOneLineInfo(lineTypeEnum_t type, baseColor_t color, bool showFlag, vector<point3DFloat_t>& buffer);
 
 	//this function to add one road side line information to sampel 3D engine
-	GLboolean AddOneRoadLineInfo(lineTypeEnum_t type, baseColor_t color, vector<point3DFloat_t>& buffer);
+	GLboolean AddOneRoadLineInfo(lineTypeEnum_t type, baseColor_t color, bool showFlag, vector<point3DFloat_t>& buffer);
 
 	GLboolean AddQuadInfo(int number, quadInfo_t* buffer);
+
+	GLboolean AddTriInto(int number, triangle_t* buffer);
 
 	GLboolean AddOneServerCharInfo(drawServerCharInfo_t &charInfo);
 
@@ -213,6 +227,8 @@ public:
 	GLboolean SwapCharBuffer(void);
 
 	GLboolean SwapQuadBuffer(void);
+
+	GLboolean SwapTriBuffer(void);
 
 	GLboolean SwapServerCharBuffer(void);
 
@@ -244,7 +260,7 @@ public:
 	void setSignFlag(void);
 
 private:
-	void DrawSignServer(signInfo_t sign);
+	void DrawSignServer(signInfo_t sign, float showHeight);
 	void DrawSignClient(signInfo_t sign);
 	void DrawSignOnRoad(signInfo_t sign);
 	void DrawPole(GLfloat height = 2.0f);
@@ -260,6 +276,7 @@ private:
 	void DrawRoadSide(lineInfo_t* line1);
 	void DrawBlueSky();
 	void DrawQuad(quadInfo_t quad);
+	void DrawTriangle(triangle_t tri);
 
 	void DrawSpliteLine();
 	void DrawCharView(char *drawChar,GLfloat red, GLfloat green, GLfloat blue);
@@ -292,6 +309,7 @@ private:
 	int eyeLookaheadBackBufIdx;
 	int quadBackBufIdx;
 	int serverCharBackBufIdx;
+	int triBackBufIdx;
 
 	
 	eyeInfo_3D_Internal_t  eyeBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
@@ -302,6 +320,7 @@ private:
 	list<lineInfo_t> roadLineBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	drawCharInfo_3D_Internal_t charBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	vector<quadInfo_t>     quadBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
+	vector<triangle_t>     triBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 	GLuint                 texturelist[MAX_BUFFER_DEPTH_2D_TXETURE];
 	vector<drawServerCharInfo_t> serverCharBuffer[MAX_BUFFER_NUMBER_3D_ENGINE];
 

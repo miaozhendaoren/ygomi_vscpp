@@ -19,16 +19,37 @@
 #include "string"
 #include "windows.h"
 #include "database.h"
+#include "RoadSeg.h"
+#include "AppInitCommon.h"
+#include "configure.h"
+
+using namespace ns_roadsegment;
 
 bool readSectionConfig(string configPath,list<ns_database::segAttributes_t> &segCfgList);
-//double getLength1(IN double point1_x,IN double point1_y, IN double point2_x, IN double point2_y);
-//called by getSectionId
 
-uint32 getSectionId(IN point3D_t inPoint,
-                    IN list<segAttributes_t> &segConfigList,
-                    OUT uint32 &foundSectionID);
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE) 
+bool getSectionId(IN point3D_t inPoint,
+				  IN int currentloopIdx,
+	              OUT uint32 &segId);
 
-bool fixVehicleLocationInLane(point3D_t reletiveGps,list<vector<point3D_t>> &allLines, point3D_t *locationInLane);
+bool getSegIdAndDirection(IN point3D_t inPoint1,
+	                      IN point3D_t inPoint2,
+						  IN int currentloopIdx,
+	                      OUT uint32 &segId,
+	                      OUT bool &reverseFlag);
+#else
+bool getSectionId(IN point3D_t inPoint,
+	              IN list<segAttributes_t> segConfigList,
+	              OUT uint32 &foundSectionID);
+
+bool getSegIdAndDirection(IN point3D_t inPoint1,
+	                      IN point3D_t inPoint2,
+	                      IN list<segAttributes_t> segConfigList,
+	                      OUT uint32 &foundSectionID,
+	                      OUT bool &reverseFlag);
+#endif
+
+bool fixVehicleLocationInLane(point3D_t reletiveGps,list<vector<point3D_t>> &allLines,bool direction, point3D_t *locationInLane);
 
 bool checkLineSection(list<list<lineAttributes_t>> &lineAttr, int sectionId, int &LineNum);
 

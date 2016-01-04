@@ -21,8 +21,10 @@
 #include "databaseServer.h"
 #include "RoadVecGen.h"
 #include "RoadVecGen2.h"
+#include "RoadVecGen3.h"
 #include "messageProcessClass.h"
 #include "messageQueueClass.h"
+#include "RoadSeg.h"
 
 void appInitEvents(void);
 void databaseInit();
@@ -31,9 +33,10 @@ void msgQueueInit();
 void viewPointInit();
 
 #define MAX_CLIENT_NUM		10
+#define LANE_END_LINE_FLAG (0XDEADBEEF)
 
-#define SERVER_PLAY_BACK_MODE 1
-#define SERVER_LOG_DIFF_MSG   0
+#define SERVER_PLAY_BACK_MODE 0
+#define SERVER_LOG_DIFF_MSG   1
 
 struct portToVehi_t
 {
@@ -53,7 +56,12 @@ extern list<portToVehi_t> portToVehiList;
 extern messageQueueClass* messageQueue_gp;
 extern messageQueueClass* databaseQueue_gp;
 extern ns_database::databaseServer* database_gp;
+#if (RD_LOCATION == RD_GERMAN_MUNICH_AIRPORT_LARGE)
+extern ns_database::CRoadVecGen3 *roadVecGen2_gp;
+#else
 extern ns_database::CRoadVecGen2 *roadVecGen2_gp;
+#endif
+extern ns_roadsegment::All_RoadSegment *roadSegConfig_gp;
 
 extern SOCKET sockServer;			// socket
 extern SOCKET sockClient;
